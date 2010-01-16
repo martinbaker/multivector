@@ -327,6 +327,21 @@ Type: Matrix(CliffordAlgebra(3,Fraction(Integer),[[1,0,0],[0,1,0],[0,0,1]]))
          + 1 2 3    2 3       1 3       3     1 2       2         1         +
 Type: Matrix(CliffordAlgebra(3,Fraction(Integer),[[1,0,0],[0,1,0],[0,0,1]]))
 
+\subsection{Debugging}
+Debugging
+
+There are some commands to help with debugging:
+
+setMode("orthogonal",false)
+
+The "orthogonal" flag is set to true if the non-diagonal terms in the matrix are zero.
+This allows a more optimised Clifford multiplication for this case. The above setMode command
+would turn that optimisation off forcing all multiplications to be done by the more general algorithm.
+This allows the output of the two algorithms to be compared.
+
+setMode("debug",true)
+
+This "debug" flag causes the internal working of the algorithms to be displayed during calculations.
 
 <<domain CLIF CliffordAlgebra>>=
 )abbrev domain CLIF CliffordAlgebra
@@ -380,7 +395,7 @@ CliffordAlgebra(n, K, bLin): T == Impl where
           ++ return the max grade of multivector, for example
           ++ 1 is grade 0
           ++ e1 is grade 1
-          ++ e1^e2 is grade 2 and so on
+          ++ e1/\e2 is grade 2 and so on
         monomial: (K, List PI) -> %
           ++ monomial(c,[i1,i2,...,iN]) produces the value given by
           ++ \spad{c*e(i1)*e(i2)*...*e(iN)}.
@@ -423,12 +438,18 @@ CliffordAlgebra(n, K, bLin): T == Impl where
           ++ of each term seperately using:
           ++ grade: 0  1  2  3...
           ++ multi: 1 -1 -1  1...
+        setMode: (String,Boolean) -> Boolean
+          ++ allows override of parameters such as orthogonal
+          ++ used for debugging
+
 
     Impl ==> add
         Qeelist:Vector K :=  diagonal(bLin)::Vector K
           ++ contains the diagonal terms of bLin (what the base vectors square to)
         orthogonal:Boolean :=  diagonal?(bLin)
           ++ true if bininear form is diagonal (non diagonal terms are zero)
+        debug:Boolean := false
+          ++ if set to true displays working when calculating results
         dim     :=  2^n
           ++ the total dimension of all the grades from scalar up to pseudoscalar
         Rep     := PrimitiveArray K
@@ -465,6 +486,39 @@ CliffordAlgebra(n, K, bLin): T == Impl where
         coerce(m): % == (z := New; z.0 := m::K; z)
         coerce(c): % == (z := New; z.0 := c; z)
 
+        -- output single term to string
+        -- this produces a simple one line string unlike coerceMonom
+        -- no formatting such as subscript is done
+        -- this is intended mainly for debug purposes
+        toStringTerm(c: K, b: SINT): String ==
+            mult:String := (mathObject2String$Lisp c)@String
+            b = 0 => mult
+            c = 0 => "0"
+            if c=1 then mult := "e"
+            if c= -1 then mult := "-e"
+            if c~=1 and c~= -1 then mult := concat(mult,"e")
+            for i in 0..n-1 repeat
+              if bit?(b,i) then mult := concat(mult,string(i+1)$String)
+            mult
+
+        -- output multivector to string
+        -- this produces a simple one line string unlike coerce(x): Ex
+        -- no formatting such as subscript is done
+        -- this is intended mainly for debug purposes
+        toString(m:%): String ==
+            res:String := ""
+            for im in 0..dim-1 repeat
+              if m.im ~= 0 then
+                s:String := (mathObject2String$Lisp m.im)@String
+                neg:Boolean := false
+                if #s > 0 then neg := (s.1 = char "-")
+                if res ~= "" and not neg then
+                  res := concat[res,"+",toStringTerm(m.im,im::SINT)]
+                if res = "" or neg then
+                  res := concat(res,toStringTerm(m.im,im::SINT))
+            if res = "" then res:="0"
+            res
+
         -- NOTE tempoary name change to: es(n) to avoid name clash with e(l) below
         -- e(n) produces the appropriate unit element.
         --        iz   z
@@ -488,7 +542,7 @@ CliffordAlgebra(n, K, bLin): T == Impl where
         -- eFromBinaryMap(0) = 1  (scalar)
         -- eFromBinaryMap(1) = e1
         -- eFromBinaryMap(2) = e2
-        -- eFromBinaryMap(3) = e1*e2
+        -- eFromBinaryMap(3) = e1/\e2
         eFromBinaryMap b ==
             b >= dim => error "Too big"
             z := New; z.b := 1; z
@@ -529,7 +583,7 @@ CliffordAlgebra(n, K, bLin): T == Impl where
         -- return the max grade of multivector, for example
         -- 1 is grade 0
         -- e1 is grade 1
-        -- e1^e2 + e1 is grade 2 and so on
+        -- e1/\e2 + e1 is grade 2 and so on
         grade(x:%): NNI ==
           gr:NNI := 0         
           for ix in 0..dim-1 repeat
@@ -594,6 +648,13 @@ CliffordAlgebra(n, K, bLin): T == Impl where
             for ix in 0..dim-1 repeat
                 if x.ix ~= 0 then z := z + conjTerm(x.ix,ix::SINT)
             z
+
+        -- allows override of parameters such as orthogonal
+        -- used for debugging
+        setMode(s:String,val:Boolean): Boolean ==
+          if s = "orthogonal" then (orthogonal := val; return true)
+          if s = "debug" then (debug := val; return true)
+          false
 
         -- return the base vector number from binary, for example
         -- binary for e1 is 001 which returns 1
@@ -708,20 +769,26 @@ CliffordAlgebra(n, K, bLin): T == Impl where
           resul:% := New
           grade1 := gradeTerm(op1type) -- grade of first operand
           grade2 := gradeTerm(op2type) -- grade of second operand
-          if grade2 = 0 then -- 1st operand is scalar so return scalar product
+          if grade2 = 0 then -- 2nd operand is scalar so return scalar product
             resul.op1type := resul.op1type + op1mult*op2mult
             return resul
-          grade1 = 0 => resul -- 2nd operand is scalar so return 0
+          grade1 = 0 => resul -- 1st operand is scalar so return 0
           if grade1 = 1 and grade2 = 1 then -- vect |_ vect = bilinear
             resul.(0$NNI) := resul.(0$NNI) + op1mult * op2mult * bilinear(op1type,op2type) -- add scalar term
             return resul
-          if grade2 = 1 then -- 1st operand is vector so apply: (v^u)|_x=v^(u|_x) - (v|_x)^u
+          if grade2 = 1 then -- 2nd operand is vector so apply: (v^u)|_x=v^(u|_x) - (v|_x)^u
             uType:SINT := rightMostBase(op1type) -- lowest ^factor
             vType:SINT := xor(op1type,uType) -- remaining ^factors
             inner2:% := New; inner2.vType := 1$K
             right:% := _/_\(inner2,rcProdTerm(op1mult, uType,op2mult, op2type))
             inner4:% := New; inner4.uType := 1$K
             resul := resul + _/_\(rcProdTerm(op1mult, vType,-op2mult, op2type),inner4) + right
+            if debug then
+              s1 := concat[toStringTerm(op1mult,op1type),"L",toStringTerm(op2mult,op2type)]
+              s2 := concat["= ",toStringTerm(op1mult, vType),"L",toStringTerm(-op2mult, op2type)]
+              s3 := concat["/\",toString(inner4),"+",toString(right)]
+              s4 := concat("=",toString(resul))
+              sayTeX$Lisp concat ["rcProdTerm: ",s1,s2,s3,s4]
             return resul
           -- if none of the above is true then apply:
           -- w |_ (v/\u) = (w |_ v) |_ u
@@ -730,6 +797,12 @@ CliffordAlgebra(n, K, bLin): T == Impl where
           inner2:% := New
           inner2.uType := 1$K
           resul := resul+ rc(rcProdTerm(op1mult,op1type,op2mult,vType),inner2)
+          if debug then
+            s1 := concat[toStringTerm(op1mult,op1type),"L",toStringTerm(op2mult,op2type)]
+            s2 := concat["= (",toStringTerm(op1mult,op1type),"L",toStringTerm(op2mult,vType)]
+            s3 := concat(") L",toString(inner2))
+            s4 := concat("=",toString(resul))
+            sayTeX$Lisp concat ["rcProdTerm: ",s1,s2,s3,s4]
           resul
 
         -- Implement left contraction inner product
@@ -795,13 +868,20 @@ CliffordAlgebra(n, K, bLin): T == Impl where
           xType:SINT := rightMostBase(op1type) -- highest ^factor
           uType:SINT := xor(op1type,xType) -- remaining ^factors
           ut:% := New; ut.uType := 1$K
-          vt:% := New; vt.op1type := 1$K
-          -- factor1 := x _| v + x /\v
-          factor1:% := lcProdTerm(1$K,xType,1$K,op1type)_
-            + exteriorProdTerm(1$K,xType,1$K,op1type)
+          vt:% := New; vt.op2type := 1$K
+          -- factor1 := x * v = x _| v + x /\v
+          -- factor1:% := cliffordProdTerm(1$K,xType,1$K,op2type)
+          factor1:% := lcProdTerm(1$K,xType,1$K,op2type)_
+            + exteriorProdTerm(1$K,xType,1$K,op2type)
           -- factor2 := u |_ x
           factor2:% := rcProdTerm(1$K,uType,1$K,xType)
           resul := ut * factor1 - factor2 * vt
+          if debug then
+            s1 := concat[toStringTerm(op1mult,op1type),"*",toStringTerm(op2mult,op2type)]
+            s2 := concat["=",toString(ut),"*",toString(factor1)]
+            s3 := concat["-",toString(factor2),"*",toString(vt)]
+            s4 := concat["=",toString(resul)]
+            sayTeX$Lisp concat ["cliffordProdTerm: ",s1,s2,s3,s4]
           resul := (op1mult*op2mult)*resul -- apply 'scalar' multipliers
           resul
 
