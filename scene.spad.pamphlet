@@ -113,7 +113,7 @@ structure.
 
 The purpose and constructors of these nodes is as follows:
 (in the following definitions PT refers to an instance of SPointCategory
-such as SPoint2,SPoint3,SCmplx).
+such as SCartesian(2),SCartesian(3),SArgand and SConformal).
 \subsection{Root Node}
 Constructs the root node, all other nodes are contained in a tree structure
 under this node. The root node can have a bounding box which indicates the
@@ -188,7 +188,7 @@ Constructs a clip node, clips its sub nodes in the coordinate
 createSceneClip:(bb: BOUNDS) -> %
 addSceneClip:(n:%,bb: BOUNDS) -> %
 \end{verbatim}
-where: BOUNDS ==> Record(mins:SPoint2,maxs:SPoint2)
+where: BOUNDS ==> Record(mins:SCartesian(2),maxs:SCartesian(2))
 \subsection{Material Node}
 Constructs a material node
 This sets the lineWidth,lineCol and fillCol for all nodes under
@@ -375,9 +375,8 @@ Separate each of the categories, packages and domains from this file into
 individual files and compile them - something like this:
 \begin{verbatim}
 )co SPointCategory.spad
-)co SPoint2.spad
-)co SPoint3.spad
-)co SCmplx.spad
+)co SCartesian.spad
+)co SArgand.spad
 )co SceneIFS.spad
 )co STransform.spad
 )co XmlAttribute.spad
@@ -398,14 +397,14 @@ This contains two points representing the maximum and minimum extent of the
 drawing area or volume. That is mins contains the minimum values of x,y...
 and maxs contains the maximum values of x,y...
 \begin{verbatim}
-BOUNDS ==> Record(mins:SPoint2,maxs:SPoint2)
-view:BOUNDS := [sipnt(0,-500)$SPoint2,sipnt(1200,500)$SPoint2]
+BOUNDS ==> Record(mins:SCartesian(2),maxs:SCartesian(2))
+view:BOUNDS := [sipnt(0,-500)$SCartesian(2),sipnt(1200,500)$SCartesian(2)]
 \end{verbatim}
 \begin{verbatim}
-sc := createSceneRoot(view)$Scene(SPoint2)
+sc := createSceneRoot(view)$Scene(SCartesian(2))
 \end{verbatim}
 \begin{verbatim}
-gd := addSceneGrid(sc,view)$Scene(SPoint2)
+gd := addSceneGrid(sc,view)$Scene(SCartesian(2))
 \end{verbatim}
 we can now export this to a SVG file so that we can confirm that
 the scene contains a grid
@@ -415,12 +414,12 @@ writeSvg(sc,"test1.svg")
 Now lets add a plot to this. First we add a 'material' node to the root to
 define the colour and thickness of the plot.
 \begin{verbatim}
-mt1 := addSceneMaterial(sc,3::DF,"blue","green")$Scene(SPoint2)
+mt1 := addSceneMaterial(sc,3::DF,"blue","green")$Scene(SCartesian(2))
 \end{verbatim}
 Then we add the plot to the material node using the sine function that we
 defined earlier.
 \begin{verbatim}
-ln1 := addPlot1Din2D(mt1,fnsin,0..1000::DF,49)$Scene(SPoint2)
+ln1 := addPlot1Din2D(mt1,fnsin,0..1000::DF,49)$Scene(SCartesian(2))
 \end{verbatim}
 we can now export this to a SVG file again to see that
 the plot has been added to the grid
@@ -430,24 +429,24 @@ writeSvg(sc,"test2.svg")
 Lets now add second plot to the scene so that we can see how to modify
 it using material, transform and clip.
 \begin{verbatim}
-mt2 := addSceneMaterial(sc,3::DF,"green","green")$Scene(SPoint2)
+mt2 := addSceneMaterial(sc,3::DF,"green","green")$Scene(SCartesian(2))
 \end{verbatim}
 \begin{verbatim}
 tr2 := addSceneTransform(mt2,stransform([_
              [1::DF,0::DF,0::DF],_
              [0::DF,1::DF,0::DF],_
-             [0::DF,0::DF,1::DF]]))$Scene(SPoint2)
+             [0::DF,0::DF,1::DF]]))$Scene(SCartesian(2))
 \end{verbatim}
 \begin{verbatim}
-bb:BOUNDS := [sipnt(100,-400)$SPoint2,sipnt(1100,400)$SPoint2]
-bb2 := addSceneClip(tr2,bb)$Scene(SPoint2)
+bb:BOUNDS := [sipnt(100,-400)$SCartesian(2),sipnt(1100,400)$SCartesian(2)]
+bb2 := addSceneClip(tr2,bb)$Scene(SCartesian(2))
 \end{verbatim}
 \begin{verbatim}
-ln2 := addPlot1Din2D(bb2,fntan,0..1000::DF,49)$Scene(SPoint2)
+ln2 := addPlot1Din2D(bb2,fntan,0..1000::DF,49)$Scene(SCartesian(2))
 \end{verbatim}
 \begin{verbatim}
 tx := addSceneText(sc,"sin(theta)",32::NNI,_
-          sipnt(200,400)$SPoint2)$Scene(SPoint2)
+          sipnt(200,400)$SCartesian(2))$Scene(SCartesian(2))
 \end{verbatim}
 \begin{verbatim}
 writeSvg(sc,"test3.svg")
@@ -492,8 +491,8 @@ be implemented so that the slot directly into the geometry/graphics
 framework.
 
 We have not achieved that aim yet. STransform does work with the various
-implementations of the SPointCategory such as SPoint2, SPoint3, SCmplx.
-What I would like to do is to have
+implementations of the SPointCategory such as SCartesian(2), SCartesian(3),
+SArgand and SConformal. What I would like to do is to have
 a transform category which could be implemented by domains like
 dhmatrix.spad.pamphlet and moebius.spad.pamphlet, then they could be
 used in the geometry/graphics framework anywhere transforms are appropriate.
@@ -536,6 +535,7 @@ type of space that we are dealing with:
 * SArgand - two dimensional space defined by real and imaginary parts.
            Translations are defined by general function of a complex
            variable C->C.
+* SConformal - Two extra dimentions added to form a null space.
 \end{list}
 What I really want to do is define implementations of conformal space
 in various number of dimensions using Clifford algebra say 'SConformal2d'.
@@ -1686,8 +1686,8 @@ be implemented so that the slot directly into the geometry/graphics
 framework.
 
 We have not acheived that aim yet. STransform does work with the various
-implementations of the SPointCategory such as SPoint2, SPoint3, SCmplx.
-What I would like to do is to have
+implementations of the SPointCategory such as SCartesian(2), SCartesian(3),
+SArgand and SConformal. What I would like to do is to have
 a transform category which could be implemented by domains like
 dhmatrix.spad.pamphlet and moebius.spad.pamphlet, then they could be
 used in the geometry/graphics framework anywhere transforms are appropriate.
@@ -2290,7 +2290,7 @@ object.
 ++ Date Created: September 2010
 ++ Date Last Updated: September 2010
 ++ Basic Operations: spnt,sipnt,svec,sivec,screenCoords
-++ Related Constructors: SPoint, SConformal, SArgand, STransform
+++ Related Constructors: SCarteasian, SConformal, SArgand, STransform
 ++ Also See:
 ++ AMS Classifications:
 ++ Keywords:
