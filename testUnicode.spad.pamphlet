@@ -1,0 +1,227 @@
+\documentclass{article}
+\usepackage{axiom}
+\begin{document}
+\title{Scenegraph code}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+Unicode debug support on a system
+\end{abstract}
+\eject
+\tableofcontents
+\eject
+\section{Preface}
+Mathematical related symbol blocks
+\begin{list}{}
+*Mathematical Operators (2200..22FF)
+*Miscellaneous Mathematical Symbols-A (27C0..27EF)
+*Miscellaneous Mathematical Symbols-B (2980..29FF)
+*Supplemental Mathematical Operators (2A00..2AFF)
+*Mathematical Alphanumeric Symbols (1D400..1D7FF)
+\end{list}
+for more details see this page:
+http://en.wikipedia.org/wiki/Unicode_Mathematical_Operators
+
+and arrow symbol blocks
+\begin{list}{}
+* Arrows (2190..21FF)
+* Supplemental Arrows-A (27F0..27FF)
+* Supplemental Arrows-B (2900..297F)
+* Miscellaneous Symbols and Arrows (2B00..2BFF)
+* Dingbat arrows (2794..27BF)
+\end{list}
+
+<<package UCODE testUnicode>>=
+)abbrev package UCODE testUnicode
+++ Author: Martin John Baker
+++ Date Created: March 2011
+++ Date Last Updated: March 2011
+++ Basic Operations: testUnicodeConsole,testUnicodeFile,testαSupport
+++ Related Constructors:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ Description:
+++ Simple test of unicode support on a system
+++ The idea is that if a user has a problem with unicode not
+++ displaying they can then call testUnicodeConsole.
+++ This function outputs various mathematical related unicode symbol
+++ blocks.
+++ This should allow the user to check whether there are
+++ appropriate fonts for these symbol blocks installed on their system
+++ If support for a given character is missing it will be typically
+++ be displayed as a rectangle.
+++ If there are no unicode characters displayed then the problem may
+++ be due to lack of support on the console, Lisp or platform that the
+++ user is working on.
+++ One way to check this out might be to call testUnicodeFile to
+++ generate a file, then to try reading this file on a system
+++ where unicode is known to be installed.
+++ 
+
+testUnicode(): with
+
+  testUnicodeConsole:() -> Void
+    ++ This function generates unicode output to console
+    ++ The aim is to use as a debugging aid in case a user finds
+    ++ that some unicode characters are not being displayed on
+    ++ their console.
+    ++ This function outputs various mathematical related unicode symbol
+    ++ blocks. This should allow the user to check whether there are
+    ++ appropriate fonts for these symbol blocks installed on their system
+  testUnicodeFile:(String) -> Void
+    ++ This function generates unicode output to a file
+    ++ The aim is to use as a debugging aid in case a user finds
+    ++ that some unicode characters are not being displayed on
+    ++ their console.
+    ++ This file can be checked on another machine to check that
+    ++ the unicode is being processed correctly even if it is not
+    ++ being displayed
+    ++ When viewing the file it will display best as a fixed width font
+  testαSupport:() -> Void
+    ++ This function tests that unicode characters can be used in various
+    ++ contexts:
+    ++ • in the function name
+    ++ • as a variable name
+    ++ • as a character
+    ++ • in a string
+    ++ • as a symbol
+
+ == add
+
+  -- appends a string to 'inp' consisting of a label
+  -- and a range of unicode symbols
+  genUnicodeString(inp:List String,label:String,_
+      start:PositiveInteger,_
+      finish:PositiveInteger):List String ==
+    s1 := label
+    for x in start..finish repeat
+      s1 := concat[s1," ",new(1,char(x))$String]
+    concat(inp,s1)
+
+  -- appends a string to 'inp' consisting of a 16 by numRows
+  -- grid of unicode symbols
+  genUnicodeBlock(inp:List String,start:PositiveInteger,_
+                  numRows:PositiveInteger):List String ==
+    sl := inp
+    sl := concat(sl,"┏━┳━┳━┳━┳━┳━┳━┳━┳━┳━┳━┳━┳━┳━┳━┳━┓")
+    for i in 0..(numRows-1) repeat
+      s2:String := "┃"
+      for j in 0..15 repeat
+        s2 := concat([s2,new(1,char(start + i*16 + j))$String,"┃"])$String
+      sl := concat(sl,s2)
+      if i ~= (numRows-1) then
+        sl := concat(sl,"┣━╋━╋━╋━╋━╋━╋━╋━╋━╋━╋━╋━╋━╋━╋━╋━┫")
+      if i = (numRows-1) then
+        sl := concat(sl,"┗━┻━┻━┻━┻━┻━┻━┻━┻━┻━┻━┻━┻━┻━┻━┻━┛")
+    sl
+
+  -- generates a list of strings containing various mathematical
+  -- related unicode symbol blocks. This is used by
+  -- testUnicodeConsole to output to console and
+  -- testUnicodeFile to output to a file.
+  genOutput():List String ==
+    sl := ["Unicode test"]
+    sl := genUnicodeString(sl,"Greek lc:     ",945,969)
+    sl := genUnicodeString(sl,"Greek uc:     ",913,937)
+    sl := concat(sl,"Various :     ×÷±•°ðÐƒµØøÞþ†∫∂◊≤≥≠≈∞∈∀∃⊕⊗⊥")
+    sl := concat(sl,"Mathematical Operators Block:")
+    sl := genUnicodeBlock(sl,8704,16)
+    sl := concat(sl,"Mathematical Symbols A Block:")
+    sl := genUnicodeBlock(sl,10176,3)
+    sl := concat(sl,"Mathematical Symbols B Block:")
+    sl := genUnicodeBlock(sl,10624,8)
+    sl := concat(sl,"Mathematical Supplemental Block:")
+    sl := genUnicodeBlock(sl,10752,16)
+    sl := concat(sl,"Arrows Block:")
+    sl := genUnicodeBlock(sl,8448,16)
+    sl
+
+  -- This function generates unicode output to console
+  -- The aim is to use as a debugging aid in case a user finds
+  -- that some unicode characters are not being displayed on
+  -- their console.
+  -- This function outputs various mathematical related unicode symbol
+  -- blocks. This should allow the user to check whether there are
+  -- appropriate fonts for these symbol blocks installed on their system
+  testUnicodeConsole():Void ==
+    sl := genOutput()
+    for st in sl repeat
+      sayTeX$Lisp st
+
+  -- This function generates unicode output to a file
+  -- The aim is to use as a debugging aid in case a user finds
+  -- that some unicode characters are not being displayed on
+  -- their console.
+  -- This file can be checked on another machine to check that
+  -- the unicode is being processed correctly even if it is not
+  -- being displayed
+  -- When viewing the file it will display best as a fixed width font
+  testUnicodeFile(filename:String):Void ==
+    f1:TextFile:=open(filename::FileName,"output")
+    sl := genOutput()
+    for st in sl repeat
+      writeLine!(f1,st)
+    close! f1
+
+  -- This function tests that unicode characters can be used in various
+  -- contexts:
+  -- • in the function name
+  -- • as a variable name
+  -- • as a character
+  -- • in a string
+  -- • as a symbol
+  testαSupport():Void ==
+    α := 945::Integer
+    sayTeX$Lisp α
+    c1:Character := char("α")
+    sayTeX$Lisp c1
+    c2:Character := char(945)
+    sayTeX$Lisp c2
+    s1 := ("α"::Symbol)::Polynomial(Integer)
+    sayTeX$Lisp s1
+
+@
+\section{License}
+<<license>>=
+--Copyright (c) 2011, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@
+<<*>>=
+<<license>>
+@
+\eject
+\begin{thebibliography}{99}
+Further Information about unicode:
+http://en.wikipedia.org/wiki/Unicode_Mathematical_Operators
+\end{thebibliography}
+\end{document}
