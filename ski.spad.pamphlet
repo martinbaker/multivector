@@ -1,0 +1,541 @@
+\documentclass{article}
+\usepackage{axiom}
+\begin{document}
+\title{ski combinator code}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+Implementation of SKI combinators
+\end{abstract}
+\eject
+\tableofcontents
+\eject
+\section{Preface}
+for more details see:
+http://www.euclideanspace.com/maths/standards/program/mycode/ski/
+
+Ski combinators were introduced by Moses Schönfinkel and Haskell
+Curry with the aim of eliminating the need for variables in
+mathematical logic. It is equivalent to lambda calculus but it
+can be used for doing, without variables, anything that would
+require variables in other systems.
+
+The structure is a self-modifing binary tree.
+\section{Tutorial}
+Tutorial
+
+The Ski domain needs to be installed on your system. Download and
+compile in the usual way. Make sure it is exposed since
+Axiom/FriCAS was started.
+
+)library SKI
+ 
+   Ski is now explicitly exposed in frame frame1 
+   Ski will be automatically loaded when needed from 
+      /home/martin/SKI.NRLIB/SKI
+
+\section{Constructing SKI combinators}
+Constructing SKI combinators
+
+The I, K and S combinators can be constructed by using the I(), K()
+and S() functions. Variables (representing functions) can be
+constructed by ski("x") where x is the name of the variable.
+
+(1) -> m1 := I()
+   (1)  "I"
+                                                              Type: Ski
+(2) -> m2 := K()
+   (2)  "K"
+                                                              Type: Ski
+(3) -> m3 := S()
+   (3)  "S"
+                                                              Type: Ski
+(4) -> v1 := ski("x")
+   (4)  "x"
+                                                              Type: Ski
+
+Compound combinators can be constructed by ski(node1,node2) where
+node1 and node2 are other combinators. Internally combinators are
+stored as a binary tree. The notation assumes association to the
+left, in the absence of brackets, the term to the left binds more
+tightly than the one on the right. So, in the following, we can
+see that:
+
+    * In n2 the second term is an atom so brackets are not required.
+    * In n3 the second term is compound so brackets are required.
+
+(5) -> n1 := ski(m1,m2)
+   (5)  "IK"
+                                                              Type: Ski
+(6) -> n2 := ski(n1,m3)
+   (6)  "IKS"
+                                                              Type: Ski
+(7) -> n3 := ski(m3,n1)
+   (7)  "S(IK)"
+                                                              Type: Ski
+
+In addition, to avoid having to build up this node by node, there is
+a quicker way to construct SKI combinators. We can construct the whole
+binary tree from a single string using the parseSki constructor as
+follows. Again the notation assumes association to the left, in the
+absence of brackets, the term to the left binds more tightly than
+the one on the right.
+
+(8) -> n4 := parseSki("IKS")
+   (8)  "IKS"
+                                                              Type: Ski
+(9) -> n5 := parseSki("S(IK)")
+   (9)  "S(IK)"
+                                                              Type: Ski
+\section{redux}
+redux
+
+Now that we have constructed our SKI combinator we can apply the
+combinators using the redux function. This allows us to apply the
+self-modifing binary tree.
+
+The first combinator to investigate is 'I'. This is a do nothing combinator:
+
+(10) -> s1 := parseSki("Ix")
+   (10)  "Ix"
+                                                              Type: Ski
+(11) -> redux(s1)
+x
+   (11)  "x"
+                                                              Type: Ski
+
+The next combinator to investigate is 'K'. This removes the final variable:
+
+(12) -> s2 := parseSki("Kxy")
+   (12)  "Kxy"
+                                                              Type: Ski
+(13) -> redux(s2)
+x
+   (13)  "x"
+                                                              Type: Ski
+
+The next combinator to investigate is 'S' This applies the first two
+functions to the third:
+
+(14) -> s3 := parseSki("Sxyz")
+   (14)  "Sxyz"
+                                                              Type: Ski
+(15) -> redux(s3)
+xz(yz)
+   (15)  "xz(yz)"
+                                                              Type: Ski
+\section{Secondary Combinators}
+Secondary Combinators
+
+Any calculation can be done by some combination of K and S. However some
+sequences occur frequently so it is worth assigning them special letters:
+
+Operator 	What it does 	SKI equivalent
+(normal form)
+I 	Identity (leave unchanged) 	I or SKK or SKS
+B 	Function composition 	S(KS)K
+B' 	Reverse function composition 	 
+C 	Swap functions 	S(K(SI))K
+K 	Form constant function 	K
+S 	Generalized composition 	S
+W 	Doubling or diagonalizing 	 
+
+So we can see in the 3 examples below :
+
+    * In 16 that "SKKxy" is equivalent to "xy", that is SKK is identity,
+      equivalent to I
+    * In 18 that "S(K(SI))Kxy" is equivalent to "yx", so "S(K(SI))K"
+      reverses its operands.
+
+(16) -> redux(parseSki("SKKxy"))
+Kx(Kx)y
+xy
+   (16)  "xy"
+                                                              Type: Ski
+(17) -> redux(parseSki("S(KS)xy"))
+KSy(xy)
+S(xy)
+   (17)  "S(xy)"
+                                                              Type: Ski
+(18) -> redux(parseSki("S(K(SI))Kxy"))
+K(SI)x(Kx)y
+Iy(Kxy)
+yx
+   (18)  "yx"
+                                                              Type: Ski
+\section{To Do}
+Issue 1
+
+Currently this only works with variables, this means that:
+
+    * redux applied to 'SKKxy' gives 'xy'
+    * but redux applied to 'SKK' does not give 'I'
+
+That is, I am looking for a way to 'lift' from working in terms
+operators acting on variables to working in terms of operators only.
+
+Issue 2
+
+It would be good to be able to use these combinators to operate on
+Axiom/FriCAS functions.
+
+
+<<domain SKI Ski>>=
+)abbrev domain SKI Ski
+++ Author: Martin Baker
+++ Date Created: March 2011
+++ Date Last Updated: March 2011
+++ Basic Operations: 
+++ Related Constructors: 
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/ski/
+
+Ski(): Exports == Implementation where
+
+ NNI==> NonNegativeInteger
+
+ Exports == with
+  ski:(x:%,y:%) -> %
+    ++ Constructs a node combinator over combinators
+  ski:(x:%,y:Variable(I)) -> %
+    ++ Constructs a node over (node,I)
+  ski:(x:%,y:Variable(K)) -> %
+    ++ Constructs a node over (node,K)
+  ski:(x:%,y:Variable(S)) -> %
+    ++ Constructs a node over (node,S)
+  ski:(x:Variable(I),y:%) -> %
+    ++ Constructs a node over (I,node)
+  ski:(x:Variable(K),y:%) -> %
+    ++ Constructs a node over (K,node)
+  ski:(x:Variable(S),y:%) -> %
+    ++ Constructs a node over (S,node)
+  ski:(x:Variable(I),y:Variable(I)) -> %
+    ++ Constructs a II combinator
+  ski:(x:Variable(I),y:Variable(K)) -> %
+    ++ Constructs a IK combinator
+  ski:(x:Variable(I),y:Variable(S)) -> %
+    ++ Constructs a IS combinator
+  ski:(x:Variable(K),y:Variable(I)) -> %
+    ++ Constructs a KI combinator
+  ski:(x:Variable(K),y:Variable(K)) -> %
+    ++ Constructs a KK combinator
+  ski:(x:Variable(K),y:Variable(S)) -> %
+    ++ Constructs a KS combinator
+  ski:(x:Variable(S),y:Variable(I)) -> %
+    ++ Constructs a SI combinator
+  ski:(x:Variable(S),y:Variable(K)) -> %
+    ++ Constructs a SK combinator
+  ski:(x:Variable(S),y:Variable(S)) -> %
+    ++ Constructs a SS combinator
+  ski:(t1: String) -> %
+    ++ Constructs variable combinator
+  I:() -> %
+    ++ Constructs a I combinator
+  K:() -> %
+    ++ Constructs a K combinator
+  S:() -> %
+    ++ Constructs a S combinator
+  parseSki:(t1: String) -> %
+    ++ Constructs combinators from a string
+  atom?:(n: %) -> Boolean
+    ++ returns true if this is an atom, that is a leaf node
+    ++ otherwise return false if this is a compound term
+  isI?:(n: %) -> Boolean
+    ++ returns true if this is an I combinator node
+  isK?:(n: %) -> Boolean
+    ++ returns true if this is a K combinator node
+  isS?:(n: %) -> Boolean
+    ++ returns true if this is a S combinator node
+  redux:(n: %) -> %
+    ++ weak reduction - apply this combinator to rearange its
+    ++ subnodes then apply recusivly to its subnodes
+  "=":(x:%, y:%) -> Boolean
+    ++ return true if equal (deep search) that is: all terms
+    ++ at all levels in tree must be equal to return true
+    ++ all terms must be exactly equal, not just equivalent, that is
+    ++ SKK=I will return false even though 'SKK' and 'I' have the
+    ++ same effect
+  toString: (n: %) -> String
+    ++ output
+  coerce: (n: %) -> OutputForm
+    ++ output
+
+ Implementation == add
+
+  Rep := Union(_
+         lf:Record(typ:NNI),_
+         nd:Record(c1:%, c2:%),_
+         vr:Record(s1:String)_
+         )
+
+  -- Constructs a node combinator over another combinators
+  ski(x:%,y:%): % == [[x,y]]
+
+  -- Constructs a node over (node,I)
+  ski(x:%,y:Variable(I)): % == [[x,I()]]
+
+  -- Constructs a node over (node,K)
+  ski(x:%,y:Variable(K)): % == [[x,K()]]
+
+  -- Constructs a node over (node,S)
+  ski(x:%,y:Variable(S)): % == [[x,S()]]
+
+  -- Constructs a node over (node,I)
+  ski(x:Variable(I),y:%): % == [[I(),y]]
+
+  -- Constructs a node over (node,K)
+  ski(x:Variable(K),y:%): % == [[K(),y]]
+
+  -- Constructs a node over (node,S)
+  ski(x:Variable(S),y:%): % == [[S(),y]]
+
+  -- Constructs a II combinator
+  ski(x:Variable(I),y:Variable(I)): % == [[I(),I()]]
+
+  -- Constructs a IK combinator
+  ski(x:Variable(I),y:Variable(K)): % == [[I(),K()]]
+
+  -- Constructs a IS combinator
+  ski(x:Variable(I),y:Variable(S)): % == [[I(),S()]]
+
+  -- Constructs a KI combinator
+  ski(x:Variable(K),y:Variable(I)): % == [[K(),I()]]
+
+  -- Constructs a KK combinator
+  ski(x:Variable(K),y:Variable(K)): % == [[K(),K()]]
+
+  -- Constructs a KS combinator
+  ski(x:Variable(K),y:Variable(S)): % == [[K(),S()]]
+
+  -- Constructs a SI combinator
+  ski(x:Variable(S),y:Variable(I)): % == [[S(),I()]]
+
+  -- Constructs a SK combinator
+  ski(x:Variable(S),y:Variable(K)): % == [[S(),K()]]
+
+  -- Constructs a SS combinator
+  ski(x:Variable(S),y:Variable(S)): % == [[S(),S()]]
+
+  -- Constructs variable combinator
+  ski(t1: String):% ==
+    [[t1]]
+
+  -- Constructs a I combinator
+  I(): % == [[1::NNI]]
+
+  -- Constructs a K combinator
+  K(): % == [[2::NNI]]
+
+  -- Constructs a S combinator
+  S(): % == [[3::NNI]]
+
+  -- convert BinaryTree Character node to Ski node
+  -- called recursivly on subnodes
+  -- used by parseSki
+  btc2Ski(btc: BinaryTree Character): % ==
+    if leaf?(btc) then
+      ch:Character := value(btc)
+      if ch = char("I") then
+        return [[1::NNI]]
+      if ch = char("K") then
+        return [[2::NNI]]
+      if ch = char("S") then
+        return [[3::NNI]]
+      return [[ch::String]]
+    if not leaf?(btc) then
+      return ski(btc2Ski(left(btc)),btc2Ski(right(btc)))
+    [[1::NNI]]
+
+  -- Constructs combinators from a string
+  -- ski pass required to use ski lift
+  -- notation assumes association to the left, in the absence of
+  -- brackets, the term to the left binds more tightly than the
+  -- one on the right.
+  parseSki(t1: String): % ==
+    -- first we build chBuffer which holds the characters
+    -- from the String and puts them in a tree
+    branchStack: Stack BinaryTree Character := empty()
+    chBuffer: BinaryTree Character := empty()
+    mn := minIndex(t1)
+    mx := maxIndex(t1)
+    for pt in mn..mx repeat
+      ch := qelt(t1,pt)
+      if alphanumeric?(ch) then
+        if empty?(chBuffer)
+          then chBuffer:=binaryTree(ch)
+          else chBuffer:=binaryTree(chBuffer,ch,binaryTree(ch))
+      if ch = char("(") then
+        push!(chBuffer,branchStack)
+        chBuffer:= empty()
+      if ch = char(")") then
+        hold:BinaryTree Character := pop!(branchStack)
+        -- if empty?(hold) then sayTeX$Lisp "hold empty"
+        -- if empty?(chBuffer) then sayTeX$Lisp "chBuffer empty"
+        if empty?(chBuffer)
+          then
+            chBuffer:=hold
+            sayTeX$Lisp "chBuffer empty"
+          else
+            if not empty?(hold) then
+              chBuffer:=binaryTree(hold,ch,chBuffer)
+            --sayTeX$Lisp "chbuffer not empty"
+    -- sayTeX$Lisp (mathObject2String$Lisp chBuffer)@String
+    -- now chBuffer tree is built we can convert this into the ski
+    -- structure
+    btc2Ski(chBuffer)
+
+  -- returns true if this is an atom, that is a leaf node
+  -- otherwise return false if this is a compound term
+  atom?(n: %):Boolean == (n case lf) or (n case vr)
+
+  -- returns true if this is an I combinator node
+  isI?(n: %):Boolean ==
+    if not (n case lf) then return false
+    if n.lf.typ = 1 then return true
+    false
+
+  -- returns true if this is a K combinator node
+  isK?(n: %):Boolean ==
+    if not (n case lf) then return false
+    if n.lf.typ = 2 then return true
+    false
+
+  -- returns true if this is a S combinator node
+  isS?(n: %):Boolean ==
+    if not (n case lf) then return false
+    if n.lf.typ = 3 then return true
+    false
+
+  -- return string representation
+  -- notation assumes association to the left, in the absence of
+  -- brackets, the term to the left binds more tightly than the
+  -- one on the right.
+  toString(n: %):String ==
+    s:String := ""
+    if n case lf then
+      -- leaf node so print I,K or S
+      if n.lf.typ = 1 then s := "I"
+      if n.lf.typ = 2 then s := "K"
+      if n.lf.typ = 3 then s := "S"
+      --sayTeX$Lisp concat(["toString case i1=",s])
+      --sayTeX$Lisp n
+    if n case nd then
+      -- binary node which has two subnodes c1 and c2
+      if atom?(n.nd.c2) then
+        s := concat([s,toString(n.nd.c1),toString(n.nd.c2)])
+      else
+        s := concat([s,toString(n.nd.c1),"(",toString(n.nd.c2),")"])
+    if n case vr then
+      -- variable node so print name
+      s := n.vr.s1
+    s
+
+  -- weak reduction - apply this combinator to rearange its
+  -- subnodes then apply recusivly to its subnodes
+  redux1(n: %):% ==
+    if n case nd then
+      -- binary node which has two subnodes c1 and c2
+      left := redux1(n.nd.c1)
+      right := redux1(n.nd.c2)
+      --sayTeX$Lisp concat(["left=",toString(left),_
+      --                    " right=",toString(right)])$String
+      if isI?(left) then return right
+      if not (left case nd) then return ski(left,right)
+      leftleft := left.nd.c1
+      leftright := left.nd.c2
+      --sayTeX$Lisp concat(["leftleft=",toString(leftleft),_
+      --                    " leftright=",toString(leftright)])$String
+      if isK?(leftleft) then return leftright
+      if not (leftleft case nd) then return ski(left,right)
+      leftleftleft := leftleft.nd.c1
+      leftleftright := leftleft.nd.c2
+      --sayTeX$Lisp concat(["leftleftleft=",toString(leftleftleft),_
+      --                    " leftleftright=",toString(leftleftright)])$String
+      if isS?(leftleftleft) then
+        return ski(ski(leftleftright,right),ski(leftright,right))
+      return ski(left,right)
+    n
+
+  -- weak reduction - apply this combinator to rearange its
+  -- subnodes then apply recusivly to its subnodes
+  redux(n: %):% ==
+    lastResult := [[1::NNI]]
+    thisResult := redux1(n)
+    triesLeft:NNI := 20::NNI -- limit tries in case of loop
+    while (lastResult ~= thisResult) and (triesLeft > (1::NNI)) repeat
+      lastResult := thisResult
+      thisResult := redux1(lastResult)
+      triesLeft := (triesLeft - 1)::NNI
+      sayTeX$Lisp toString(lastResult)
+    thisResult
+
+  -- return true if equal (deep search) that is: all terms
+  -- at all levels in tree must be equal to return true
+  -- all terms must be exactly equal, not just equivalent, that is
+  -- SKK=I will return false even though 'SKK' and 'I' have the
+  -- same effect
+  x = y ==
+    if (x case lf) and (y case lf) then
+      -- leaf node so compare I,K or S
+      if x.lf.typ = y.lf.typ then return true
+      return false
+    if (x case vr) and (y case vr) then
+      -- variable node so compare names
+      if x.vr.s1 = y.vr.s1 then return true
+      return false
+    if (x case nd) and (y case nd) then
+      -- binary node which has two subnodes c1 and c2
+      if (x.nd.c1 = y.nd.c1) and (x.nd.c2 = y.nd.c2) then return true
+      return false
+    false
+
+  -- output
+  coerce(n: %):OutputForm ==
+    toString(n)::OutputForm
+@
+
+\section{License}
+<<license>>=
+--Copyright (c) 2011, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@
+<<*>>=
+<<license>>
+@
+\eject
+\begin{thebibliography}{99}
+Further Information:
+http://www.euclideanspace.com/maths/standards/program/mycode/ski/
+\end{thebibliography}
+\end{document}
