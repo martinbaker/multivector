@@ -1,18 +1,457 @@
 \documentclass{article}
 \usepackage{axiom}
 \begin{document}
-\title{ski combinator code}
+\title{computation related mathematical structures}
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
-Implementation of SKI combinators
+In this pamphlet are implementations of various mathematical
+structures related to computation. These are:
+lambda.spad
+ski.spad
+For more details see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/
+Tutorial for lambda calculus:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
+Tutorial for SKI calculus:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 \end{abstract}
 \eject
 \tableofcontents
 \eject
-\section{Preface}
+\section{Intuitionistic Logic}
+<<domain IL IntuitionisticLogic>>=
+)abbrev domain IL IntuitionisticLogic
+-- not yet ready
+@
+\section{Untyped Lambda-Calculus}
 for more details see:
-http://www.euclideanspace.com/maths/standards/program/mycode/ski/
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
+
+First I need to clarify a few issues:
+
+Notation Issue - I would like to use the unicode 'λ' symbol to
+represent lambda in FriCAS I/O in many cases this would work fine
+but there are some consoles and lisps that don't support unicode so,
+for now, I have held off doing this for maximum compatibilty.
+
+I have therefore used the '\' symbol to stand for λ.
+I realise that Axiom/FriCAS already has a way to create anonymous
+functions using +-> in a λ-calculus sort of way. But the aim here
+is to have a domain structure which is related to SKI combinators
+and IntuitionisticLogic domain and can be coerced to and from these
+other domain types. I also realise that this is written in SPAD which
+is written in Lisp which is based on λ-Calculus (perhaps it could be
+optimised by having direct calls to Lisp?)
+
+Currently bound variabled use a form of De Bruijn index instead of
+usual notation (both for I/O and internal representation). It would
+be better to use usual notation for I/O even if it is converted to
+De Bruijn index internally.
+
+This is stored as a binary tree structure like this:
+
+<term> ::= "\" var "."<term> | n | <term><term> | "("<term>")"
+
+where:
+
+    * \ = lambda
+    * n = De Bruijn index which is a integer where, 0=inside inner
+      lambda term, 1= next outer lambda term, 2= next outer and so on.
+    * brackets can be used around whole terms.
+    * This requires the user to work out the De Bruijn index values
+      perhaps this could be improved later.
+
+\section{Untyped Lambda-Calculus Tutorial}
+
+The Lambda domain needs to be installed on your system.
+
+Download and compile in the usual way. Make sure it is exposed since
+Axiom/FriCAS was started.
+
+(1) -> )library LAMBDA
+ 
+   Lambda is already explicitly exposed in frame frame1 
+   Lambda will be automatically loaded when needed from 
+      /home/martin/LAMBDA.NRLIB/LAMBDA
+
+Free and bound variables can be constructed by giving the variable
+name as a string. A numeric name is interpreted as a De Bruijn index.
+At the moment the code requires that, for bound variables, De Bruijn
+index is always used. In future this may be changed to use De Bruijn
+index internally but to convert to more conventional notation for
+Input/Output.
+
+De Bruijn index which is a integer where
+
+    * 0=inside current (inner) lambda term
+    * 1= next outer lambda term
+    * 2= next outer and so on
+    * ...
+
+Use of De Bruijn index avoids too much overhead in doing α-substitution.
+
+(1) -> v1 := lambda("1")
+
+   (1)  "1"
+                                                             Type: Lambda
+(2) -> v2 := lambda("x")
+
+   (2)  "x"
+                                                             Type: Lambda
+
+\section{Constructors}
+
+This can be built up into more complex lambda terms by using
+compound terms (as in (3)) and the λ-term itself (as in (4)).
+
+Each λ-term can only have one bound variable, if more than one
+bound variable is required then λ-terms can be nested. λ-term
+requires that the bound variable be given a name, even though
+this is not strictly nessesary when using De Bruijn index, this
+is so we can move to a more conventional notation in the future.
+
+(3) -> n1 := lambda(v1,v2)
+
+   (3)  "(1 x)"
+                                                             Type: Lambda
+(4) -> n2 := lambda(n1,"x")
+
+   (4)  "(\x.(1 x))"
+                                                             Type: Lambda
+
+So far we have enough to constuct any type of lambda term. However
+it might be a bit tedous to construct complex lambda terms in this
+way, an easier way is to use 'parseLambda' to construct the lambda
+term from a string:
+
+(5) -> n3 := parseLambda("(\x.0 y) z")
+
+   (5)  "((\x.(0 y)) z)"
+                                                             Type: Lambda
+
+\section{β-substitution}
+
+The command: subst:(n,a,b) substitutes 'a' for 'b' in 'n' as follows:
+
+(6) -> subst(n2,v2,v1)
+
+   (6)  "(\x.(x x))"
+                                                             Type: Lambda
+(7) -> subst(n2,v1,v2)
+
+   (7)  "(\x.(1 1))"
+                                                             Type: Lambda
+
+\section{Evaluating}
+
+We can evaluate the lambda term by using the redux command:
+
+(8) -> redux(n3)
+
+   (8)  "(\x.(z y))"
+                                                             Type: Lambda
+
+<<domain LAMBDA Lambda>>=
+)abbrev domain LAMBDA Lambda
+++ Author: Martin Baker
+++ Date Created: March 2011
+++ Date Last Updated: March 2011
+++ Basic Operations: 
+++ Related Constructors: 
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
+++ An implementation of untyped lambda-calculus
+
+Lambda(): Exports == Implementation where
+
+ NNI==> NonNegativeInteger
+
+ Exports == with
+  lambda:(deBruijn:NNI) -> %
+    ++ Constructs a reference to a bound variable from its deBruijn
+    ++ index
+  lambda:(varNme:String) -> %
+    ++ Constructs a reference to a free variable from its name
+  lambda:(x:%,y:%) -> %
+    ++ Constructs a node containing multiple terms
+  lambda:(x:%,t1: String) -> %
+    ++ Constructs lambda term
+  parseLambda:(t1: String) -> %
+    ++ Constructs nested lambda terms from a string
+    ++ notation assumes format like this:
+    ++ <term> ::= "\" var "."<term> | n | <term><term> | "("<term>")"
+    ++ where:
+    ++ \ = lambda (I would like to use unicode lambda symbol but
+    ++             I would also like to keep maximum compatibility
+    ++             with non-unicode versions of Lisp)
+    ++ n = De Bruijn index which is a integer where, 1=inside inner
+    ++             lambda term, 2= next outer lambda term, 3= next
+    ++             outer and so on.
+    ++ brackets can be used around whole terms.
+    ++ This requires the user to work out the De Bruijn index values
+    ++ perhaps this could be improved later.
+  parseTerm:(t1: String) -> %
+    ++ parseTerm is used by parseLambda. It would rarely be called
+    ++ externally but it is here to allow it to call parseLambda
+    ++ that is to allow circular calls
+  atom?:(n: %) -> Boolean
+    ++ returns true if this is an atom, that is free or bound variable
+    ++ otherwise return false if this is a compound or lambda definition
+  isCompound?:(n: %) -> Boolean
+    ++ returns true if this is a compound term containing two nodes
+  isLambda?:(n: %) -> Boolean
+    ++ returns true if this is a lambda definition
+  subst:(n: %,a: %,b: %) -> %
+    ++ substitution of 'a' for 'b' in 'n'
+  redux:(n: %) -> %
+    ++ beta reduction - apply beta reduction recusivly to all subnodes
+  "=":(x:%, y:%) -> Boolean
+    ++ return true if equal (deep search) that is: all terms
+    ++ at all levels in tree must be alpha-equivalent to return true
+    ++ That is the names, but not the deBruijn index, of the
+    ++ bound variables can be different.
+  toString: (n: %) -> String
+    ++ output
+  coerce: (n: %) -> OutputForm
+    ++ output
+
+ Implementation == add
+
+  Rep := Union(_
+         boundTerm:Record(deBruijn:NNI),_
+         freeTerm:Record(varName:String),_
+         compoundTerm:Record(c1:%, c2:%),_
+         lambdaTerm:Record(c3:%, nm:String)_
+         )
+
+  -- pointer to current position in string when parsing the
+  -- string to construct a lambda term.
+  -- I am wary of defining a variable outside of a function but
+  -- can't find another non-messy way to update it from several
+  -- functions. It might be easier if I could return a tuple from
+  -- a function like this:
+  -- parseTerm(t1: String,pt:NNI): (pt:NNI,%)
+  -- Another alternative might be to define a seperate parsing
+  -- domain.
+  pt:NNI :=0::NNI
+
+  -- Constructs a reference to a bound variable from its deBruijn
+  -- index
+  lambda(n1:NNI): % == [[n1]]
+
+  -- Constructs a reference to a free variable from its name
+  lambda(varNme:String): % == [[varNme]]
+
+  -- Constructs a node containing multiple terms
+  lambda(x:%,y:%): % == [[x,y]]
+
+  -- Constructs lambda term
+  lambda(x:%,t1: String): % == [[x,t1]]
+
+  parseStringTerm(t1: String):String ==
+    vnm:String := ""
+    ch := qelt(t1,pt)
+    --sayTeX$Lisp concat("st ch=",ch::String)
+    while alphanumeric?(ch) repeat
+      vnm := concat(vnm,ch)     
+      pt := pt + (1::NNI)
+      if pt > maxIndex(t1) then return vnm
+      ch := qelt(t1,pt)
+    vnm
+
+  parseFreeTerm(t1: String):% ==
+    lambda(parseStringTerm(t1))
+
+  parseLambdaTerm(t1: String):% ==
+    ch := qelt(t1,pt)
+    if not (ch = char("\")) then 
+      error "lambda term must start with \"
+      return [[0::NNI]]
+    pt := pt + (1::NNI)
+    if pt > maxIndex(t1) then
+      error "lambda term not complete"
+      return [[0::NNI]]
+    str := parseStringTerm(t1)
+    ch := qelt(t1,pt)
+    if not (ch = char(".")) then 
+      error "lambda term must have ."
+      return [[0::NNI]]
+    pt := pt + (1::NNI)
+    if pt > maxIndex(t1) then
+      error "lambda term must contain something"
+      return [[0::NNI]]
+    lambda(parseTerm(t1),str)
+
+  parseBracketTerm(t1: String):% ==
+    ch := qelt(t1,pt)
+    if not (ch = char("(")) then 
+      error "bracket term must start with ("
+      return [[0::NNI]]
+    pt := pt + (1::NNI)
+    if pt > maxIndex(t1) then
+      error "opening but no closing bracket"
+      return [[0::NNI]]
+    trm := parseTerm(t1)
+    ch := qelt(t1,pt)
+    if not (ch = char(")")) then 
+      error "can't find closing bracket"
+      return [[0::NNI]]
+    pt := pt + (1::NNI)
+    trm
+
+  parseVariableTerm(t1: String):% ==
+    inx:NNI := 0 -- holds De Bruijn index while its being read
+    ch := qelt(t1,pt)
+    --sayTeX$Lisp concat("pv ch=",ch::String)
+    while digit?(ch) repeat
+      if ch = char("0") then inx := inx*10
+      if ch = char("1") then inx := inx*10 + 1
+      if ch = char("2") then inx := inx*10 + 2
+      if ch = char("3") then inx := inx*10 + 3
+      if ch = char("4") then inx := inx*10 + 4
+      if ch = char("5") then inx := inx*10 + 5
+      if ch = char("6") then inx := inx*10 + 6
+      if ch = char("7") then inx := inx*10 + 7
+      if ch = char("8") then inx := inx*10 + 8
+      if ch = char("9") then inx := inx*10 + 9
+      pt := pt + (1::NNI)
+      if pt > maxIndex(t1) then return lambda(inx)
+      ch := qelt(t1,pt)
+    lambda(inx)
+
+  parseTerm(t1: String):% ==
+    res:% := [[0::NNI]]
+    ch := qelt(t1,pt)
+    --sayTeX$Lisp concat("pt ch=",ch::String)
+    -- first remove leading spaces
+    while ch = char(" ") repeat
+      pt := pt + (1::NNI)
+      if pt > maxIndex(t1) then return res
+      ch := qelt(t1,pt)
+    if ch = char("\") then res := parseLambdaTerm(t1)
+    if ch = char("(") then res := parseBracketTerm(t1)
+    if digit?(ch) then res := parseVariableTerm(t1)
+    if alphabetic?(ch) then res := parseFreeTerm(t1)
+    -- now check for compound term
+    if pt > maxIndex(t1) then return res
+    ch := qelt(t1,pt)
+    if ch = char(" ") then
+      pt := pt + (1::NNI)
+      if pt > maxIndex(t1) then return res
+      res := lambda(res,parseTerm(t1))
+    res
+
+  -- Constructs nested lambda terms from a string
+  -- notation assumes format like this:
+  -- <term> ::= "\" var "."<term> | n | <term><term> | "("<term>")"
+  -- where:
+  -- \ = lambda (I would like to use unicode lambda symbol but
+  --             I would also like to keep maximum compatibility
+  --             with non-unicode versions of Lisp)
+  -- n = De Bruijn index which is a integer where, 1=inside inner
+  --             lambda term, 2= next outer lambda term, 3= next
+  --             outer and so on.
+  -- brackets can be used around whole terms.
+  -- This requires the user to work out the De Bruijn index values
+  -- perhaps this could be improved later.
+  parseLambda(t1: String): % ==
+    pt := minIndex(t1)::NNI
+    parseTerm(t1)
+
+  -- returns true if this is an atom, that is free or bound variable
+  -- otherwise return false if this is a compound or lambda definition
+  atom?(n: %):Boolean == (n case boundTerm) or (n case freeTerm)
+
+  -- returns true if this is a compound term containing two nodes
+  isCompound?(n: %):Boolean == (n case compoundTerm)
+
+  -- returns true if this is a lambda definition
+  isLambda?(n: %):Boolean == (n case lambdaTerm)
+
+  -- return string representation
+  -- notation assumes association to the left, in the absence of
+  -- brackets, the term to the left binds more tightly than the
+  -- one on the right.
+  -- boundTerm:Record(deBruijn:NNI, ck:NNI),
+  -- freeTerm:Record(varName:String),_
+  -- compoundTerm:Record(c1:%, c2:%),
+  -- lambdaTerm:Record(c3:%, nm:String)
+  toString(n:%):String ==
+    s:String := ""
+    if n case boundTerm then
+      s := string(n.boundTerm.deBruijn)
+      --sayTeX$Lisp s
+    if n case freeTerm then
+      s := n.freeTerm.varName
+    if n case compoundTerm then
+      s := concat(["(",toString(n.compoundTerm.c1)," ",toString(n.compoundTerm.c2),")"])
+    if n case lambdaTerm then
+      -- variable node so print name
+      -- s := n.vr.s1
+      s := concat(["(\",n.lambdaTerm.nm,".",toString(n.lambdaTerm.c3),")"])
+    s
+
+  -- substitution of 'a' for 'b' in 'n'
+  subst(n: %,a: %,b: %):% ==
+    if n = b then return a
+    if (n case compoundTerm) then
+      return lambda(subst(n.compoundTerm.c1,a,b),subst(n.compoundTerm.c2,a,b))
+    if (n case lambdaTerm) then
+      return lambda(subst(n.lambdaTerm.c3,a,b),n.lambdaTerm.nm)
+    n
+
+  -- beta reduction - apply beta reduction recusivly to all subnodes
+  redux(n: %):% ==
+    if atom?(n) then return n -- atom cant be reduced
+    if n case compoundTerm then
+      -- we are looking for a compound term where the first term is
+      -- a lambda expression being applied to the second term.
+      term1:% := n.compoundTerm.c1
+      term2:% := n.compoundTerm.c2
+      if isLambda?(term1) then
+        -- apply term1 to term2
+        boundVarName:String := term1.lambdaTerm.nm
+        return subst(term1,term2,lambda(0::NNI))
+      return lambda(redux(term1),redux(term2))
+    if n case lambdaTerm then
+      return lambda(redux(n.lambdaTerm.c3),n.lambdaTerm.nm)
+    n
+
+  -- return true if equal (deep search) that is: all terms
+  -- at all levels in tree must be alpha-equivalent to return true
+  -- That is the names, but not the deBruijn index, of the
+  -- bound variables can be different.
+  x = y ==
+    if (x case boundTerm) and (y case boundTerm) then
+      -- boundTerm so compare deBruijn index
+      if x.boundTerm.deBruijn = y.boundTerm.deBruijn then return true
+      return false
+    if (x case freeTerm) and (y case freeTerm) then
+      -- freeTerm so compare name String
+      if x.freeTerm.varName = y.freeTerm.varName then return true
+      return false
+    if (x case compoundTerm) and (y case compoundTerm) then
+      -- compoundTerm so compare both terms
+      if (x.compoundTerm.c1 = y.compoundTerm.c1) and_
+         (x.compoundTerm.c2 = y.compoundTerm.c2) then return true
+      return false
+    if (x case lambdaTerm) and (y case lambdaTerm) then
+      -- lambdaTerm only compare body not variable name
+      if x.lambdaTerm.c3 = y.lambdaTerm.c3 then return true
+      return false
+    false
+
+  -- output
+  coerce(n: %):OutputForm ==
+    toString(n)::OutputForm
+@
+\section{SKI Combinators}
+for more details see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 
 Ski combinators were introduced by Moses Schönfinkel and Haskell
 Curry with the aim of eliminating the need for variables in
@@ -535,7 +974,11 @@ Ski(): Exports == Implementation where
 @
 \eject
 \begin{thebibliography}{99}
-Further Information:
-http://www.euclideanspace.com/maths/standards/program/mycode/ski/
+For more details see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/
+Tutorial for lambda calculus:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
+Tutorial for SKI calculus:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 \end{thebibliography}
 \end{document}
