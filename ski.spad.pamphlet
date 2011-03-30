@@ -20,9 +20,176 @@ http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 \tableofcontents
 \eject
 \section{Intuitionistic Logic}
-<<domain IL IntuitionisticLogic>>=
-)abbrev domain IL IntuitionisticLogic
--- not yet ready
+The intuitionisticLogic domain implements a Heyting algebra implied
+by intuitionistic logic similar to boolean algebra.
+
+Intuitionistic or constructive logic is similar to classical logic
+but where the law of excluded middle is not used.
+\section{Intuitionistic Logic Tutorial}
+
+The intuitionisticLogic domain needs to be installed on your system.
+
+Download and compile in the usual way. Make sure it is exposed since
+Axiom/FriCAS was started.
+
+(1) -> )library ILOGIC
+ 
+   ILogic is now explicitly exposed in frame frame1 
+   ILogic will be automatically loaded when needed from 
+      /home/martin/ILOGIC.NRLIB/ILOGIC
+
+Intuitionistic logic has 3 possible values: false, true and unproven.
+These can be constructed as follows:
+
+(1) -> logic0()
+
+   (1)  false
+                                                             Type: ILogic
+(2) -> logic1()
+
+   (2)  true
+                                                             Type: ILogic
+(3) -> logic2()
+
+   (3)  unproven
+                                                             Type: ILogic
+
+The inverse of true is not necessarily false and the inverse of false
+is not necessarily true. Therefore the inverse of anything is unproven.
+
+(4) -> l:List ILogic := [logic0(),logic1(),logic2()]
+
+ LISP output:
+((0) (1) (2))
+                                                       Type: List(ILogic)
+(5) -> [(~j)::OutputForm for j in l]
+
+   (5)  [unproven,unproven,unproven]
+                                                   Type: List(OutputForm)
+
+We can print a truth table for 'and' and 'or'. This is the same as
+boolean logic for true/false values and extended for the unproven case.
+
+(6) -> matrix[[(k /\ j)::OutputForm for j in l] for k in l]
+
+   (6)
+
+  	false 	true 	unproven
+false 	false 	false 	false
+true 	false 	true 	unproven
+unproven 	false 	unproven 	unproven
+
+                                                             Type: Symbol
+(7) -> matrix[[(k \/ j)::OutputForm for j in l] for k in l]
+
+   (7)
+
+  	false 	true 	unproven
+false 	false 	true 	unproven
+true 	true 	true 	true
+unproven 	unproven 	true 	unproven
+
+                                                             Type: Symbol
+
+'implies' produces the following truth table.
+
+(8) -> matrix[[implies(k,j)::OutputForm for j in l] for k in l]
+
+   (8)
+
+  	false 	true 	unproven
+false 	true 	true 	true
+true 	false 	true 	unproven
+unproven 	false 	true 	true
+
+                                                             Type: Symbol
+\section{category ILOGIC ILogic}
+<<domain ILOGIC ILogic>>=
+)abbrev domain ILOGIC ILogic
+++ Author: Martin Baker
+++ Date Created:
+++ Change History:
+++ Basic Operations: true, false, unproven
+++ Related Constructors:
+++ Keywords: intuitionisticLogic
+++ Description: ILogic is an algebra with 3 values:
+++ true, false and unproven
+++ References:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+
+ILogic(): Exports == Implementation where
+
+ NNI==> NonNegativeInteger
+
+ Exports == with
+  logic1:() -> %
+    ++ true is a logical constant.
+  logic0:() -> %
+    ++ false is a logical constant.
+  logic2:() -> %
+    ++ false is a logical constant.
+  implies: (%, %) -> %
+    ++ implies(a,b) returns the logical implication
+    ++ of ILogic a and b.
+  _~: % -> %
+    ++ ~(x) returns the logical complement of x.
+  _/_\: (%, %) -> %
+    ++ /\ returns the logical `meet', e.g. `and'.
+  _\_/: (%, %) -> %
+    ++  \/ returns the logical `join', e.g. `or'.
+  "=": (%, %) -> Boolean
+    ++ returns true (boolean true) if intuitionisticLogic values
+    ++ are the same.
+    ++ Translates from Intuitionistic Logic to Boolean Logic
+  coerce: (n: %) -> OutputForm
+    ++ output
+
+ Implementation == add
+
+  Rep := Record(val:NNI)
+
+  -- constructors
+  logic1() == [1::NNI]
+  logic0() == [0::NNI]
+  logic2() == [2::NNI]
+
+  _~ b == [2::NNI]
+
+  -- /\ returns the logical `meet', e.g. `and'.
+  _/_\(a, b) ==
+    (a.val = 0::NNI) => [0::NNI]
+    (b.val = 0::NNI) => [0::NNI]
+    (a.val = 2::NNI) => [2::NNI]
+    [b.val]
+
+  -- \/ returns the logical `join', e.g. `or'.
+  _\_/(a, b) ==
+    (a.val = 1::NNI) => [1::NNI]
+    (b.val = 1::NNI) => [1::NNI]
+    (a.val = 2::NNI) => [2::NNI]
+    [b.val]
+
+  -- implies(a,b) returns the logical implication
+  -- of ILogic a and b.
+  implies(a, b) ==
+    (a.val = 1::NNI) and (b.val = 2::NNI) => [2::NNI]
+    (a.val ~= 0::NNI) and (b.val = 0::NNI) => [0::NNI]
+    [1::NNI]
+
+  -- returns true (boolean true) if intuitionisticLogic values
+  -- are the same.
+  -- Translates from Intuitionistic Logic to Boolean Logic
+  a = b ==
+    (a.val = 0::NNI) and (b.val = 0::NNI) => true
+    (a.val = 1::NNI) and (b.val = 1::NNI) => true
+    (a.val = 2::NNI) and (b.val = 2::NNI) => true
+    false
+
+  coerce(x:%):OutputForm ==
+    if x.val=0 then return "false"::OutputForm
+    if x.val=1 then return "true"::OutputForm
+    "unproven"::OutputForm
+
 @
 \section{Untyped Lambda-Calculus}
 for more details see:
