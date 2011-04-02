@@ -30,6 +30,10 @@ but where the law of excluded middle is not used.
 \section{Intuitionistic Logic Tutorial}
 
 The intuitionisticLogic domain needs to be installed on your system.
+The source code is in a file called computation.spad.pamphlet, which
+is available here:
+
+https://github.com/martinbaker/multivector/
 
 Download and compile in the usual way. Make sure it is exposed since
 Axiom/FriCAS was started.
@@ -43,30 +47,30 @@ Axiom/FriCAS was started.
 Intuitionistic logic has 3 possible values: false, true and unproven.
 These can be constructed as follows:
 
-(1) -> logic0()
+(1) -> logicF()
 
-   (1)  false
+   (1)  "_|_"
                                                              Type: ILogic
-(2) -> logic1()
-
-   (2)  true
+(2) -> logicT()
+ 
+   (2)  "T"
                                                              Type: ILogic
-(3) -> logic2()
+(3) -> logicU()
 
-   (3)  unproven
+   (3)  "?"
                                                              Type: ILogic
 
 The inverse of true is not necessarily false and the inverse of false
 is not necessarily true. Therefore the inverse of anything is unproven.
 
-(4) -> l:List ILogic := [logic0(),logic1(),logic2()]
+(4) -> l:List ILogic := [logicF(),logicT(),logicU()]
 
  LISP output:
-((0) (1) (2))
+((0 0) (0 1) (0 2))
                                                        Type: List(ILogic)
 (5) -> [(~j)::OutputForm for j in l]
 
-   (5)  [unproven,unproven,unproven]
+   (5)  ["?","?","?"]
                                                    Type: List(OutputForm)
 
 We can print a truth table for 'and' and 'or'. This is the same as
@@ -76,20 +80,20 @@ boolean logic for true/false values and extended for the unproven case.
 
    (6)
 
-  	false 	true 	unproven
-false 	false 	false 	false
-true 	false 	true 	unproven
-unproven 	false 	unproven 	unproven
+  	_|_ 	T 	?
+_|_ 	_|_ 	_|_ 	_|_
+T 	_|_ 	T 	?
+? 	_|_ 	? 	?
 
                                                              Type: Symbol
 (7) -> matrix[[(k \/ j)::OutputForm for j in l] for k in l]
 
    (7)
 
-  	false 	true 	unproven
-false 	false 	true 	unproven
-true 	true 	true 	true
-unproven 	unproven 	true 	unproven
+  	_|_ 	T 	?
+_|_ 	_|_ 	T 	?
+T 	T 	T 	T
+? 	? 	T 	?
 
                                                              Type: Symbol
 
@@ -99,18 +103,48 @@ unproven 	unproven 	true 	unproven
 
    (8)
 
-  	false 	true 	unproven
-false 	true 	true 	true
-true 	false 	true 	unproven
-unproven 	false 	true 	true
+  	_|_ 	T 	?
+_|_ 	T 	T 	T
+T 	_|_ 	T 	?
+? 	_|_ 	T 	T
 
                                                              Type: Symbol
+
+Now that we can do intuitionistic logic with constant values we can
+go on to represent theories. We can enter a symbolic value as follows:
+
+(9) -> proposition("p1")   
+
+   (9)  "p1"
+                                                             Type: ILogic
+
+When applying a symbolic value, then it may not possible to compress
+as a single node, so the result remains as a tree. So (13) can be
+reduced to a single value _|_ because the result does not depend
+on 'a', however in (12) we cannot reduce to a single value.
+
+(10) -> proposition("a") /\ proposition("b")
+
+   (10)  "(a/\b)"
+                                                             Type: ILogic
+(11) -> implies(proposition("a"),proposition("b"))
+
+   (11)  "(a->b)"
+                                                             Type: ILogic
+(12) -> proposition("a") /\ logicT()
+
+   (12)  "(a/\T)"
+                                                             Type: ILogic
+(13) -> proposition("a") /\ logicF()
+
+   (13)  "_|_"
+                                                             Type: ILogic
 \section{category ILOGIC ILogic}
 <<domain ILOGIC ILogic>>=
 )abbrev domain ILOGIC ILogic
 ++ Author: Martin Baker
-++ Date Created:
-++ Change History:
+++ Date Created: March 2011
+++ Date Last Updated: April 2011
 ++ Basic Operations: true, false, unproven
 ++ Related Constructors:
 ++ Keywords: intuitionisticLogic
@@ -124,74 +158,190 @@ ILogic(): Exports == Implementation where
  NNI==> NonNegativeInteger
 
  Exports == with
-  logic1:() -> %
+  logicT:() -> %
     ++ true is a logical constant.
-  logic0:() -> %
+  logicF:() -> %
     ++ false is a logical constant.
-  logic2:() -> %
+  logicU:() -> %
     ++ false is a logical constant.
+  proposition:(s:String) -> %
+    ++ Constructs a proposition
   implies: (%, %) -> %
     ++ implies(a,b) returns the logical implication
     ++ of ILogic a and b.
+    ++ a is premise, b is conclusion, result is false (contradiction)
+    ++ if premise=true and conclusion=false
     ++ does not mean there is a causal connection
   _~: % -> %
     ++ ~(x) returns the logical complement of x.
-  _/_\: (%, %) -> %
+  _/_\: (a:%, b:%) -> %
     ++ /\ returns the logical `meet', e.g. `and'.
-  _\_/: (%, %) -> %
+  _\_/: (a:%, b:%) -> %
     ++  \/ returns the logical `join', e.g. `or'.
-  "=": (%, %) -> Boolean
+  redux:(n: %) -> %
+    ++ attempt to simplify theory
+    ++ apply recusivly to subnodes
+    ++ normally this should not be necessary since logic values are
+    ++ interpreted when constructed
+  "=": (a:%, b:%) -> Boolean
     ++ returns true (boolean true) if intuitionisticLogic values
     ++ are the same.
     ++ Translates from Intuitionistic Logic to Boolean Logic
+  children:(n: %) -> List %
+    ++ returns child nodes if this is a compound term
+    ++ otherwise returns []
+  atom?:(n: %) -> Boolean
+    ++ returns true if this is an atom, that is a leaf node
+    ++ otherwise return false if this is a compound term
+  value:(n: %) -> NNI
+    ++ returns:
+    ++ 0=false
+    ++ 1=true
+    ++ 2=unproven
+    ++ 3=proposition
+    ++ 4=compound
+  toString: (n: %) -> String
+    ++ output
   coerce: (n: %) -> OutputForm
     ++ output
 
  Implementation == add
 
-  Rep := Record(val:NNI)
+  Rep := Union(_
+         const:Record(val:NNI),_
+         var:Record(str:String),_
+         nd:Record(typ:NNI,c1:%, c2:%)_
+         )
+
+  -- Constructs a proposition
+  proposition(s:String): % == [[s]]
 
   -- constructors
-  logic1() == [1::NNI]
-  logic0() == [0::NNI]
-  logic2() == [2::NNI]
+  logicT() == [[1::NNI]]
+  logicF() == [[0::NNI]]
+  logicU() == [[2::NNI]]
 
-  _~ b == [2::NNI]
+  _~ b == [[2::NNI]]
 
   -- /\ returns the logical `meet', e.g. `and'.
-  _/_\(a, b) ==
-    (a.val = 0::NNI) => [0::NNI]
-    (b.val = 0::NNI) => [0::NNI]
-    (a.val = 2::NNI) => [2::NNI]
-    [b.val]
+  _/_\(a:%, b:%) ==
+    if (a case const) then
+      if (a.const.val = 0::NNI) then return [[0::NNI]]
+    if (b case const) then
+      if (b.const.val = 0::NNI) then return [[0::NNI]]
+    if (a case const) and (b case const) then
+      if (a.const.val = 2::NNI) then return [[2::NNI]]
+      return [[b.const.val]]
+    [[1::NNI,a,b]]
+
 
   -- \/ returns the logical `join', e.g. `or'.
-  _\_/(a, b) ==
-    (a.val = 1::NNI) => [1::NNI]
-    (b.val = 1::NNI) => [1::NNI]
-    (a.val = 2::NNI) => [2::NNI]
-    [b.val]
+  _\_/(a:%, b:%) ==
+    if (a case const) then
+      if (a.const.val = 1::NNI) then return [[1::NNI]]
+    if (b case const) then
+      if (b.const.val = 1::NNI) then return [[1::NNI]]
+    if (a case const) and (b case const) then
+      if (a.const.val = 2::NNI) then return [[2::NNI]]
+      return [[b.const.val]]
+    [[2::NNI,a,b]]
 
   -- implies(a,b) returns the logical implication
   -- of ILogic a and b.
-  implies(a, b) ==
-    (a.val = 1::NNI) and (b.val = 2::NNI) => [2::NNI]
-    (a.val ~= 0::NNI) and (b.val = 0::NNI) => [0::NNI]
-    [1::NNI]
+  -- a is premise, b is conclusion, result is false (contradiction)
+  -- if premise=true and conclusion=false
+  -- does not mean there is a causal connection
+  implies(a:%, b:%) ==
+    if (a case const) and (b case const) then
+      if (a.const.val = 1::NNI) and (b.const.val = 2::NNI) then return [[2::NNI]]
+      if (a.const.val ~= 0::NNI) and (b.const.val = 0::NNI) then return [[0::NNI]]
+      return [[1::NNI]]
+    [[0::NNI,a,b]]
+
+  -- attempt to simplify theory
+  -- apply recusivly to subnodes
+  -- normally this should not be necessary since logic values are
+  -- interpreted when constructed
+  redux(n: %):% ==
+    if n case const then
+      if (n.const.val = 0::NNI) then return [[0::NNI]]
+      if (n.const.val = 1::NNI) then return [[1::NNI]]
+      return [[2::NNI]]
+    if n case var then
+      return n
+    if n case nd then
+      if n.nd.typ=0::NNI then return implies(n.nd.c1,n.nd.c2)
+      if n.nd.typ=1::NNI then return _/_\(n.nd.c1,n.nd.c2)
+      if n.nd.typ=2::NNI then return _\_/(n.nd.c1,n.nd.c2)
+    n
+
+  -- returns true if this is an atom, that is a leaf node
+  -- otherwise return false if this is a compound term
+  atom?(n: %):Boolean == (n case var) or (n case const)
+
+  -- returns:
+  -- 0=false
+  -- 1=true
+  -- 2=unproven
+  -- 3=proposition
+  -- 4=compound
+  value(n: %):NNI ==
+    if n case const then
+      if (n.const.val = 0::NNI) then return 0::NNI
+      if (n.const.val = 1::NNI) then return 1::NNI
+      return 2::NNI
+    if n case var then
+      return 3::NNI
+    4::NNI
+
+  -- returns child nodes if this is a compound term
+  -- otherwise returns []
+  children(n: %):List % ==
+    if atom?(n) then return []
+    [n.nd.c1,n.nd.c2]
 
   -- returns true (boolean true) if intuitionisticLogic values
-  -- are the same.
+  -- are the same. The terms must match exactly not just be
+  -- equivalent, that is x /\ 1 is not equal to x
   -- Translates from Intuitionistic Logic to Boolean Logic
   a = b ==
-    (a.val = 0::NNI) and (b.val = 0::NNI) => true
-    (a.val = 1::NNI) and (b.val = 1::NNI) => true
-    (a.val = 2::NNI) and (b.val = 2::NNI) => true
+    if (a case const) and (b case const) then
+      if (a.const.val = 0::NNI) and (b.const.val = 0::NNI) then return true
+      if (a.const.val = 1::NNI) and (b.const.val = 1::NNI) then return true
+      if (a.const.val = 2::NNI) and (b.const.val = 2::NNI) then return true
+      return false
+    if (a case var) and (b case var) then
+      -- variable node so compare names
+      if a.var.str = b.var.str then return true
+      return false
+    if (a case nd) and (b case nd) then
+      -- binary node which has two subnodes c1 and c2
+      if (a.nd.typ ~= b.nd.typ) then return false
+      if (a.nd.c1 = b.nd.c1) and (a.nd.c2 = b.nd.c2) then return true
+      return false
     false
 
-  coerce(x:%):OutputForm ==
-    if x.val=0 then return "false"::OutputForm
-    if x.val=1 then return "true"::OutputForm
-    "unproven"::OutputForm
+  -- return string representation
+  toString(n: %):String ==
+    if n case const then
+      if (n.const.val = 0::NNI) then return "__|__"
+      if (n.const.val = 1::NNI) then return "T"
+      return "?"
+    if n case var then
+      return n.var.str
+      --sayTeX$Lisp concat(["toString case i1=",s])
+      --sayTeX$Lisp n
+    if n case nd then
+      -- binary node which has two subnodes c1 and c2
+      s1:String := "->"
+      if n.nd.typ = 1::NNI then s1:="/\"
+      if n.nd.typ = 2::NNI then s1:="\/"
+      return concat(["(",toString(n.nd.c1),s1,toString(n.nd.c2),")"])
+    "error"
+
+  -- output
+  coerce(n: %):OutputForm ==
+    toString(n)::OutputForm
 
 @
 \section{Untyped Lambda-Calculus}
@@ -321,7 +471,7 @@ We can evaluate the lambda term by using the redux command:
 
    (8)  "(\x.(z y))"
                                                              Type: Lambda
-
+\section{domain LAMBDA Lambda}
 <<domain LAMBDA Lambda>>=
 )abbrev domain LAMBDA Lambda
 ++ Author: Martin Baker
@@ -384,6 +534,7 @@ Lambda(): Exports == Implementation where
     ++ at all levels in tree must be alpha-equivalent to return true
     ++ That is the names, but not the deBruijn index, of the
     ++ bound variables can be different.
+    ++ beta-equivalenty is not implemented because it is not decidable.
   toString: (n: %) -> String
     ++ output
   coerce: (n: %) -> OutputForm
@@ -619,6 +770,7 @@ Lambda(): Exports == Implementation where
   coerce(n: %):OutputForm ==
     toString(n)::OutputForm
 @
+
 \section{SKI Combinators}
 for more details see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
@@ -788,7 +940,7 @@ Issue 2
 It would be good to be able to use these combinators to operate on
 Axiom/FriCAS functions.
 
-
+\section{domain SKI Ski}
 <<domain SKI Ski>>=
 )abbrev domain SKI Ski
 ++ Author: Martin Baker
@@ -800,7 +952,7 @@ Axiom/FriCAS functions.
 ++ AMS Classifications:
 ++ Keywords:
 ++ References:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/ski/
+++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 
 Ski(): Exports == Implementation where
 
@@ -849,6 +1001,9 @@ Ski(): Exports == Implementation where
     ++ Constructs a S combinator
   parseSki:(t1: String) -> %
     ++ Constructs combinators from a string
+  children:(n: %) -> List %
+    ++ returns child nodes if this is a compound term
+    ++ otherwise returns []
   atom?:(n: %) -> Boolean
     ++ returns true if this is an atom, that is a leaf node
     ++ otherwise return false if this is a compound term
@@ -996,6 +1151,12 @@ Ski(): Exports == Implementation where
     -- structure
     btc2Ski(chBuffer)
 
+  -- returns child nodes if this is a compound term
+  -- otherwise returns []
+  children(n: %):List % ==
+    if atom?(n) then return []
+    [n.nd.c1,n.nd.c2]
+
   -- returns true if this is an atom, that is a leaf node
   -- otherwise return false if this is a compound term
   atom?(n: %):Boolean == (n case lf) or (n case vr)
@@ -1106,6 +1267,51 @@ Ski(): Exports == Implementation where
     toString(n)::OutputForm
 @
 
+\section{compUtil}
+<<package COMP compUtil>>=
+)abbrev package COMP compUtil
+++ Author: Martin Baker
+++ Date Created: April 2011
+++ Date Last Updated: April 2011
+++ Basic Operations:
+++ Related Constructors:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/
+++ Description:
+++ The compUtil package provides utilities to convert between the
+++ computational domains: Lambda, Ski and ILogic.
+++ Both Lambda are Ski are Turing complete and can be coerced
+++ to each other. However there is not a direct correspondance
+++ between the nodes in their trees so this is not trivial.
+++ Also the names of bound variables and other such constructions
+++ may be lost in Lambda -> Ski -> Lambda round trip.
+++ An element of ILogic cannot be coerced to the other types.
+++ However ILogic can be used to produce a proof graph which can
+++ be concerted to/from the other domains using Curry–Howard
+++ isomorphism.
+
+compUtil(): with
+
+  coerce: (s: Ski) -> Lambda
+    ++ coerce SKI combinators to Lambda term.
+
+ == add
+
+  coerce(s: Ski):Lambda ==
+    if atom?(s) then
+      if isI?(s) then
+        return parseLambda("\x.0")
+      if isK?(s) then
+        return parseLambda("\x.\y.1")
+      if isS?(s) then
+        return parseLambda("\x.\y.\z.2 0 (1 0)")
+      return lambda("x")
+    subnodes:List Ski := children(s)
+    lambda(first subnodes,second subnodes)
+@
 \section{License}
 <<license>>=
 --Copyright (c) 2011, Martin J Baker.
