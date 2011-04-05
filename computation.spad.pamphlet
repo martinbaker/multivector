@@ -17,6 +17,8 @@ Tutorial for SKI calculus:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 Tutorial for Intuitionistic Logic
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+Tutorial for utilities to coerce between computation domains
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/utility/
 \end{abstract}
 \eject
 \tableofcontents
@@ -344,6 +346,7 @@ ILogic(): Exports == Implementation where
     toString(n)::OutputForm
 
 @
+
 \section{Untyped Lambda-Calculus}
 for more details see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
@@ -525,6 +528,13 @@ Lambda(): Exports == Implementation where
     ++ returns true if this is a compound term containing two nodes
   isLambda?:(n: %) -> Boolean
     ++ returns true if this is a lambda definition
+  free?:(n: %) -> Boolean
+    ++ if this is a lambda term then is it free, that is does
+    ++ its variable appear in its expression
+  children:(n: %) -> List %
+    ++ returns 2 child nodes if this is a compound term
+    ++ returns 1 child node if this is a lamda term
+    ++ otherwise returns []
   subst:(n: %,a: %,b: %) -> %
     ++ substitution of 'a' for 'b' in 'n'
   redux:(n: %) -> %
@@ -536,7 +546,7 @@ Lambda(): Exports == Implementation where
     ++ bound variables can be different.
     ++ beta-equivalenty is not implemented because it is not decidable.
   toString: (n: %) -> String
-    ++ output
+    ++ string representation of this node and its subnodes
   coerce: (n: %) -> OutputForm
     ++ output
 
@@ -572,6 +582,17 @@ Lambda(): Exports == Implementation where
 
   -- Constructs lambda term
   lambda(x:%,t1: String): % == [[x,t1]]
+
+  -- returns 2 child nodes if this is a compound term
+  -- returns 1 child node if this is a lamda term
+  -- otherwise returns []
+  children(n: %):List % ==
+    if atom?(n) then return []
+    if n case compoundTerm then
+      return [n.compoundTerm.c1,n.compoundTerm.c2]
+    if n case lambdaTerm then
+      return [n.lambdaTerm.c3]
+    []
 
   parseStringTerm(t1: String):String ==
     vnm:String := ""
@@ -693,6 +714,37 @@ Lambda(): Exports == Implementation where
   -- returns true if this is a lambda definition
   isLambda?(n: %):Boolean == (n case lambdaTerm)
 
+  -- does s not appear in n
+  freeVariable?(n: %,s:String):Boolean ==
+    if n case freeTerm then
+      if n.freeTerm.varName=s then return false
+    if n case lambdaTerm then
+      if not freeVariable?(n.lambdaTerm.c3,s) then return false
+    if n case compoundTerm then
+      if not freeVariable?(n.compoundTerm.c1,s) or _
+         not freeVariable?(n.compoundTerm.c2,s) then return false
+    true
+
+  -- return false if any bound terms
+  freeVariable?(n: %,i:NNI):Boolean ==
+    if n case boundTerm then
+      if n.boundTerm.deBruijn=i then return false
+    if n case lambdaTerm then
+      if not freeVariable?(n.lambdaTerm.c3,(i+1)::NNI) then return false
+    if n case compoundTerm then
+      if (not freeVariable?(n.compoundTerm.c1,i)) or _
+         (not freeVariable?(n.compoundTerm.c2,i)) then return false
+    true
+
+  -- if this is a lambda term then is it free, that is does
+  -- its variable appear in its expression
+  free?(n: %):Boolean ==
+    if n case lambdaTerm then
+      s1:String := n.lambdaTerm.nm
+      return freeVariable?(n.lambdaTerm.c3,0::NNI)
+    sayTeX$Lisp concat("warning free called on non-lambda term",toString(n))
+    false
+
   -- return string representation
   -- notation assumes association to the left, in the absence of
   -- brackets, the term to the left binds more tightly than the
@@ -712,7 +764,6 @@ Lambda(): Exports == Implementation where
       s := concat(["(",toString(n.compoundTerm.c1)," ",toString(n.compoundTerm.c2),")"])
     if n case lambdaTerm then
       -- variable node so print name
-      -- s := n.vr.s1
       s := concat(["(\",n.lambdaTerm.nm,".",toString(n.lambdaTerm.c3),")"])
     s
 
@@ -770,6 +821,7 @@ Lambda(): Exports == Implementation where
   coerce(n: %):OutputForm ==
     toString(n)::OutputForm
 @
+
 
 \section{SKI Combinators}
 for more details see:
@@ -1013,6 +1065,11 @@ Ski(): Exports == Implementation where
     ++ returns true if this is a K combinator node
   isS?:(n: %) -> Boolean
     ++ returns true if this is a S combinator node
+  name:(n: %) -> String
+    ++ returns the name of this variable, if this is not a
+    ++ variable then return "_"
+  variables:(n: %) -> List String
+    ++ returns a list of variable names under this node
   redux:(n: %) -> %
     ++ weak reduction - apply this combinator to rearange its
     ++ subnodes then apply recusivly to its subnodes
@@ -1179,6 +1236,21 @@ Ski(): Exports == Implementation where
     if n.lf.typ = 3 then return true
     false
 
+  -- returns the name of this variable, if this is not a
+  -- variable then return "_"
+  name(n: %):String ==
+    if n case vr then
+      return n.vr.s1
+    "__"
+
+  -- returns a list of variable names under this node
+  variables(n: %):List String ==
+    if n case vr then
+      return [n.vr.s1]
+    if n case nd then
+      return concat(variables(n.nd.c1),variables(n.nd.c2))
+    []
+
   -- return string representation
   -- notation assumes association to the left, in the absence of
   -- brackets, the term to the left binds more tightly than the
@@ -1268,6 +1340,218 @@ Ski(): Exports == Implementation where
 @
 
 \section{compUtil}
+The compUtil package provides utilities to convert between the
+computational domains: Lambda, Ski and ILogic.
+
+Both Lambda are Ski are Turing complete and can be coerced to each
+other. Lambda and Ski are not equal and they are only isomorphic
+upto beta-equivalence and beta-equivalence is undecidable so there
+is not a direct correspondance between the nodes in their trees.
+Also the names of bound variables and other such constructions may
+be lost in Lambda -> Ski -> Lambda round trip.
+
+An element of ILogic cannot be coerced to the other types. However
+ILogic can be used to produce a theory which can be concerted
+to/from the other domains using Curry–Howard isomorphism.
+\section{Tutorial}
+
+For these coercions to work then all the computational domains
+need to be installed on your system. The source code is in a
+file called computation.spad.pamphlet, which is available here:
+
+https://github.com/martinbaker/multivector/
+
+Download and compile in the usual way. Make sure it is exposed
+since Axiom/FriCAS was started:
+
+(1) -> )library ILOGIC
+ 
+   ILogic is now explicitly exposed in frame frame1 
+   ILogic will be automatically loaded when needed from 
+      /home/martin/ILOGIC.NRLIB/ILOGIC
+(1) -> )library LAMBDA
+ 
+   Lambda is now explicitly exposed in frame frame1 
+   Lambda will be automatically loaded when needed from 
+      /home/martin/LAMBDA.NRLIB/LAMBDA
+(1) -> )library SKI
+ 
+   Ski is now explicitly exposed in frame frame1 
+   Ski will be automatically loaded when needed from 
+      /home/martin/SKI.NRLIB/SKI
+(1) -> )library COMP
+
+   compUtil is now explicitly exposed in frame frame1
+   compUtil will be automatically loaded when needed from
+      /home/martin/COMP.NRLIB/COMP
+
+\section{SKI combinators to λ functions}
+
+We can then create SKI combinators and convert them to λ functions.
+
+If the combinators don't have the required parameters then you will
+get a warning as follows. The code will attempt to add parameters
+as required but this will not work in complicated situations.
+
+Ideally when working with 'abstract' combinatiors we need to add
+the required number of parameters, do the convertion then remove
+the parameters just added.
+
+(1) -> I()::Lambda  
+
+warning I does not have a parameter to act on
+creating x   
+
+   (1)  "(\x.0)"
+                                                             Type: Lambda
+(2) -> K()::Lambda  
+
+warning K does not enough parameters to act on
+creating x and y
+
+   (2)  "(\x.(\y.1))"
+                                                             Type: Lambda
+(3) -> S()::Lambda  
+
+warning S does not enough parameters to act on
+creating x,y an z
+
+   (3)  "(\x.(\y.(\z.(2 (0 (1 0))))))"
+                                                             Type: Lambda
+
+In the following examples the combinators are provided with the
+reqired parameters. This conversion works by applying the
+following rules:
+
+    * rule SL1: Ski[I] = \x.0
+    * rule SL2: Ski[K] = \x.\y.1
+    * rule SL3: Ski[S] = \x.\y.\z.(2 0 (1 0))
+    * rule SL4: Ski[(E1 E2)] = (Ski[E1] Ski[E2])
+
+So here are some examples:
+
+(4) -> parseSki("Ia")::Lambda
+
+util coerce apply rule SL1 in:Ia
+
+   (4)  "(\a.0)"
+                                                             Type: Lambda
+(5) -> parseSki("Kab")::Lambda
+
+util coerce apply rule SL2 in:Kab
+
+   (5)  "(\a.(\b.1))"
+                                                             Type: Lambda
+(6) -> parseSki("K(a b)c")::Lambda
+ 
+util coerce apply rule SL2 in:K(ab)c
+
+   (6)  "(\a.(\b.(\c.(2 1))))"
+                                                             Type: Lambda
+(7) -> parseSki("Sabc")::Lambda
+ 
+util coerce apply rule SL2 in:Sabc
+
+   (7)  "(\a.(\b.(\c.((2 0) (1 0)))))"
+                                                             Type: Lambda
+
+\section{λ functions to SKI combinators}
+
+We can then create λ functions and convert them to SKI combinators.
+
+
+This process is known as abstraction elimination. it is done by
+applying the following rules until all lambda terms have been
+eliminated.
+
+    * rule LS1: Lam[x] => x
+    * rule LS2: Lam[(E1 E2)] => (Lam[E1] Lam[E2])
+    * rule LS3: Lam[\x.E] => (K Lam[E]) (if x does not occur free in E)
+    * rule LS4: Lam[\x.x] => I
+    * rule LS5: Lam[\x.\y.E] => Lam[\x.Lam[\y.E]] (if x occurs free in E)
+    * rule LS6: Lam[\x.(E1 E2)] => (S Lam[\x.E1] Lam[\x.E2])
+
+Here are some examples:
+
+(8) -> parseLambda("x")::Ski
+ 
+util coerce rule LS1 applied to:x
+
+   (8)  "x"
+                                                                Type: Ski
+(9) -> parseLambda("x y")::Ski
+ 
+util coerce rule LS2 applied to:(x y)
+util coerce rule LS1 applied to:x
+util coerce rule LS1 applied to:y
+
+   (9)  "xy"
+                                                                Type: Ski
+(10) -> parseLambda("\x.1")::Ski
+ 
+util coerce rule LS3 applied to:(\x.1)
+util coerce rule LS1 applied to:1
+
+   (10)  "K1"
+                                                                Type: Ski
+(11) -> parseLambda("\x.0")::Ski
+ 
+util coerce rule LS4 applied to:(\x.0)
+
+   (11)  "I"
+                                                                Type: Ski
+(12) -> parseLambda("\x.\y.0 1")::Ski
+ 
+util coerce rule LS5 applied to:(\x.(\y.(0 1)))
+util coerce rule LS6 applied to:(\x.(0 1))
+util coerce rule LS1 applied to:0
+util coerce rule LS1 applied to:1
+
+   (12)  "S01"
+                                                                Type: Ski
+
+\section{SKI combinators to Intuitionistic Logic}
+
+We can then create SKI combinators and convert them to intuitionistic
+logic.
+
+This is known as the Curry–Howard isomorphism it uses the following rules:
+
+    * rule SI1: Ski[Kab] => a -> (b -> a)
+    * rule SI2: Ski[Sabc] => (a -> (b -> c)) -> ((a -> b) -> (a -> c))
+    * rule SI3: Ski[a a->b] => b
+
+The last rule is function application (modus ponens). Here are
+some examples:
+
+(13) -> parseSki("Ia")::ILogic
+ 
+util coerce apply rule SI1 in:Ia
+warning I does not have a parameter to act on
+creating x
+
+   (13)  "((x->x)->(x->x))"
+                                                             Type: ILogic
+(14) -> parseSki("Kab")::ILogic
+ 
+util coerce apply rule SI2 in:Kab
+
+   (14)  "(b->(a->b))"
+                                                             Type: ILogic
+(15) -> parseSki("K(a b)c")::ILogic
+ 
+util coerce apply rule SI2 in:K(ab)c
+
+   (15)  "(c->((a\/b)->c))"
+                                                             Type: ILogic
+parseSki("Sabc")::ILogic
+ 
+(16) -> util coerce apply rule SI3 in:Sabc
+
+   (16)  "((c->(b->a))->((c->b)->(c->a)))"
+                                                             Type: ILogic
+
+\section{package COMP compUtil}
 <<package COMP compUtil>>=
 )abbrev package COMP compUtil
 ++ Author: Martin Baker
@@ -1279,39 +1563,259 @@ Ski(): Exports == Implementation where
 ++ AMS Classifications:
 ++ Keywords:
 ++ References:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/
+++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/utility/
 ++ Description:
 ++ The compUtil package provides utilities to convert between the
 ++ computational domains: Lambda, Ski and ILogic.
 ++ Both Lambda are Ski are Turing complete and can be coerced
-++ to each other. However there is not a direct correspondance
-++ between the nodes in their trees so this is not trivial.
+++ to each other. Lambda and Ski are not equal and they are only
+++ isomorphic upto beta-equivalence and beta-equivalence is
+++ undecidable so there is not a direct correspondance
+++ between the nodes in their trees.
 ++ Also the names of bound variables and other such constructions
 ++ may be lost in Lambda -> Ski -> Lambda round trip.
 ++ An element of ILogic cannot be coerced to the other types.
-++ However ILogic can be used to produce a proof graph which can
+++ However ILogic can be used to produce a theory which can
 ++ be concerted to/from the other domains using Curry–Howard
 ++ isomorphism.
 
-compUtil(): with
+compUtil(): Exports == Implementation where
 
-  coerce: (s: Ski) -> Lambda
-    ++ coerce SKI combinators to Lambda term.
+ NNI==> NonNegativeInteger
+ Exports ==> with
+    coerce: (s: Ski) -> Lambda
+      ++ coerce SKI combinators to Lambda term.
+      ++ this conversion is done by applying the following rules
+      ++ rule SL1: Ski[I] = \x.0
+      ++ rule SL2: Ski[K] = \x.\y.1
+      ++ rule SL3: Ski[S] = \x.\y.\z.(2 0 (1 0))
+      ++ rule SL4: Ski[(E1 E2)] = (Ski[E1] Ski[E2])
+    coerce: (lam: Lambda) -> Ski
+      ++ coerce Lambda term to SKI combinators.
+      ++ this process is known as abstraction elimination.
+      ++ it is done by applying the following rules until
+      ++ all lambda terms have been eliminated.
+      ++ rule LS1: Lam[x] => x
+      ++ rule LS2: Lam[(E1 E2)] => (Lam[E1] Lam[E2])
+      ++ rule LS3: Lam[\x.E] => (K Lam[E]) (if x does not occur free in E)
+      ++ rule LS4: Lam[\x.x] => I
+      ++ rule LS5: Lam[\x.\y.E] => Lam[\x.Lam[\y.E]] (if x occurs free in E)
+      ++ rule LS6: Lam[\x.(E1 E2)] => (S Lam[\x.E1] Lam[\x.E2])
+    coerce: (s: Ski) -> ILogic
+      ++ coerce combinators to intuitionistic logic
+      ++ this is known as the Curry–Howard isomorphism
+      ++ it uses the following rules:
+      ++ rule SI1: Ski[Kab] => a -> (b -> a),
+      ++ rule SI2: Ski[Sabc] => (a -> (b -> c)) -> ((a -> b) -> (a -> c)),
+      ++ rule SI3: Ski[a a->b] => b
+      ++ the last rule is function application (modus ponens)
 
- == add
+ Implementation ==> add
 
-  coerce(s: Ski):Lambda ==
+  DeBruijn(name: String,var: List String):NNI ==
+    for i in 1..(#var) repeat
+      --sayTeX$Lisp concat(["i=",string(i)])$String
+      if name = var.i then return (i-1)::NNI
+    0::NNI
+
+  -- used by coerce SKI combinators to Lambda term.
+  Ski2Lambda(s: Ski,var: List String):Lambda ==
+    -- if s is an atom then this means that there are no
+    -- parameters for this combinator. If there had been
+    -- they would have been found when this was called on
+    -- the nodes above it.
+    -- I don't know the best way to hanle this, really we
+    -- need to add the required number of parameters, do
+    -- the convertion then remove the parameters just added.
+    -- sayTeX$Lisp concat(["util coerce called for:",toString(s)])$String
     if atom?(s) then
+      --sayTeX$Lisp concat(["util coerce atom:",toString(s)])$String
       if isI?(s) then
+        sayTeX$Lisp "warning I does not have a parameter to act on"
+        sayTeX$Lisp "creating x"
         return parseLambda("\x.0")
       if isK?(s) then
+        sayTeX$Lisp "warning K does not enough parameters to act on"
+        sayTeX$Lisp "creating x and y"
         return parseLambda("\x.\y.1")
       if isS?(s) then
+        sayTeX$Lisp "warning S does not enough parameters to act on"
+        sayTeX$Lisp "creating x,y an z"
         return parseLambda("\x.\y.\z.2 0 (1 0)")
-      return lambda("x")
+      return lambda(DeBruijn(name(s),var))
     subnodes:List Ski := children(s)
-    lambda(first subnodes,second subnodes)
+    c1:Ski := first subnodes
+    c2:Ski := second subnodes
+    --sayTeX$Lisp concat(["util coerce c1=",toString(c1)," c2=",toString(c2)])$String
+    -- look for I x, if found translate x
+    if isI?(c1) then
+      sayTeX$Lisp concat(["util coerce apply rule SL1 in:",toString(s)])$String
+      return Ski2Lambda(c2,var)
+    if atom?(c1) then return lambda(Ski2Lambda(c1,var),Ski2Lambda(c2,var))
+    -- look for K x y, if found translate x
+    subsubnodes:List Ski := children(c1)
+    c11:Ski := first subsubnodes
+    c12:Ski := second subsubnodes
+    --sayTeX$Lisp concat(["util coerce c1=",toString(c1)," c2=",toString(c2)," c11=",toString(c11)," c12=",toString(c12)])$String
+    if isK?(c11) then
+      s2:String := name(c12)
+      sayTeX$Lisp concat(["util coerce apply rule SL2 in:",toString(s)])$String
+      return Ski2Lambda(c12,var)
+    if atom?(c11) then return lambda(Ski2Lambda(c1,var),Ski2Lambda(c2,var))
+    -- look for S x y z, if found translate (x z)(y z)
+    subsubnodes2:List Ski := children(c11)
+    c111:Ski := first subsubnodes2
+    c112:Ski := second subsubnodes2
+    --sayTeX$Lisp concat(["util coerce c11=",toString(c11)," c12=",toString(c12)," c111=",toString(c111)," c112=",toString(c112)])$String
+    -- look for K x y, if found translate x
+    if isS?(c111) then
+      s2:String := name(c2)
+      s12:String := name(c12)
+      s112:String := name(c112)
+      sayTeX$Lisp concat(["util coerce apply rule SL2 in:",toString(s)])$String
+      return lambda(lambda(Ski2Lambda(c112,var),Ski2Lambda(c2,var)),lambda(Ski2Lambda(c12,var),Ski2Lambda(c2,var)))
+    lambda(Ski2Lambda(c1,var),Ski2Lambda(c2,var))
+
+  -- coerce SKI combinators to Lambda term.
+  -- this conversion is done by applying the following rules
+  -- rule SL1: Ski[I] = \x.0
+  -- rule SL2: Ski[K] = \x.\y.1
+  -- rule SL3: Ski[S] = \x.\y.\z.(2 0 (1 0))
+  -- rule SL4: Ski[(E1 E2)] = (Ski[E1] Ski[E2])
+  coerce(s: Ski):Lambda ==
+    var: List String := reverse variables(s)
+    -- first calculate expression
+    term:Lambda := Ski2Lambda(s,var)
+    -- then bind variables
+    for t in var repeat
+      term := lambda(term,t)
+    term
+
+  -- coerce Lambda term to SKI combinators.
+  -- this process is known as abstraction elimination.
+  -- it is done by applying the following rules until
+  -- all lambda terms have been eliminated.
+  -- rule LS1: Lam[x] => x
+  -- rule LS2: Lam[(E1 E2)] => (Lam[E1] Lam[E2])
+  -- rule LS3: Lam[\x.E] => (K Lam[E]) (if x does not occur free in E)
+  -- rule LS4: Lam[\x.x] => I
+  -- rule LS5: Lam[\x.\y.E] => Lam[\x.Lam[\y.E]] (if x occurs free in E)
+  -- rule LS6: Lam[\x.(E1 E2)] => (S Lam[\x.E1] Lam[\x.E2])
+  coerce(lam: Lambda):Ski ==
+    -- test for rule 1
+    if atom?(lam) then
+      sayTeX$Lisp concat(["util coerce rule LS1 applied to:",toString(lam)])$String
+      return ski(toString(lam))
+    if isCompound?(lam) then
+      sayTeX$Lisp concat(["util coerce rule LS2 applied to:",toString(lam)])$String
+      ch:List Lambda := children(lam)
+      c1:Lambda := first ch
+      c2:Lambda := second ch
+      return ski(c1::Ski,c2::Ski)
+    if isLambda?(lam) then
+      c3:Lambda := first children(lam)
+      if atom?(c3) then
+        if toString(c3)="0" then
+          sayTeX$Lisp concat(["util coerce rule LS4 applied to:",toString(lam)])$String
+          return I()
+      if free?(lam) then
+        sayTeX$Lisp concat(["util coerce rule LS3 applied to:",toString(lam)])$String
+        return ski(K(),c3::Ski)
+      if isLambda?(c3) then
+        sayTeX$Lisp concat(["util coerce rule LS5 applied to:",toString(lam)])$String
+        c33:Lambda := first children(c3)
+        cxx:Lambda := lambda(c33,"x")
+        return cxx::Ski
+      if isCompound?(c3) then
+        sayTeX$Lisp concat(["util coerce rule LS6 applied to:",toString(lam)])$String
+        ch3:List Lambda := children(c3)
+        c31:Lambda := first ch3
+        c32:Lambda := second ch3
+        return ski(ski(S(),c31::Ski),c32::Ski)
+    sayTeX$Lisp concat(["util coerce warning could not match any rule to:",toString(lam)])$String
+    I()
+
+  -- coerce combinators to intuitionistic logic
+  -- this is known as the Curry–Howard isomorphism
+  -- it uses the following rules:
+  -- rule SI1: Ski[Ia] => a -> a,
+  -- rule SI2: Ski[Kab] => a -> (b -> a),
+  -- rule SI3: Ski[Sabc] => (a -> (b -> c)) -> ((a -> b) -> (a -> c)),
+  -- rule SI4: Ski[a a->b] => b
+  -- the last rule is function application (modus ponens)
+  coerce(s: Ski):ILogic ==
+    -- if s is an atom then this means that there are no
+    -- parameters for this combinator. If there had been
+    -- they would have been found when this was called on
+    -- the nodes above it.
+    -- I don't know the best way to hanle this, really we
+    -- need to add the required number of parameters, do
+    -- the convertion then remove the parameters just added.
+    -- sayTeX$Lisp concat(["util coerce called for:",toString(s)])$String
+    if atom?(s) then
+      --sayTeX$Lisp concat(["util coerce atom:",toString(s)])$String
+      if isI?(s) then
+        sayTeX$Lisp "warning I does not have a parameter to act on"
+        sayTeX$Lisp "creating x"
+        a :ILogic  := proposition("x")
+        return implies(a,a)
+      if isK?(s) then
+        sayTeX$Lisp "warning K does not enough parameters to act on"
+        sayTeX$Lisp "creating x and y"
+        a :ILogic  := proposition("x")
+        b :ILogic  := proposition("y")
+        return implies(a,implies(b,a))
+      if isS?(s) then
+        sayTeX$Lisp "warning S does not enough parameters to act on"
+        sayTeX$Lisp "creating x,y an z"
+        a :ILogic  := proposition("x")
+        b :ILogic  := proposition("y")
+        c :ILogic  := proposition("z")
+        ab :ILogic  := implies(a,b)
+        ac :ILogic  := implies(a,c)
+        bc :ILogic  := implies(b,c)
+        return implies(implies(a,bc),implies(ab,ac))
+      return proposition(name(s))
+    subnodes:List Ski := children(s)
+    c1:Ski := first subnodes
+    c2:Ski := second subnodes
+    --sayTeX$Lisp concat(["util coerce c1=",toString(c1)," c2=",toString(c2)])$String
+    -- look for I x, if found translate x
+    if isI?(c1) then
+      sayTeX$Lisp concat(["util coerce apply rule SI1 in",toString(s)])$String
+      a :ILogic  := c1::ILogic
+      return implies(a,a)
+    if atom?(c1) then return _\_/(c1::ILogic,c2::ILogic)
+    -- look for K x y, if found translate x
+    subsubnodes:List Ski := children(c1)
+    c11:Ski := first subsubnodes
+    c12:Ski := second subsubnodes
+    --sayTeX$Lisp concat(["util coerce c1=",toString(c1)," c2=",toString(c2)," c11=",toString(c11)," c12=",toString(c12)])$String
+    if isK?(c11) then
+      sayTeX$Lisp concat(["util coerce apply rule SI2 in:",toString(s)])$String
+      a :ILogic  := c2::ILogic
+      b :ILogic  := c12::ILogic
+      return implies(a,implies(b,a))
+    if atom?(c11) then return _\_/(c1::ILogic,c2::ILogic)
+    -- look for S x y z, if found translate (x z)(y z)
+    subsubnodes2:List Ski := children(c11)
+    c111:Ski := first subsubnodes2
+    c112:Ski := second subsubnodes2
+    --sayTeX$Lisp concat(["util coerce c11=",toString(c11)," c12=",toString(c12)," c111=",toString(c111)," c112=",toString(c112)])$String
+    -- look for K x y, if found translate x
+    if isS?(c111) then
+      sayTeX$Lisp concat(["util coerce apply rule SI3 in:",toString(s)])$String
+      a :ILogic  := c2::ILogic
+      b :ILogic  := c12::ILogic
+      c :ILogic  := c112::ILogic
+      ab :ILogic  := implies(a,b)
+      ac :ILogic  := implies(a,c)
+      bc :ILogic  := implies(b,c)
+      return implies(implies(a,bc),implies(ab,ac))
+    _\_/(c1::ILogic,c2::ILogic)
+
 @
+
 \section{License}
 <<license>>=
 --Copyright (c) 2011, Martin J Baker.
@@ -1358,5 +1862,7 @@ Tutorial for SKI calculus:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
 Tutorial for Intuitionistic Logic
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+Tutorial for utilities to coerce between computation domains
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/utility/
 \end{thebibliography}
 \end{document}
