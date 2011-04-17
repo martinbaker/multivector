@@ -351,43 +351,71 @@ ILogic(): Exports == Implementation where
 for more details see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
 
-First I need to clarify a few issues:
+\section{λ-Calculus}
 
-Notation Issue - I would like to use the unicode 'λ' symbol to
-represent lambda in FriCAS I/O in many cases this would work fine
-but there are some consoles and lisps that don't support unicode so,
-for now, I have held off doing this for maximum compatibilty.
+This code implements untyped λ-calculus, in the future I hope to add
+ a typed version.
 
-I have therefore used the '\' symbol to stand for λ.
 I realise that Axiom/FriCAS already has a way to create anonymous
 functions using +-> in a λ-calculus sort of way. But the aim here
-is to have a domain structure which is related to SKI combinators
+is to represent λ-calculus as a pure mathematical structure so that
+we can experiment with the properties of this structure without the
+messy features that are required for a practical computer language.
+I also need a domain structure which is related to SKI combinators
 and IntuitionisticLogic domain and can be coerced to and from these
-other domain types. I also realise that this is written in SPAD which
-is written in Lisp which is based on λ-Calculus (perhaps it could be
-optimised by having direct calls to Lisp?)
+other domain types as demonstrated on this page.
 
-Currently bound variabled use a form of De Bruijn index instead of
-usual notation (both for I/O and internal representation). It would
-be better to use usual notation for I/O even if it is converted to
-De Bruijn index internally.
+I also realise that this is written in SPAD which is written in Lisp
+which is based on λ-Calculus (perhaps it could later be optimised by
+having direct calls to Lisp?)
 
-This is stored as a binary tree structure like this:
+\section{Notation}
+
+Externally a fairly standard notation is used, as would be familiar to
+someone using a textbook to study λ-calculus, or as close as we can get
+without using unicode. I would like to use the unicode 'λ' symbol to
+represent lambda in FriCAS I/O in many cases this would work fine but
+there are some consoles and lisps that don't support unicode so, for
+now, I have held off doing this for maximum compatibility.
+
+I have therefore used the '\' symbol to stand for λ.
+
+Internally the domain stores bound variables using De Bruijn index, in
+most cases this should not concern the user as I/O uses string names
+for variables. Converting bound variables internally to index values
+means that the same variable name can be used, in different lambda terms,
+without ambiguity and without the need for α-substitution.
+
+De Bruijn index which is a integer where
+
+    0=inside current (inner) lambda term
+    1= next outer lambda term
+    2= next outer and so on
+    ...
+
+We will see how this works in the tutorial below.
+
+So internally the λ-calculus is stored as a binary tree structure using
+the following syntax:
 
 <term> ::= "\" var "."<term> | n | <term><term> | "("<term>")"
 
 where:
 
-    * \ = lambda
-    * n = De Bruijn index which is a integer where, 0=inside inner
-      lambda term, 1= next outer lambda term, 2= next outer and so on.
-    * brackets can be used around whole terms.
-    * This requires the user to work out the De Bruijn index values
-      perhaps this could be improved later.
+    \ = λ
+    n = De Bruijn index which is a integer where, 0=inside inner
+        lambda term, 1= next outer lambda term, 2= next outer and so on.
+    var = a string representation of variable (this form is used for
+          unbound variables)
+    brackets can be used around whole terms.
 
-\section{Untyped Lambda-Calculus Tutorial}
+\section{Tutorial}
 
-The Lambda domain needs to be installed on your system.
+The Lambda domain needs to be installed on your system. The source
+code is in a file called computation.spad.pamphlet, which is available
+here:
+
+https://github.com/martinbaker/multivector/
 
 Download and compile in the usual way. Make sure it is exposed since
 Axiom/FriCAS was started.
@@ -398,88 +426,137 @@ Axiom/FriCAS was started.
    Lambda will be automatically loaded when needed from 
       /home/martin/LAMBDA.NRLIB/LAMBDA
 
-Free and bound variables can be constructed by giving the variable
-name as a string. A numeric name is interpreted as a De Bruijn index.
-At the moment the code requires that, for bound variables, De Bruijn
-index is always used. In future this may be changed to use De Bruijn
-index internally but to convert to more conventional notation for
-Input/Output.
-
-De Bruijn index which is a integer where
-
-    * 0=inside current (inner) lambda term
-    * 1= next outer lambda term
-    * 2= next outer and so on
-    * ...
-
-Use of De Bruijn index avoids too much overhead in doing α-substitution.
-
-(1) -> v1 := lambda("1")
-
-   (1)  "1"
-                                                             Type: Lambda
-(2) -> v2 := lambda("x")
-
-   (2)  "x"
-                                                             Type: Lambda
-
 \section{Constructors}
 
-This can be built up into more complex lambda terms by using
-compound terms (as in (3)) and the λ-term itself (as in (4)).
+First we can enter some variables, at the moment they are not inside a
+λ-term so they can't yet be bound, but later we can put them into a λ-term..
 
-Each λ-term can only have one bound variable, if more than one
-bound variable is required then λ-terms can be nested. λ-term
-requires that the bound variable be given a name, even though
-this is not strictly nessesary when using De Bruijn index, this
-is so we can move to a more conventional notation in the future.
+A numeric name is interpreted as a De Bruijn index when put inside a
+λ-term, although we don't need this form for I/O unless we are trying
+to avoid some ambiguity, because free and bound variables can be
+constructed by giving the variable name as a string
 
-(3) -> n1 := lambda(v1,v2)
+A string name will be converted to a De Bruijn index when put inside a
+matching λ-term, otherwise it will be interpreted as a free variable.
 
-   (3)  "(1 x)"
+(1) -> v1 := lambda("x")
+
+   (1)  "x"
                                                              Type: Lambda
-(4) -> n2 := lambda(n1,"x")
+(2) -> v2 := lambda("y")
 
-   (4)  "(\x.(1 x))"
+   (2)  "y"
+                                                             Type: Lambda
+(3) -> v3 := lambda(0)
+
+   (3)  "0"
                                                              Type: Lambda
 
-So far we have enough to constuct any type of lambda term. However
-it might be a bit tedous to construct complex lambda terms in this
-way, an easier way is to use 'parseLambda' to construct the lambda
-term from a string:
+This can be built up into more complex lambda terms by using compound
+terms (as in (4)) and the λ-term itself (as in (5)).
 
-(5) -> n3 := parseLambda("(\x.0 y) z")
+Each λ-term can only have one bound variable, if more than one bound
+variable is required then λ-terms can be nested. λ-term requires that
+the bound variable be given a name.
 
-   (5)  "((\x.(0 y)) z)"
+(4) -> n1 := lambda(v1,v2)
+
+   (4)  "(x y)"
+                                                             Type: Lambda
+(5) -> n2 := lambda(n1,"x")
+
+   (5)  "(\x.(x y))"
+                                                             Type: Lambda
+
+In (5) 'x' is a the bound variable and so, when the λ-term was created,
+this will be converted to De Bruijn index, in (6) we call toString to
+see the internal representation:
+
+In (7) we see that when entered as a numeric index the bound variable
+will still be displayed as a string.
+
+In (8) and (9) we can see that the 'unbind' function can be used to
+unbind the bound variable 'x' that is, although 'x' has the same string
+value as the lambda term, it is treated as though it were different. We
+can see this because the toString output does not have a index value. In
+(10) we call 'bind' to re-bind it.
+
+(6) -> toString(n2)
+
+   (6)  "(\x.(0 y))"
+                                                             Type: String
+(7) -> n3 := lambda(v3,"x")
+
+   (7)  "(\x.x)"
+                                                             Type: Lambda
+(8) -> u2 := unbind(n2)
+
+   (8)  "(\x.(x y))"
+                                                             Type: Lambda
+(9) -> toString(u2)
+
+   (9)  "(\x.(x y))"
+                                                             Type: String
+(10) -> toString(bind(u2))
+
+   (10)  "(\x.(0 y))"
+                                                             Type: String
+
+So we can already construct any type of lambda term, however its a bit tedious
+to construct complex lambda terms in this way, an easier way is to use
+'parseLambda' to construct the lambda term from a string. Again we can
+enter variables as either alpha or numeric characters depending on whether
+we want to specify the index value directly or allow the code to generate it.
+
+In (13) we can see the use of numeric terms to avoid the ambiguity caused
+by nested λ-terms with the same name.
+
+(11) -> n4 := parseLambda("\x.\y. y x")
+
+   (11)  "(\x.(\y.(x y)))"
+                                                             Type: Lambda
+(12) -> toString(n4)
+
+   (12)  "(\x.(\y.(0 1)))"
+                                                             Type: String
+(13) -> n4a := parseLambda("\x.\x. 0 1")
+
+   (13)  "(\x.(\x'.(x x')))"
+                                                             Type: Lambda
+(14) -> toString(n4a)
+
+   (14)  "(\x.(\x.(0 1)))"
+                                                             Type: String
+(15) -> unbind(n4a)
+
+   (15)  "(\x.(\x'.(x x)))"
                                                              Type: Lambda
 
 \section{β-substitution}
 
 The command: subst:(n,a,b) substitutes 'a' for 'b' in 'n' as follows:
 
-(6) -> subst(n2,v2,v1)
+(16) -> subst(n2,v2,v1)
 
-   (6)  "(\x.(x x))"
+   (16)  "(\x.(x y))"
                                                              Type: Lambda
-(7) -> subst(n2,v1,v2)
+(17) -> subst(n2,v1,v2)
 
-   (7)  "(\x.(1 1))"
+   (17)  "(\x.(x x))"
                                                              Type: Lambda
 
-\section{Evaluating}
+\section{Relationship to Other Domains}
 
-We can evaluate the lambda term by using the redux command:
+λ-calculus can be coerced to and from SKI combinators. For a tutorial
+about how to coerce to/from this algebra see below.
 
-(8) -> redux(n3)
 
-   (8)  "(\x.(z y))"
-                                                             Type: Lambda
 \section{domain LAMBDA Lambda}
 <<domain LAMBDA Lambda>>=
 )abbrev domain LAMBDA Lambda
 ++ Author: Martin Baker
 ++ Date Created: March 2011
-++ Date Last Updated: March 2011
+++ Date Last Updated: April 2011
 ++ Basic Operations: 
 ++ Related Constructors: 
 ++ Also See:
@@ -502,7 +579,7 @@ Lambda(): Exports == Implementation where
   lambda:(x:%,y:%) -> %
     ++ Constructs a node containing multiple terms
   lambda:(x:%,t1: String) -> %
-    ++ Constructs lambda term
+    ++ Constructs lambda term and bind any variables with the name provided
   parseLambda:(t1: String) -> %
     ++ Constructs nested lambda terms from a string
     ++ notation assumes format like this:
@@ -535,8 +612,16 @@ Lambda(): Exports == Implementation where
     ++ returns 2 child nodes if this is a compound term
     ++ returns 1 child node if this is a lamda term
     ++ otherwise returns []
+  name:(n: %) -> String
+    ++ if this is a lambda term then return the name of the bound variable
   subst:(n: %,a: %,b: %) -> %
     ++ substitution of 'a' for 'b' in 'n'
+  bind:(n: %) -> %
+    ++ if this is a lambda term then replace string name in sub-nodes
+    ++ with De Bruijn index
+  unbind:(n: %) -> %
+    ++ if this is a lambda term then replace De Bruijn index in sub-nodes
+    ++ with string name
   redux:(n: %) -> %
     ++ beta reduction - apply beta reduction recusivly to all subnodes
   "=":(x:%, y:%) -> Boolean
@@ -545,16 +630,26 @@ Lambda(): Exports == Implementation where
     ++ That is the names, but not the deBruijn index, of the
     ++ bound variables can be different.
     ++ beta-equivalenty is not implemented because it is not decidable.
+  toStringConven: (n:%,boundL: List String) -> String
+    ++ return string representation using conventional notation, that is
+    ++ deBruijn index is replaced by name using String value for bound variables.
+    ++ notation assumes association to the left, in the absence of
+    ++ brackets, the term to the left binds more tightly than the
+    ++ one on the right.
   toString: (n: %) -> String
-    ++ string representation of this node and its subnodes
+    ++ return string representation using conventional deBruijn index for
+    ++ bound variables.
+    ++ notation assumes association to the left, in the absence of
+    ++ brackets, the term to the left binds more tightly than the
+    ++ one on the right.
   coerce: (n: %) -> OutputForm
     ++ output
 
  Implementation == add
 
   Rep := Union(_
-         boundTerm:Record(deBruijn:NNI),_
-         freeTerm:Record(varName:String),_
+         boundTerm:Record(varBound:NNI),_
+         freeTerm:Record(varUnbound:String),_
          compoundTerm:Record(c1:%, c2:%),_
          lambdaTerm:Record(c3:%, nm:String)_
          )
@@ -580,8 +675,12 @@ Lambda(): Exports == Implementation where
   -- Constructs a node containing multiple terms
   lambda(x:%,y:%): % == [[x,y]]
 
-  -- Constructs lambda term
-  lambda(x:%,t1: String): % == [[x,t1]]
+  -- Constructs lambda term and bind any variables with the name provided
+  lambda(x:%,t1: String): % ==
+    lt:% := [[x,t1]]
+    --sayTeX$Lisp concat(["creating lambda(",toString(x),",",t1") giving:",toString(lt)])
+    --sayTeX$Lisp concat(["bound ver=",toString(bind(lt))])
+    bind(lt)
 
   -- returns 2 child nodes if this is a compound term
   -- returns 1 child node if this is a lamda term
@@ -593,6 +692,12 @@ Lambda(): Exports == Implementation where
     if n case lambdaTerm then
       return [n.lambdaTerm.c3]
     []
+
+  -- if this is a lambda term then return the name of the bound variable
+  name(n: %):String ==
+    if n case lambdaTerm then
+      return n.lambdaTerm.nm
+    "error"
 
   parseStringTerm(t1: String):String ==
     vnm:String := ""
@@ -668,23 +773,30 @@ Lambda(): Exports == Implementation where
   parseTerm(t1: String):% ==
     res:% := [[0::NNI]]
     ch := qelt(t1,pt)
-    --sayTeX$Lisp concat("pt ch=",ch::String)
+    --sayTeX$Lisp concat("parseTerm ch=",ch::String)
     -- first remove leading spaces
     while ch = char(" ") repeat
       pt := pt + (1::NNI)
-      if pt > maxIndex(t1) then return res
+      if pt > maxIndex(t1) then
+        --sayTeX$Lisp concat(["parseTerm(",t1,") 1 giving:",toString(res)])
+        return res
       ch := qelt(t1,pt)
     if ch = char("\") then res := parseLambdaTerm(t1)
     if ch = char("(") then res := parseBracketTerm(t1)
     if digit?(ch) then res := parseVariableTerm(t1)
     if alphabetic?(ch) then res := parseFreeTerm(t1)
     -- now check for compound term
-    if pt > maxIndex(t1) then return res
+    if pt > maxIndex(t1) then
+      --sayTeX$Lisp concat(["parseTerm(",t1,") 2 giving:",toString(res)])
+      return res
     ch := qelt(t1,pt)
     if ch = char(" ") then
       pt := pt + (1::NNI)
-      if pt > maxIndex(t1) then return res
+      if pt > maxIndex(t1) then
+        --sayTeX$Lisp concat(["parseTerm(",t1,") 3 giving:",toString(res)])
+        return res
       res := lambda(res,parseTerm(t1))
+    --sayTeX$Lisp concat(["parseTerm(",t1,") 4 giving:",toString(res)])
     res
 
   -- Constructs nested lambda terms from a string
@@ -702,7 +814,9 @@ Lambda(): Exports == Implementation where
   -- perhaps this could be improved later.
   parseLambda(t1: String): % ==
     pt := minIndex(t1)::NNI
-    parseTerm(t1)
+    tm := parseTerm(t1)
+    --sayTeX$Lisp concat(["parseLambda(",t1,") giving:",toString(tm)])
+    tm
 
   -- returns true if this is an atom, that is free or bound variable
   -- otherwise return false if this is a compound or lambda definition
@@ -717,7 +831,7 @@ Lambda(): Exports == Implementation where
   -- does s not appear in n
   freeVariable?(n: %,s:String):Boolean ==
     if n case freeTerm then
-      if n.freeTerm.varName=s then return false
+      if n.freeTerm.varUnbound=s then return false
     if n case lambdaTerm then
       if not freeVariable?(n.lambdaTerm.c3,s) then return false
     if n case compoundTerm then
@@ -728,7 +842,7 @@ Lambda(): Exports == Implementation where
   -- return false if any bound terms
   freeVariable?(n: %,i:NNI):Boolean ==
     if n case boundTerm then
-      if n.boundTerm.deBruijn=i then return false
+      if n.boundTerm.varBound=i then return false
     if n case lambdaTerm then
       if not freeVariable?(n.lambdaTerm.c3,(i+1)::NNI) then return false
     if n case compoundTerm then
@@ -745,21 +859,49 @@ Lambda(): Exports == Implementation where
     sayTeX$Lisp concat("warning free called on non-lambda term",toString(n))
     false
 
-  -- return string representation
+  -- return string representation using conventional notation, that is
+  -- deBruijn index is replaced by name using String value for bound variables.
   -- notation assumes association to the left, in the absence of
   -- brackets, the term to the left binds more tightly than the
   -- one on the right.
-  -- boundTerm:Record(deBruijn:NNI, ck:NNI),
-  -- freeTerm:Record(varName:String),_
+  toStringConven(n:%,boundL: List String):String ==
+    s:String := ""
+    --sayTeX$Lisp concat(["toStringConven(",toString(n),")"])
+    if n case boundTerm then
+      i:NNI := n.boundTerm.varBound + 1
+      --sayTeX$Lisp concat(["toStringConven(",toString(n),") i=",string(i)," #boundL=",string(#boundL)])
+      if i > 0 and i <= #boundL then return boundL.i
+      s := string(n.boundTerm.varBound)
+      --sayTeX$Lisp s
+    if n case freeTerm then
+      s := n.freeTerm.varUnbound
+    if n case compoundTerm then
+      s := concat(["(",toStringConven(n.compoundTerm.c1,boundL)," ",toStringConven(n.compoundTerm.c2,boundL),")"])
+    if n case lambdaTerm then
+      -- variable node so print name
+      varName:String := n.lambdaTerm.nm
+      while member?(varName,boundL) repeat
+        varName := concat(varName,"'")
+      boundL2: List String := concat(boundL,varName)
+      s := concat(["(\",varName,".",toStringConven(n.lambdaTerm.c3,boundL2),")"])
+    s
+
+  -- return string representation using conventional deBruijn index for
+  -- bound variables.
+  -- notation assumes association to the left, in the absence of
+  -- brackets, the term to the left binds more tightly than the
+  -- one on the right.
+  -- boundTerm:Record(varBound:NNI, ck:NNI),
+  -- freeTerm:Record(varUnbound:String),_
   -- compoundTerm:Record(c1:%, c2:%),
   -- lambdaTerm:Record(c3:%, nm:String)
   toString(n:%):String ==
     s:String := ""
     if n case boundTerm then
-      s := string(n.boundTerm.deBruijn)
+      s := string(n.boundTerm.varBound)
       --sayTeX$Lisp s
     if n case freeTerm then
-      s := n.freeTerm.varName
+      s := n.freeTerm.varUnbound
     if n case compoundTerm then
       s := concat(["(",toString(n.compoundTerm.c1)," ",toString(n.compoundTerm.c2),")"])
     if n case lambdaTerm then
@@ -774,6 +916,60 @@ Lambda(): Exports == Implementation where
       return lambda(subst(n.compoundTerm.c1,a,b),subst(n.compoundTerm.c2,a,b))
     if (n case lambdaTerm) then
       return lambda(subst(n.lambdaTerm.c3,a,b),n.lambdaTerm.nm)
+    n
+
+  -- used by bind to replace a given string name in sub-nodes
+  -- with De Bruijn index
+  bindTerm(n:%,i:NNI,s:String):% ==
+    --sayTeX$Lisp concat(["bindTerm(",toString(n)," map:",string(i)," to ",s,")"])
+    if n case boundTerm then
+      return lambda(n.boundTerm.varBound)
+    if n case freeTerm then
+      if n.freeTerm.varUnbound=s then
+        --sayTeX$Lisp concat(["convert:",s," to ",string(i)])
+        return lambda(i)
+      return lambda(n.freeTerm.varUnbound)
+    if n case lambdaTerm then
+      --sayTeX$Lisp concat(["bindTerm generating lambda(",toString(bindTerm(n.lambdaTerm.c3,i+1,s)),",",n.lambdaTerm.nm,")"])
+      return [[bindTerm(n.lambdaTerm.c3,i+1,s),n.lambdaTerm.nm]]
+    if n case compoundTerm then
+      return lambda(bindTerm(n.compoundTerm.c1,i,s),_
+                    bindTerm(n.compoundTerm.c2,i,s))
+    n
+
+  -- if this is a lambda term then replace string name in sub-nodes
+  -- with De Bruijn index
+  bind(n: %):% ==
+    --sayTeX$Lisp concat(["bind(",toString(n),")"])
+    if (n case lambdaTerm) then
+      return [[bindTerm(n.lambdaTerm.c3,0,n.lambdaTerm.nm),n.lambdaTerm.nm]]
+    n
+
+  -- used by unbind to replace a given De Bruijn index in sub-nodes
+  -- with string name
+  unbindTerm(n:%,i:NNI,s:String):% ==
+    --sayTeX$Lisp concat(["unbindTerm(",toString(n)," map:",string(i)," to ",s,")"])
+    if n case boundTerm then
+      if n.boundTerm.varBound=i then
+        --sayTeX$Lisp concat(["convert:",string(i)," to ",s])
+        return lambda(s)
+      return lambda(n.boundTerm.varBound)
+    if n case freeTerm then
+      return lambda(n.freeTerm.varUnbound)
+    if n case lambdaTerm then
+      --sayTeX$Lisp concat(["unbindTerm generating lambda(",toString(unbindTerm(n.lambdaTerm.c3,i+1,s)),",",n.lambdaTerm.nm,")"])
+      return [[unbindTerm(n.lambdaTerm.c3,i+1,s),n.lambdaTerm.nm]]
+    if n case compoundTerm then
+      return lambda(unbindTerm(n.compoundTerm.c1,i,s),_
+                    unbindTerm(n.compoundTerm.c2,i,s))
+    n
+
+  -- if this is a lambda term then replace De Bruijn index in sub-nodes
+  -- with string name
+  unbind(n: %):% ==
+    --sayTeX$Lisp concat(["unbind(",toString(n),")"])
+    if (n case lambdaTerm) then
+      return [[unbindTerm(n.lambdaTerm.c3,0,n.lambdaTerm.nm),n.lambdaTerm.nm]]
     n
 
   -- beta reduction - apply beta reduction recusivly to all subnodes
@@ -800,11 +996,11 @@ Lambda(): Exports == Implementation where
   x = y ==
     if (x case boundTerm) and (y case boundTerm) then
       -- boundTerm so compare deBruijn index
-      if x.boundTerm.deBruijn = y.boundTerm.deBruijn then return true
+      if x.boundTerm.varBound = y.boundTerm.varBound then return true
       return false
     if (x case freeTerm) and (y case freeTerm) then
       -- freeTerm so compare name String
-      if x.freeTerm.varName = y.freeTerm.varName then return true
+      if x.freeTerm.varUnbound = y.freeTerm.varUnbound then return true
       return false
     if (x case compoundTerm) and (y case compoundTerm) then
       -- compoundTerm so compare both terms
@@ -819,9 +1015,9 @@ Lambda(): Exports == Implementation where
 
   -- output
   coerce(n: %):OutputForm ==
-    toString(n)::OutputForm
+    toStringConven(n,[])::OutputForm
+    --toString(n)::OutputForm
 @
-
 
 \section{SKI Combinators}
 for more details see:
@@ -1070,6 +1266,9 @@ Ski(): Exports == Implementation where
     ++ variable then return "_"
   variables:(n: %) -> List String
     ++ returns a list of variable names under this node
+  freeVariable?:(n: %,s:String) -> Boolean
+    ++ the variable indicated by 's' is free if it does
+    ++ not appear in node 'n' or any of its subnodes.
   redux:(n: %) -> %
     ++ weak reduction - apply this combinator to rearange its
     ++ subnodes then apply recusivly to its subnodes
@@ -1243,6 +1442,16 @@ Ski(): Exports == Implementation where
       return n.vr.s1
     "__"
 
+  -- the variable indicated by 's' is free if it does
+  -- not appear in node 'n' or any of its subnodes.
+  freeVariable?(n: %,s:String):Boolean ==
+    if n case vr then
+      if n.vr.s1=s then return false
+    if n case nd then
+      if not freeVariable?(n.nd.c1,s) or _
+         not freeVariable?(n.nd.c2,s) then return false
+    true
+
   -- returns a list of variable names under this node
   variables(n: %):List String ==
     if n case vr then
@@ -1339,30 +1548,20 @@ Ski(): Exports == Implementation where
     toString(n)::OutputForm
 @
 
-\section{compUtil}
-The compUtil package provides utilities to convert between the
-computational domains: Lambda, Ski and ILogic.
+\section{Logic Utility Package}
 
-Both Lambda are Ski are Turing complete and can be coerced to each
-other. Lambda and Ski are not equal and they are only isomorphic
-upto beta-equivalence and beta-equivalence is undecidable so there
-is not a direct correspondance between the nodes in their trees.
-Also the names of bound variables and other such constructions may
-be lost in Lambda -> Ski -> Lambda round trip.
+The compUtil package provides utilities to convert between the computational domains: Lambda, Ski and ILogic.
 
-An element of ILogic cannot be coerced to the other types. However
-ILogic can be used to produce a theory which can be concerted
-to/from the other domains using Curry–Howard isomorphism.
-\section{Tutorial}
+Both Lambda are Ski are Turing complete and can be coerced to each other. Lambda and Ski are not equal and they are only isomorphic upto beta-equivalence and beta-equivalence is undecidable so there is not a direct correspondance between the nodes in their trees. Also the names of bound variables and other such constructions may be lost in Lambda -> Ski -> Lambda round trip.
 
-For these coercions to work then all the computational domains
-need to be installed on your system. The source code is in a
-file called computation.spad.pamphlet, which is available here:
+An element of ILogic cannot be coerced to the other types. However ILogic can be used to produce a theory which can be concerted to/from the other domains using Curry–Howard isomorphism.
+Tutorial
+
+For these coercions to work then all the computational domains need to be installed on your system. The source code is in a file called computation.spad.pamphlet, which is available here:
 
 https://github.com/martinbaker/multivector/
 
-Download and compile in the usual way. Make sure it is exposed
-since Axiom/FriCAS was started:
+Download and compile in the usual way. Make sure it is exposed since Axiom/FriCAS was started:
 
 (1) -> )library ILOGIC
  
@@ -1389,166 +1588,195 @@ since Axiom/FriCAS was started:
 
 We can then create SKI combinators and convert them to λ functions.
 
-If the combinators don't have the required parameters then you will
-get a warning as follows. The code will attempt to add parameters
-as required but this will not work in complicated situations.
+    For a tutorial about working with SKI combinators see this page.
+    For a tutorial about working with λ functions see this page.
 
-Ideally when working with 'abstract' combinatiors we need to add
-the required number of parameters, do the convertion then remove
-the parameters just added.
+If the combinators don't have the required parameters then you will get a warning as follows. The code will attempt to add parameters as required but this will not work in complicated situations.
 
-(1) -> I()::Lambda  
+Ideally when working with 'abstract' combinatiors we need to add the required number of parameters, do the convertion then remove the parameters just added.
+
+(1) -> I()::Lambda
 
 warning I does not have a parameter to act on
-creating x   
+creating x
 
-   (1)  "(\x.0)"
+   (1)  "(\x.x)"
                                                              Type: Lambda
-(2) -> K()::Lambda  
+(2) -> K()::Lambda
 
 warning K does not enough parameters to act on
 creating x and y
 
-   (2)  "(\x.(\y.1))"
+   (2)  "(\x.(\y.y))"
                                                              Type: Lambda
-(3) -> S()::Lambda  
+(3) -> S()::Lambda
 
 warning S does not enough parameters to act on
 creating x,y an z
 
-   (3)  "(\x.(\y.(\z.(2 (0 (1 0))))))"
+   (3)  "(\x.(\y.(\z.(z (x (y x))))))"
                                                              Type: Lambda
 
-In the following examples the combinators are provided with the
-reqired parameters. This conversion works by applying the
-following rules:
+In the following examples the combinators are provided with the reqired parameters. This conversion works by applying the following rules:
 
-    * rule SL1: Ski[I] = \x.0
-    * rule SL2: Ski[K] = \x.\y.1
-    * rule SL3: Ski[S] = \x.\y.\z.(2 0 (1 0))
-    * rule SL4: Ski[(E1 E2)] = (Ski[E1] Ski[E2])
+    rule SL1: Ski[I] = \x.0
+    rule SL2: Ski[K] = \x.\y.1
+    rule SL3: Ski[S] = \x.\y.\z.(2 0 (1 0))
+    rule SL4: Ski[(E1 E2)] = (Ski[E1] Ski[E2])
 
 So here are some examples:
 
-(4) -> parseSki("Ia")::Lambda
-
-util coerce apply rule SL1 in:Ia
-
-   (4)  "(\a.0)"
+(4) -> parseSki("Ia")::Lambda                                            
+           
+util coerce apply rule SL1 in:Ia                                  
+           
+   (4)  "(\a.a)"                                                  
                                                              Type: Lambda
 (5) -> parseSki("Kab")::Lambda
-
+ 
 util coerce apply rule SL2 in:Kab
 
-   (5)  "(\a.(\b.1))"
+   (5)  "(\a.(\b.b))"
                                                              Type: Lambda
 (6) -> parseSki("K(a b)c")::Lambda
  
 util coerce apply rule SL2 in:K(ab)c
 
-   (6)  "(\a.(\b.(\c.(2 1))))"
+   (6)  "(\a.(\b.(\c.(c b))))"
                                                              Type: Lambda
 (7) -> parseSki("Sabc")::Lambda
  
 util coerce apply rule SL2 in:Sabc
 
-   (7)  "(\a.(\b.(\c.((2 0) (1 0)))))"
+   (7)  "(\a.(\b.(\c.((c a) (b a)))))"
+                                                             Type: Lambda
+(8) -> parseSki("S(K(SI))(S(KK)I)")::Lambda
+ 
+warning S does not enough parameters to act on
+creating x,y an z
+warning K does not enough parameters to act on
+creating x and y
+warning S does not enough parameters to act on
+creating x,y an z
+warning I does not have a parameter to act on
+creating x
+warning S does not enough parameters to act on
+creating x,y an z
+warning K does not enough parameters to act on
+creating x and y
+warning K does not enough parameters to act on
+creating x and y
+warning I does not have a parameter to act on
+creating x
+
+   (8)
+"(((\x.(\y.(\z.(z (x (y x)))))) ((\x.(\y.y)) ((\x.(\y.(\z.(z (x (y x))))))
+(\x.x)))) (((\x.(\y.(\z.(z (x (y x)))))) ((\x.(\y.y)) (\x.(\y.y))))
+(\x.x)))"
                                                              Type: Lambda
 
 \section{λ functions to SKI combinators}
 
 We can then create λ functions and convert them to SKI combinators.
 
+    For a tutorial about working with SKI combinators see this page.
+    For a tutorial about working with λ functions see this page.
 
-This process is known as abstraction elimination. it is done by
-applying the following rules until all lambda terms have been
-eliminated.
+This process is known as abstraction elimination. it is done by applying the following rules until all lambda terms have been eliminated.
 
-    * rule LS1: Lam[x] => x
-    * rule LS2: Lam[(E1 E2)] => (Lam[E1] Lam[E2])
-    * rule LS3: Lam[\x.E] => (K Lam[E]) (if x does not occur free in E)
-    * rule LS4: Lam[\x.x] => I
-    * rule LS5: Lam[\x.\y.E] => Lam[\x.Lam[\y.E]] (if x occurs free in E)
-    * rule LS6: Lam[\x.(E1 E2)] => (S Lam[\x.E1] Lam[\x.E2])
+    rule LS1: Lam[x] => x
+    rule LS2: Lam[(E1 E2)] => (Lam[E1] Lam[E2])
+    rule LS3: Lam[\x.E] => (K Lam[E]) (if x does not occur free in E)
+    rule LS4: Lam[\x.x] => I
+    rule LS5: Lam[\x.\y.E] => Lam[\x.Lam[\y.E]] (if x occurs free in E)
+    rule LS6: Lam[\x.(E1 E2)] => (S Lam[\x.E1] Lam[\x.E2])
 
 Here are some examples:
 
-(8) -> parseLambda("x")::Ski
+(9) -> parseLambda("x")::Ski
  
-util coerce rule LS1 applied to:x
+util coerce rule LS1 applied to:x giving x
 
-   (8)  "x"
+   (9)  "x"
                                                                 Type: Ski
-(9) -> parseLambda("x y")::Ski
+(10) -> parseLambda("x y")::Ski
  
-util coerce rule LS2 applied to:(x y)
-util coerce rule LS1 applied to:x
-util coerce rule LS1 applied to:y
+util coerce rule LS2 applied to:(x y) giving (x y)
+util coerce rule LS1 applied to:x giving x
+util coerce rule LS1 applied to:y giving y
 
-   (9)  "xy"
+   (10)  "xy"
                                                                 Type: Ski
-(10) -> parseLambda("\x.1")::Ski
+(11) -> parseLambda("\x.1")::Ski
  
-util coerce rule LS3 applied to:(\x.1)
-util coerce rule LS1 applied to:1
+util coerce rule LS3 applied to:(\x.1) giving K 1
+util coerce rule LS1 applied to:1 giving 1
 
-   (10)  "K1"
+   (11)  "K1"
                                                                 Type: Ski
-(11) -> parseLambda("\x.0")::Ski
+(12) -> parseLambda("\x.0")::Ski
  
-util coerce rule LS4 applied to:(\x.0)
+util coerce warning could not match any rule to:(\x.0)
 
-   (11)  "I"
+   (12)  "I"
                                                                 Type: Ski
-(12) -> parseLambda("\x.\y.0 1")::Ski
+(13) -> parseLambda("\x.\y.0 1")::Ski
  
-util coerce rule LS5 applied to:(\x.(\y.(0 1)))
-util coerce rule LS6 applied to:(\x.(0 1))
-util coerce rule LS1 applied to:0
-util coerce rule LS1 applied to:1
+util coerce rule LS5 applied to:(\x.(\y.(0 1))) giving \x.(\y.(0 x))
+util coerce rule LS6 applied to:(\y.(0 x)) giving S \y.y \y.x
+util coerce rule LS1 applied to:y giving y
+util coerce rule LS4' applied to: \y.y giving I
+util coerce rule LS1 applied to:x giving x
+util coerce rule LS3' applied to: \y.x giving K x
+util coerce rule LS5' applied to: \x.SI(Kx) giving S \x.SI \x.Kx
+util coerce rule LS3' applied to: \x.SI giving K \x.S \x.I
+util coerce rule LS5' applied to: \x.Kx giving S \x.K \x.x
+util coerce rule LS3' applied to: \x.K giving K K
+util coerce rule LS4' applied to: \x.x giving I
 
-   (12)  "S01"
+   (13)  "S(K(SI))(S(KK)I)"
                                                                 Type: Ski
 
 \section{SKI combinators to Intuitionistic Logic}
 
-We can then create SKI combinators and convert them to intuitionistic
-logic.
+We can then create SKI combinators and convert them to intuitionistic logic.
+
+    For a tutorial about working with SKI combinators see this page.
+    For a tutorial about working with intuitionistic logic see this page.
 
 This is known as the Curry–Howard isomorphism it uses the following rules:
 
-    * rule SI1: Ski[Kab] => a -> (b -> a)
-    * rule SI2: Ski[Sabc] => (a -> (b -> c)) -> ((a -> b) -> (a -> c))
-    * rule SI3: Ski[a a->b] => b
+    rule SI1: Ski[Kab] => a -> (b -> a)
+    rule SI2: Ski[Sabc] => (a -> (b -> c)) -> ((a -> b) -> (a -> c))
+    rule SI3: Ski[a a->b] => b
 
-The last rule is function application (modus ponens). Here are
-some examples:
+The last rule is function application (modus ponens). Here are some examples:
 
-(13) -> parseSki("Ia")::ILogic
+(14) -> parseSki("Ia")::ILogic
  
 util coerce apply rule SI1 in:Ia
 warning I does not have a parameter to act on
 creating x
 
-   (13)  "((x->x)->(x->x))"
+   (14)  "((x->x)->(x->x))"
                                                              Type: ILogic
-(14) -> parseSki("Kab")::ILogic
+(15) -> parseSki("Kab")::ILogic
  
 util coerce apply rule SI2 in:Kab
 
-   (14)  "(b->(a->b))"
+   (15)  "(b->(a->b))"
                                                              Type: ILogic
-(15) -> parseSki("K(a b)c")::ILogic
+(16) -> parseSki("K(a b)c")::ILogic
  
 util coerce apply rule SI2 in:K(ab)c
 
-   (15)  "(c->((a\/b)->c))"
+   (16)  "(c->((a\/b)->c))"
                                                              Type: ILogic
-parseSki("Sabc")::ILogic
+(17) -> parseSki("Sabc")::ILogic
  
-(16) -> util coerce apply rule SI3 in:Sabc
+util coerce apply rule SI3 in:Sabc
 
-   (16)  "((c->(b->a))->((c->b)->(c->a)))"
+   (17)  "((c->(b->a))->((c->b)->(c->a)))"
                                                              Type: ILogic
 
 \section{package COMP compUtil}
@@ -1691,6 +1919,28 @@ compUtil(): Exports == Implementation where
       term := lambda(term,t)
     term
 
+  -- when we are coerceing Lambda to Ski and we apply rule LS5
+  -- we call this
+  lambdaOverSki(var:String,sk:Ski):Ski ==
+    --sayTeX$Lisp concat(["gives \",var,".",toString(sk)])$String
+    if atom?(sk) then
+      if freeVariable?(sk,var) then
+        sayTeX$Lisp concat(["util coerce rule LS3' applied to: \",var,".",toString(sk)," giving K ",toString(sk)])$String
+        return ski(K(),sk)
+      sayTeX$Lisp concat(["util coerce rule LS4' applied to: \",var,".",toString(sk)," giving I"])$String
+      return I()
+    ch: List Ski := children(sk)
+    left:Ski := first ch
+    right:Ski := second ch
+    --sayTeX$Lisp concat(["left=",toString(left),_
+    --                    " right=",toString(right)])$String
+    if freeVariable?(sk,var) then
+      sayTeX$Lisp concat(["util coerce rule LS3' applied to: \",var,".",toString(sk)," giving K \",var,".",toString(left)," \",var,".",toString(right)])$String
+      --return ski(ski(K(),left),right)
+      return ski(K(),ski(left,right))
+    sayTeX$Lisp concat(["util coerce rule LS5' applied to: \",var,".",toString(sk)," giving S \",var,".",toString(left)," \",var,".",toString(right)])$String
+    return ski(ski(S(),lambdaOverSki(var,left)),lambdaOverSki(var,right))
+
   -- coerce Lambda term to SKI combinators.
   -- this process is known as abstraction elimination.
   -- it is done by applying the following rules until
@@ -1704,34 +1954,36 @@ compUtil(): Exports == Implementation where
   coerce(lam: Lambda):Ski ==
     -- test for rule 1
     if atom?(lam) then
-      sayTeX$Lisp concat(["util coerce rule LS1 applied to:",toString(lam)])$String
+      sayTeX$Lisp concat(["util coerce rule LS1 applied to:",toString(lam)," giving ",toString(lam)])$String
       return ski(toString(lam))
     if isCompound?(lam) then
-      sayTeX$Lisp concat(["util coerce rule LS2 applied to:",toString(lam)])$String
       ch:List Lambda := children(lam)
       c1:Lambda := first ch
       c2:Lambda := second ch
+      sayTeX$Lisp concat(["util coerce rule LS2 applied to:",toString(lam)," giving (",toString(c1)," ",toString(c2),")"])$String
       return ski(c1::Ski,c2::Ski)
     if isLambda?(lam) then
-      c3:Lambda := first children(lam)
+      lamUn:Lambda := unbind(lam)
+      c3:Lambda := first children(lamUn)
+      s3:String := name(lam)
       if atom?(c3) then
         if toString(c3)="0" then
-          sayTeX$Lisp concat(["util coerce rule LS4 applied to:",toString(lam)])$String
+          sayTeX$Lisp concat(["util coerce rule LS4 applied to:",toString(lam)," giving I"])$String
           return I()
       if free?(lam) then
-        sayTeX$Lisp concat(["util coerce rule LS3 applied to:",toString(lam)])$String
+        sayTeX$Lisp concat(["util coerce rule LS3 applied to:",toString(lam)," giving K ",toString(c3)])$String
         return ski(K(),c3::Ski)
       if isLambda?(c3) then
-        sayTeX$Lisp concat(["util coerce rule LS5 applied to:",toString(lam)])$String
         c33:Lambda := first children(c3)
-        cxx:Lambda := lambda(c33,"x")
-        return cxx::Ski
+        cxx:Lambda := lambda(c33,name(c3))
+        sayTeX$Lisp concat(["util coerce rule LS5 applied to:",toString(lam)," giving \",s3,".",toString(cxx)])$String
+        return lambdaOverSki(s3,cxx::Ski)
       if isCompound?(c3) then
-        sayTeX$Lisp concat(["util coerce rule LS6 applied to:",toString(lam)])$String
         ch3:List Lambda := children(c3)
         c31:Lambda := first ch3
         c32:Lambda := second ch3
-        return ski(ski(S(),c31::Ski),c32::Ski)
+        sayTeX$Lisp concat(["util coerce rule LS6 applied to:",toString(lam)," giving S \",s3,".",toString(c31)," \",s3,".",toString(c32)])$String
+        return ski(ski(S(),lambdaOverSki(s3,c31::Ski)),lambdaOverSki(s3,c32::Ski))
     sayTeX$Lisp concat(["util coerce warning could not match any rule to:",toString(lam)])$String
     I()
 
@@ -1782,7 +2034,7 @@ compUtil(): Exports == Implementation where
     --sayTeX$Lisp concat(["util coerce c1=",toString(c1)," c2=",toString(c2)])$String
     -- look for I x, if found translate x
     if isI?(c1) then
-      sayTeX$Lisp concat(["util coerce apply rule SI1 in",toString(s)])$String
+      sayTeX$Lisp concat(["util coerce apply rule SI1 in:",toString(s)])$String
       a :ILogic  := c1::ILogic
       return implies(a,a)
     if atom?(c1) then return _\_/(c1::ILogic,c2::ILogic)
