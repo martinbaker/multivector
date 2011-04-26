@@ -16,6 +16,33 @@ Intuitionistic logic as abstact mathematical structures which were
 discovered before modern computers and are worthy of study in their own
 right.
 
+These domains all represent systems of logic and are constructed from
+tree structures and act on tree structures. These 'tree logics' seem
+to 'generate' other algebras, for instance, below, we see that
+this λ structure:
+
+\x.\y.y x
+
+can be converted to this SKI structure:
+
+S(K(SI))(S(KK)I)
+
+This allows us to 'abstract' the definition, in that it takes a
+definition in terms of arbitrary variables and it converts to a
+definition without arbitrary variables. So these structures are
+equivalent and they both reverse two operands. That is they generate
+an n-ary to n-ary function, in this case:
+
+(x,y) -> (y,x)
+
+This seems to be a 'monad' and it would be interesting to see if
+these domains could be implemented as instances of a monad (a
+monad in category theory terms, not the current FriCAS monad
+category).
+
+I would also like to extend this to investigate abstract structures
+such as 'tree automata'.
+
 For more details see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/
 Tutorial for lambda calculus:
@@ -31,6 +58,7 @@ http://www.euclideanspace.com/maths/standards/program/mycode/computation/utility
 \tableofcontents
 \eject
 \section{Variables}
+
 Before we get on to the main domains we have some code to represent
 variables in Lambda and Ski domains.
 Since we are working in terms of functions then a variable will be a
@@ -42,12 +70,258 @@ two implementations of this category so far:
             domains, a variable has a name represented by a String.
 * Typed - Typed represents an typed variable in Lambda and Ski
           domains, a variable has a name represented by a String
-          and a type represented by a list of strings.
+          and a type represented by a tree of strings.
 There may be possibly be other implementations in the future. For instance
-we could introduce a typed variable which could have FriCAS types instead of
-abstract types represented by strings. This might allow more interaction with
-other domains, although as already stated, the main aim is to implement these
-as abstract structures like any other mathematical structure.
+we could introduce a typed variable which could have FriCAS types instead
+of abstract types represented by strings. This might allow more interaction
+with other domains, although as already stated, the main aim is to
+implement these as abstract structures like any other mathematical
+structure.
+
+The two implementations: Untyped and Typed which can be constructed as
+follows:
+
+(1) -> )library VTYP
+ 
+   VarTyp is now explicitly exposed in frame frame1 
+   VarTyp will be automatically loaded when needed from 
+      /home/martin/VTYP.NRLIB/VTYP
+(1) -> )library VARCAT
+ 
+   VarCat is now explicitly exposed in frame frame1 
+   VarCat will be automatically loaded when needed from 
+      /home/martin/VARCAT.NRLIB/VARCAT
+(1) -> )library UNTYPED
+ 
+   Untyped is now explicitly exposed in frame frame1 
+   Untyped will be automatically loaded when needed from 
+      /home/martin/UNTYPED.NRLIB/UNTYPED
+(1) -> )library TYPED
+ 
+   Typed is now explicitly exposed in frame frame1 
+   Typed will be automatically loaded when needed from 
+      /home/martin/TYPED.NRLIB/TYPED
+(1) -> var("x")$Untyped
+
+   (1)  "x"
+                                                            Type: Untyped
+
+(2) -> var("x",varTyp("a"))$Typed
+
+   (2)  "x:a"
+                                                              Type: Typed
+
+(3) -> parseVar("x:a->b",1)$Typed
+
+   (3)  [rft= "x:a->b",pout= 7]
+                        Type: Record(rft: Typed,pout: NonNegativeInteger)
+
+In (3) we are entering a variable with a more complicated type (in
+this case 'a->b') so it is easier to use parseVar to construct from
+a string although this could have been built from raw types.
+
+parseVar also requires '1' which means: start parsing at position 1
+in the string. It returns x:a->b which means variable 'x' from type
+'a' to type 'b' and 7 which is the position of the pointer after
+this term has been parsed.
+
+Variables are not usually constructed directly by the user but instead
+are used by lambda and ski domains.
+\section{Types}
+
+If we are using Typed variables then the type will be represented by
+the following domain: 
+
+\section{domain VTYP VarTyp}
+<<domain VTYP VarTyp>>=
+)abbrev domain VTYP VarTyp
+++ Author: Martin Baker
+++ Date Created: April 2011
+++ Date Last Updated: April 2011
+++ Basic Operations: 
+++ Related Constructors: 
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/
+
+VarTyp(): Exports == Implementation where
+
+ NNI==> NonNegativeInteger
+ PR ==> Record(rft:%,pout:NNI)
+   ++ parse result includes term returned and new index
+
+ Exports == with
+  varTyp:(x:%,y:%) -> %
+    ++ Constructs a compound type
+  varTyp:(t1:String) -> %
+    ++ Constructs an individual type
+  parseVarTyp:(t1: String) -> %
+    ++ Constructs a type from a string
+  parseTyp:(t1: String,pin:NNI) -> PR
+    ++ construct a type by parsing a string t1
+    ++ pin is index to string at start of parse
+  children:(n: %) -> List %
+    ++ returns child nodes if this is a compound term
+    ++ otherwise returns []
+  atom?:(n: %) -> Boolean
+    ++ returns true if this is an atom, that is a leaf node
+    ++ otherwise return false if this is a compound term
+  name:(n: %) -> String
+    ++ returns the name if this is a simple type otherwise
+    ++ return ""
+  "=":(x:%, y:%) -> Boolean
+    ++ return true if equal (deep search) that is: all terms
+    ++ at all levels in tree must be equal to return true
+  toString: (n: %) -> String
+    ++ output
+  coerce: (n: %) -> OutputForm
+    ++ output
+
+ Implementation == add
+
+  Rep := Union(_
+         nm:String,_
+         nd:Record(c1:%, c2:%)_
+         )
+
+  -- Constructs a compound type
+  varTyp(x:%,y:%): % == [[x,y]]
+
+  -- Constructs an individual type
+  varTyp(t1:String):% ==
+    [t1]
+
+  -- construct a type by parsing a string t1
+  -- pin is index to string at start of parse
+  parseTypName(t1: String,pin:NNI):PR ==
+    vnm:String := ""
+    pt:NNI := pin
+    ch := qelt(t1,pt)
+    --sayTeX$Lisp concat("st ch=",ch::String)
+    while alphanumeric?(ch) repeat
+      vnm := concat(vnm,ch)     
+      pt := pt + (1::NNI)
+      if pt > maxIndex(t1) then
+        return [varTyp(vnm),pt]
+      ch := qelt(t1,pt)
+    [varTyp(vnm),pt]
+
+  parseBracketTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
+    ch := qelt(t1,p1)
+    if not (ch = char("(")) then 
+      error "bracket term must start with ("
+      return [[""],p1]
+    p1 := p1 + (1::NNI)
+    if p1 > maxIndex(t1) then
+      error "opening but no closing bracket"
+      return [[""],p1]
+    r2 := parseTyp(t1,p1)
+    trm := r2.rft
+    p1 := r2.pout
+    ch := qelt(t1,p1)
+    if not (ch = char(")")) then 
+      error "can't find closing bracket"
+      return [[""],p1]
+    p1 := p1 + (1::NNI)
+    [trm,p1]
+
+  parseTyp(t1: String,pin:NNI):PR ==
+    p1 := pin
+    res:% := [""]
+    ch := qelt(t1,p1)
+    -- first remove leading spaces
+    while ch = char(" ") repeat
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
+        return [res,p1]
+      ch := qelt(t1,p1)
+    r:PR:= [res,p1]
+    if ch = char("(") then r := parseBracketTerm(t1,p1)
+    if alphabetic?(ch) then r := parseTypName(t1,p1)
+    res := r.rft
+    p1 := r.pout
+    -- now check for compound term
+    if p1 > maxIndex(t1) then
+      return [res,p1]
+    ch := qelt(t1,p1)
+    if ch = char(" ") then
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
+        return [res,p1]
+    if ch = char("-") then
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
+        return [res,p1]
+      ch := qelt(t1,p1)
+      if not ch = char(">") then
+        error "unexpected - found"
+        return [res,p1]
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
+        return [res,p1]
+      r := parseTyp(t1,p1)
+      p1 := r.pout
+      res := varTyp(res,r.rft)
+    [res,p1]
+
+  parseVarTyp(t1: String): % ==
+    r := parseTyp(t1,minIndex(t1)::NNI)
+    --sayTeX$Lisp concat(["parseLambda(",t1,") giving:",toString(tm)])
+    r.rft
+
+  -- returns child nodes if this is a compound term
+  -- otherwise returns []
+  children(n: %):List % ==
+    if atom?(n) then return []
+    [n.nd.c1,n.nd.c2]
+
+  -- returns true if this is an atom, that is a leaf node
+  -- otherwise return false if this is a compound term
+  atom?(n: %):Boolean == (n case nm)
+
+  -- returns the name if this is a simple type otherwise
+  -- return ""
+  name(n: %):String ==
+    if n case nm then
+      return n.nm
+    ""
+
+  -- return string representation
+  -- notation assumes association to the left, in the absence of
+  -- brackets, the term to the left binds more tightly than the
+  -- one on the right.
+  toString(n: %):String ==
+    s:String := ""
+    if n case nm then
+      return n.nm
+    if n case nd then
+      if atom?(n.nd.c2) then
+        s := concat([s,toString(n.nd.c1),"->",toString(n.nd.c2)])
+      else
+        s := concat([s,toString(n.nd.c1),"->","(",toString(n.nd.c2),")"])
+    s
+
+  -- return true if equal (deep search) that is: all terms
+  -- at all levels in tree must be equal to return true
+  x = y ==
+    if (x case nm) and (y case nm) then
+      if x.nm = y.nm then return true
+      return false
+    if (x case nd) and (y case nd) then
+      -- binary node which has two subnodes c1 and c2
+      if (x.nd.c1 = y.nd.c1) and (x.nd.c2 = y.nd.c2) then return true
+      return false
+    false
+
+  -- output
+  coerce(n: %):OutputForm ==
+    toString(n)::OutputForm
+@
+
+Now we will implement variables:
 
 First a common category for the various variable types:
 \section{category VARCAT VarCat}
@@ -72,16 +346,20 @@ First a common category for the various variable types:
 VarCat() : Category == Type with
   var:(n:String) -> %
     ++ constructs variable with a name but no type.
-  var:(n:String,t:List String) -> %
+  var:(n:String,t:VarTyp) -> %
     ++ constructs variable with a name and also a type.
   name:(v:%) -> String
     ++ returns the name of the variable.
-  type:(v:%) -> List String
+  type:(v:%) -> VarTyp
     ++ returns the type of the variable. This may be a compund type, for
     ++ instance ["a","b"] represents a->b a function from type a to type b
     ++ untyped implementations return []
   toString:(v:%) -> String
     ++ returns the name and the type in string form.
+  parseVar:(t1: String,pin:NonNegativeInteger)-> Record(rft:%,pout:NonNegativeInteger)
+    ++ construct a variable by parsing a string
+    ++ pin is index to string at start of parse
+    ++ pout is index to string at end of parse
   "=":(x:%, y:%) -> Boolean
     ++ return true if equal, that is names are equal and if there is
     ++ a type then tey mast also be equal
@@ -110,6 +388,10 @@ untyped variables:
 
 Untyped() : Exports == Implementation where
 
+  NNI==> NonNegativeInteger
+  PR ==> Record(res:%,pout:NNI)
+    ++ parse result includes string returned and new index
+
   Exports ==> VarCat()
 
   Implementation ==> Type add
@@ -122,7 +404,7 @@ Untyped() : Exports == Implementation where
 
     -- since this is an untyped implementation the type value
     -- is ignored
-    var(n:String,t:List String):% ==
+    var(n:String,t:VarTyp):% ==
       [n]
 
     -- returns the name of the variable.
@@ -132,12 +414,34 @@ Untyped() : Exports == Implementation where
     -- returns the type of the variable. This may be a compund type, for
     -- instance ["a","b"] represents a->b a function from type a to type b
     -- untyped implementations return []
-    type(v:%):List String ==
-      []
+    type(v:%):VarTyp ==
+      varTyp("")
 
     -- returns the name and the type in string form.
     toString(v:%):String ==
       v.nme
+
+    -- construct a variable by parsing a string
+    -- pin is index to string at start of parse
+    -- pout is index to string at end of parse
+    parseVar(t1: String,pin:NNI):Record(rft:%,pout:NNI) ==
+      vnm:String := ""
+      pt:NNI := pin
+      ch := qelt(t1,pt)
+      --sayTeX$Lisp concat("st ch=",ch::String)
+      while alphanumeric?(ch) repeat
+        vnm := concat(vnm,ch)     
+        pt := pt + (1::NNI)
+        if pt > maxIndex(t1) then
+          return [var(vnm),pt]
+        ch := qelt(t1,pt)
+      if ch = char(":") then
+        -- read type
+        --sayTeX$Lisp concat("st ch=",ch::String)
+        r := parseTyp(t1,pt)$VarTyp
+        pt:= r.pout
+        -- since this instance is untyped we ignore result
+      [var(vnm),pt]
 
     -- return true if equal, that is names are equal (since there are 
     -- no types that is all that is required) in the case of typed
@@ -173,19 +477,23 @@ typed variables:
 
 Typed() : Exports == Implementation where
 
+  NNI==> NonNegativeInteger
+  PR ==> Record(res:%,pout:NNI)
+    ++ parse result includes string returned and new index
+
   Exports ==> VarCat()
 
   Implementation ==> Type add
 
-    Rep := Record(nme:String,typ:List String)
+    Rep := Record(nme:String,typ:VarTyp)
 
     -- constructs variable with a name but no type 
     var(n:String):% ==
-      [n,[]]
+      [n,varTyp("")]
 
     -- since this is an untyped implementation the type value
     -- is ignored
-    var(n:String,t:List String):% ==
+    var(n:String,t:VarTyp):% ==
       [n,t]
 
     -- returns the name of the variable.
@@ -194,20 +502,40 @@ Typed() : Exports == Implementation where
 
     -- returns the type of the variable. This may be a compund type, for
     -- instance ["a","b"] represents a->b a function from type a to type b
-    type(v:%):List String ==
+    type(v:%):VarTyp ==
       v.typ
 
     -- returns the name and the type in string form. This may be a compund
     -- type, for instance ["a","b"] represents a->b a function from type a
     -- to type b
     toString(v:%):String ==
-      s:String := concat(v.nme,":")
-      rep:Boolean := false
-      for x in v.typ repeat
-        if rep then s := concat(s,"->")
-        s := concat(s,x)
-        rep := true
+      s:String := concat([v.nme,":",toString(v.typ)])
       s
+
+    -- construct a variable by parsing a string
+    -- pin is index to string at start of parse
+    -- pout is index to string at end of parse
+    parseVar(t1: String,pin:NNI):Record(rft:%,pout:NNI) ==
+      vnm:String := ""
+      pt:NNI := pin
+      ch := qelt(t1,pt)
+      --sayTeX$Lisp concat("st ch=",ch::String)
+      while alphanumeric?(ch) repeat
+        vnm := concat(vnm,ch)     
+        pt := pt + (1::NNI)
+        if pt > maxIndex(t1) then
+          return [var(vnm),pt]
+        ch := qelt(t1,pt)
+      if ch = char(":") then
+        -- read type
+        --sayTeX$Lisp concat("st ch=",ch::String)
+        pt := pt + (1::NNI)
+        if pt > maxIndex(t1) then
+          return [var(vnm),pt]
+        r := parseTyp(t1,pt)$VarTyp
+        pt:= r.pout
+        return [var(vnm,r.rft),pt]
+      [var(vnm),pt]
 
     -- return true if equal, that is names are equal (since there are 
     -- no types that is all that is required) in the case of typed
@@ -785,6 +1113,8 @@ Lambda(UT): Exports == Implementation where
 
  UT:VarCat
  NNI==> NonNegativeInteger
+ PR ==> Record(rft:%,pout:NNI)
+   ++ parse result includes term returned and new index
 
  Exports == with
   lambda:(deBruijn:NNI) -> %
@@ -810,7 +1140,7 @@ Lambda(UT): Exports == Implementation where
     ++ brackets can be used around whole terms.
     ++ This requires the user to work out the De Bruijn index values
     ++ perhaps this could be improved later.
-  parseTerm:(t1: String) -> %
+  parseTerm:(t1: String,pin:NNI) -> PR
     ++ parseTerm is used by parseLambda. It would rarely be called
     ++ externally but it is here to allow it to call parseLambda
     ++ that is to allow circular calls
@@ -870,17 +1200,6 @@ Lambda(UT): Exports == Implementation where
          lambdaTerm:Record(c3:%, nm:UT)_
          )
 
-  -- pointer to current position in string when parsing the
-  -- string to construct a lambda term.
-  -- I am wary of defining a variable outside of a function but
-  -- can't find another non-messy way to update it from several
-  -- functions. It might be easier if I could return a tuple from
-  -- a function like this:
-  -- parseTerm(t1: String,pt:NNI): (pt:NNI,%)
-  -- Another alternative might be to define a seperate parsing
-  -- domain.
-  pt:NNI :=0::NNI
-
   -- Constructs a reference to a bound variable from its deBruijn
   -- index
   lambda(n1:NNI): % == [[n1]]
@@ -915,60 +1234,59 @@ Lambda(UT): Exports == Implementation where
       return n.lambdaTerm.nm
     var("error")$UT
 
-  parseStringTerm(t1: String):String ==
-    vnm:String := ""
-    ch := qelt(t1,pt)
-    --sayTeX$Lisp concat("st ch=",ch::String)
-    while alphanumeric?(ch) repeat
-      vnm := concat(vnm,ch)     
-      pt := pt + (1::NNI)
-      if pt > maxIndex(t1) then return vnm
-      ch := qelt(t1,pt)
-    vnm
-
-  parseFreeTerm(t1: String):% ==
-    lambda(var(parseStringTerm(t1))$UT)
-
-  parseLambdaTerm(t1: String):% ==
-    ch := qelt(t1,pt)
+  parseLambdaTerm(t1: String,pin:NNI):PR ==
+    --sayTeX$Lisp concat(["parseLambdaTerm(",t1,",",string(pin),")"])$String
+    p1 := pin
+    ch := qelt(t1,p1)
     if not (ch = char("\")) then 
       error "lambda term must start with \"
-      return [[0::NNI]]
-    pt := pt + (1::NNI)
-    if pt > maxIndex(t1) then
+      return [[[0::NNI]],p1]
+    p1 := p1 + (1::NNI)
+    if p1 > maxIndex(t1) then
       error "lambda term not complete"
-      return [[0::NNI]]
-    str := parseStringTerm(t1)
-    ch := qelt(t1,pt)
+      return [[[0::NNI]],p1]
+    r := parseVar(t1,p1)$UT
+    p1 := r.pout
+    ch := qelt(t1,p1)
+    --sayTeX$Lisp concat(["parseLambdaTerm'(",t1,",",string(p1),")"])$String
     if not (ch = char(".")) then 
       error "lambda term must have ."
-      return [[0::NNI]]
-    pt := pt + (1::NNI)
-    if pt > maxIndex(t1) then
+      return [[[0::NNI]],p1]
+    p1 := p1 + (1::NNI)
+    --sayTeX$Lisp concat(["parseLambdaTerm''(",t1,",",string(p1),")"])$String
+    if p1 > maxIndex(t1) then
       error "lambda term must contain something"
-      return [[0::NNI]]
-    lambda(parseTerm(t1),var(str)$UT)
+      return [[[0::NNI]],p1]
+    --sayTeX$Lisp concat(["parseLambdaTerm'''(",t1,",",string(p1),")"])$String
+    r2 := parseTerm(t1,p1)
+    ex:% := r2.rft
+    p1 := r2.pout
+    [lambda(ex,r.rft),p1]
 
-  parseBracketTerm(t1: String):% ==
-    ch := qelt(t1,pt)
+  parseBracketTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
+    ch := qelt(t1,p1)
     if not (ch = char("(")) then 
       error "bracket term must start with ("
-      return [[0::NNI]]
-    pt := pt + (1::NNI)
-    if pt > maxIndex(t1) then
+      return [[[0::NNI]],p1]
+    p1 := p1 + (1::NNI)
+    if p1 > maxIndex(t1) then
       error "opening but no closing bracket"
-      return [[0::NNI]]
-    trm := parseTerm(t1)
-    ch := qelt(t1,pt)
+      return [[[0::NNI]],p1]
+    r2 := parseTerm(t1,p1)
+    trm := r2.rft
+    p1 := r2.pout
+    ch := qelt(t1,p1)
     if not (ch = char(")")) then 
       error "can't find closing bracket"
-      return [[0::NNI]]
-    pt := pt + (1::NNI)
-    trm
+      return [[[0::NNI]],p1]
+    p1 := p1 + (1::NNI)
+    [trm,p1]
 
-  parseVariableTerm(t1: String):% ==
+  parseVariableTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
     inx:NNI := 0 -- holds De Bruijn index while its being read
-    ch := qelt(t1,pt)
+    ch := qelt(t1,p1)
     --sayTeX$Lisp concat("pv ch=",ch::String)
     while digit?(ch) repeat
       if ch = char("0") then inx := inx*10
@@ -981,39 +1299,48 @@ Lambda(UT): Exports == Implementation where
       if ch = char("7") then inx := inx*10 + 7
       if ch = char("8") then inx := inx*10 + 8
       if ch = char("9") then inx := inx*10 + 9
-      pt := pt + (1::NNI)
-      if pt > maxIndex(t1) then return lambda(inx)
-      ch := qelt(t1,pt)
-    lambda(inx)
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then return [lambda(inx),p1]
+      ch := qelt(t1,p1)
+    [lambda(inx),p1]
 
-  parseTerm(t1: String):% ==
+  parseTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
     res:% := [[0::NNI]]
-    ch := qelt(t1,pt)
-    --sayTeX$Lisp concat("parseTerm ch=",ch::String)
+    ch := qelt(t1,p1)
+    --sayTeX$Lisp concat(["parseTerm ch=",ch::String," p1=",string(p1)])$String
     -- first remove leading spaces
     while ch = char(" ") repeat
-      pt := pt + (1::NNI)
-      if pt > maxIndex(t1) then
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
         --sayTeX$Lisp concat(["parseTerm(",t1,") 1 giving:",toString(res)])
-        return res
-      ch := qelt(t1,pt)
-    if ch = char("\") then res := parseLambdaTerm(t1)
-    if ch = char("(") then res := parseBracketTerm(t1)
-    if digit?(ch) then res := parseVariableTerm(t1)
-    if alphabetic?(ch) then res := parseFreeTerm(t1)
+        return [res,p1]
+      ch := qelt(t1,p1)
+    r:PR:= [res,p1]
+    if ch = char("\") then r := parseLambdaTerm(t1,p1)
+    if ch = char("(") then r := parseBracketTerm(t1,p1)
+    if digit?(ch) then r := parseVariableTerm(t1,p1)
+    res := r.rft
+    p1 := r.pout
+    if alphabetic?(ch) then
+      r2 := parseVar(t1,p1)$UT
+      res := lambda(r2.rft)
+      p1 := r2.pout
     -- now check for compound term
-    if pt > maxIndex(t1) then
+    if p1 > maxIndex(t1) then
       --sayTeX$Lisp concat(["parseTerm(",t1,") 2 giving:",toString(res)])
-      return res
-    ch := qelt(t1,pt)
+      return [res,p1]
+    ch := qelt(t1,p1)
     if ch = char(" ") then
-      pt := pt + (1::NNI)
-      if pt > maxIndex(t1) then
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
         --sayTeX$Lisp concat(["parseTerm(",t1,") 3 giving:",toString(res)])
-        return res
-      res := lambda(res,parseTerm(t1))
+        return [res,p1]
+      r := parseTerm(t1,p1)
+      p1 := r.pout
+      res := lambda(res,r.rft)
     --sayTeX$Lisp concat(["parseTerm(",t1,") 4 giving:",toString(res)])
-    res
+    [res,p1]
 
   -- Constructs nested lambda terms from a string
   -- notation assumes format like this:
@@ -1029,10 +1356,9 @@ Lambda(UT): Exports == Implementation where
   -- This requires the user to work out the De Bruijn index values
   -- perhaps this could be improved later.
   parseLambda(t1: String): % ==
-    pt := minIndex(t1)::NNI
-    tm := parseTerm(t1)
+    r := parseTerm(t1,minIndex(t1)::NNI)
     --sayTeX$Lisp concat(["parseLambda(",t1,") giving:",toString(tm)])
-    tm
+    r.rft
 
   -- returns true if this is an atom, that is free or bound variable
   -- otherwise return false if this is a compound or lambda definition
@@ -1333,6 +1659,14 @@ follows. Again the notation assumes association to the left, in the
 absence of brackets, the term to the left binds more tightly than the
 one on the right.
 
+When we are using parseSki and we have two variables next to each other
+(such as 'x y') then we must put a space between the variables, this is
+so that we can gave a variable a name consisting of multiple characters.
+So 'xy' is a single variable but 'x y' is a two variables. All variables
+must start with a lower case letter. The combinators I,K and S do not
+need to be separated with a space since they always consist of 1
+character.
+
 (9) -> n4 := parseSki("IKS")$UNTYP
 
    (9)  "IKS"
@@ -1353,7 +1687,7 @@ combinator:
 
 (11) -> s1 := parseSki("Ix")$UNTYP
 
-   (11)  "Ix"
+   (11)  "I x"
                                                        Type: Ski(Untyped)
 (12) -> redux(s1)$UNTYP
  
@@ -1365,9 +1699,9 @@ x
 The next combinator to investigate is 'K'. This removes the final
 variable:
 
-(13) -> s2 := parseSki("Kxy")$UNTYP
+(13) -> s2 := parseSki("Kx y")$UNTYP
  
-   (13)  "Kxy"
+   (13)  "K x y"
                                                        Type: Ski(Untyped)
 (14) -> redux(s2)$UNTYP
  
@@ -1379,15 +1713,15 @@ x
 The next combinator to investigate is 'S' This applies the first two
 functions to the third:
 
-(15) -> s3 := parseSki("Sxyz")$UNTYP
+(15) -> s3 := parseSki("Sx y z")$UNTYP
 
-   (15)  "Sxyz"
+   (15)  "S x y z"
                                                        Type: Ski(Untyped)
 (16) -> redux(s3)$UNTYP
  
-xz(yz)
+x z(y z)
 
-   (16)  "xz(yz)"
+   (16)  "x z(y z)"
                                                        Type: Ski(Untyped)
 
 \section{Secondary Combinators}
@@ -1413,27 +1747,27 @@ equivalent to I
     In 19 that "S(K(SI))Kxy" is equivalent to "yx", so "S(K(SI))K"
 reverses its operands.
 
-(17) -> redux(parseSki("SKKxy")$UNTYP)$UNTYP
+(17) -> redux(parseSki("SKKx y")$UNTYP)$UNTYP
  
-Kx(Kx)y
-xy
+K x(K x)y
+x y
 
-   (17)  "xy"
+   (17)  "x y"
                                                        Type: Ski(Untyped)
-(18) -> redux(parseSki("S(KS)xy")$UNTYP)$UNTYP
+(18) -> redux(parseSki("S(KS)x y")$UNTYP)$UNTYP
 
-KSy(xy)
-S(xy)
+KS y(x y)
+S(x y)
 
-   (18)  "S(xy)"
+   (18)  "S(x y)"
                                                        Type: Ski(Untyped)
-(19) -> redux(parseSki("S(K(SI))Kxy")$UNTYP)$UNTYP
+(19) -> redux(parseSki("S(K(SI))Kx y")$UNTYP)$UNTYP
 
-K(SI)x(Kx)y
-Iy(Kxy)
-yx
+K(SI)x(K x)y
+Iy(Kx y)
+y x
 
-   (19)  "yx"
+   (19)  "y x"
                                                        Type: Ski(Untyped)
 
 SKI combinators can be coerced to and from λ-calculus and
@@ -1446,7 +1780,7 @@ Issue 1
 
 Currently this only works with variables, this means that:
 
-    redux applied to 'SKKxy' gives 'xy'
+    redux applied to 'SKKx y' gives 'x y'
     but redux applied to 'SKK' does not give 'I'
 
 That is, I am looking for a way to 'lift' from working in terms operators
@@ -1478,8 +1812,9 @@ page, where there is explanation and tutorial.
 Ski(UT): Exports == Implementation where
 
  UT:VarCat
-
  NNI==> NonNegativeInteger
+ PR ==> Record(rft:%,pout:NNI)
+   ++ parse result includes term returned and new index
 
  Exports == with
   ski:(x:%,y:%) -> %
@@ -1494,12 +1829,18 @@ Ski(UT): Exports == Implementation where
     ++ Constructs a S combinator
   parseSki:(t1: String) -> %
     ++ Constructs combinators from a string
+  parseTerm:(t1: String,pin:NNI) -> PR
+    ++ parseTerm is used by parseSki. It would rarely be called
+    ++ externally but it is here to allow it to call parseSki
+    ++ that is to allow circular calls
   children:(n: %) -> List %
     ++ returns child nodes if this is a compound term
     ++ otherwise returns []
   atom?:(n: %) -> Boolean
     ++ returns true if this is an atom, that is a leaf node
     ++ otherwise return false if this is a compound term
+  variable?:(n: %) -> Boolean
+    ++ returns true if this is an variable
   isI?:(n: %) -> Boolean
     ++ returns true if this is an I combinator node
   isK?:(n: %) -> Boolean
@@ -1550,22 +1891,92 @@ Ski(UT): Exports == Implementation where
   -- Constructs a S combinator
   S(): % == [3::NNI]
 
-  -- convert BinaryTree Character node to Ski node
-  -- called recursivly on subnodes
-  -- used by parseSki
-  btc2Ski(btc: BinaryTree Character): % ==
-    if leaf?(btc) then
-      ch:Character := value(btc)
-      if ch = char("I") then
-        return [1::NNI]
-      if ch = char("K") then
-        return [2::NNI]
-      if ch = char("S") then
-        return [3::NNI]
-      return [var(ch::String)$UT]
-    if not leaf?(btc) then
-      return ski(btc2Ski(left(btc)),btc2Ski(right(btc)))
-    [1::NNI]
+  parseBracketTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
+    ch := qelt(t1,p1)
+    if not (ch = char("(")) then 
+      error "bracket term must start with ("
+      return [[1::NNI],p1]
+    p1 := p1 + (1::NNI)
+    if p1 > maxIndex(t1) then
+      error "opening but no closing bracket"
+      return [[1::NNI],p1]
+    r2 := parseTerm(t1,p1)
+    trm := r2.rft
+    p1 := r2.pout
+    ch := qelt(t1,p1)
+    if not (ch = char(")")) then 
+      error "can't find closing bracket"
+      return [[1::NNI],p1]
+    p1 := p1 + (1::NNI)
+    [trm,p1]
+
+  parseCombinatorTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
+    ch := qelt(t1,p1)
+    if ch = char("I") then
+      return [[1::NNI],p1 + (1::NNI)]
+    if ch = char("K") then
+      return [[2::NNI],p1 + (1::NNI)]
+    if ch = char("S") then
+      return [[3::NNI],p1 + (1::NNI)]
+    error "invalid combinator"
+    [[1::NNI],p1 + (1::NNI)]
+
+  parseOneTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
+    res:% := [1::NNI]
+    ch := qelt(t1,p1)
+    --sayTeX$Lisp concat(["parseTerm ch=",ch::String," p1=",string(p1)])$String
+    -- first remove leading spaces
+    while ch = char(" ") repeat
+      p1 := p1 + (1::NNI)
+      if p1 > maxIndex(t1) then
+        --sayTeX$Lisp concat(["parseTerm(",t1,") 1 giving:",toString(res)])
+        return [res,p1]
+      ch := qelt(t1,p1)
+    if alphabetic?(ch) then
+      if upperCase?(ch) then
+        r := parseCombinatorTerm(t1,p1)
+        res := r.rft
+        p1 := r.pout
+        --sayTeX$Lisp concat(["parseTerm(",t1,") 4 giving:",toString(res)])
+      if lowerCase?(ch) then
+        --sayTeX$Lisp concat(["parseTerm(",t1,") 4 giving:",toString(res)])
+        r2 := parseVar(t1,p1)$UT
+        res := ski(r2.rft)
+        p1 := r2.pout
+    if ch = char("(") then
+      r := parseBracketTerm(t1,p1)
+      res := r.rft
+      p1 := r.pout
+    [res,p1]
+
+  parseTerm(t1: String,pin:NNI):PR ==
+    p1 := pin
+    r := parseOneTerm(t1,p1)
+    res:% := r.rft
+    p1 := r.pout
+    -- now check for compound term
+    if p1 > maxIndex(t1) then
+      --sayTeX$Lisp concat(["parseTerm(",t1,") 2 giving:",toString(res)])
+      return [res,p1]
+    ch := qelt(t1,p1)
+    stck:List % := []
+      ++ in order to get association to the left we will put terms
+      ++ in a list
+    while alphabetic?(ch) or ch = char(" ") or ch = char("(") repeat
+      r := parseOneTerm(t1,p1)
+      p1 := r.pout
+      stck := concat(stck,r.rft)
+      --sayTeX$Lisp concat(["parseTerm(",t1,") 4 giving:",toString(res)])
+      if p1 > maxIndex(t1)
+        then ch := char("*")
+        else ch := qelt(t1,p1)
+    for i in 1..#stck repeat
+      res := ski(res,stck.i)
+    [res,p1]
+
 
   -- Constructs combinators from a string
   -- ski pass required to use ski lift
@@ -1573,37 +1984,9 @@ Ski(UT): Exports == Implementation where
   -- brackets, the term to the left binds more tightly than the
   -- one on the right.
   parseSki(t1: String): % ==
-    -- first we build chBuffer which holds the characters
-    -- from the String and puts them in a tree
-    branchStack: Stack BinaryTree Character := empty()
-    chBuffer: BinaryTree Character := empty()
-    mn := minIndex(t1)
-    mx := maxIndex(t1)
-    for pt in mn..mx repeat
-      ch := qelt(t1,pt)
-      if alphanumeric?(ch) then
-        if empty?(chBuffer)
-          then chBuffer:=binaryTree(ch)
-          else chBuffer:=binaryTree(chBuffer,ch,binaryTree(ch))
-      if ch = char("(") then
-        push!(chBuffer,branchStack)
-        chBuffer:= empty()
-      if ch = char(")") then
-        hold:BinaryTree Character := pop!(branchStack)
-        -- if empty?(hold) then sayTeX$Lisp "hold empty"
-        -- if empty?(chBuffer) then sayTeX$Lisp "chBuffer empty"
-        if empty?(chBuffer)
-          then
-            chBuffer:=hold
-            sayTeX$Lisp "chBuffer empty"
-          else
-            if not empty?(hold) then
-              chBuffer:=binaryTree(hold,ch,chBuffer)
-            --sayTeX$Lisp "chbuffer not empty"
-    -- sayTeX$Lisp (mathObject2String$Lisp chBuffer)@String
-    -- now chBuffer tree is built we can convert this into the ski
-    -- structure
-    btc2Ski(chBuffer)
+    r := parseTerm(t1,minIndex(t1)::NNI)
+    --sayTeX$Lisp concat(["parseSki(",t1,") giving:",toString(tm)])
+    r.rft
 
   -- returns child nodes if this is a compound term
   -- otherwise returns []
@@ -1614,6 +1997,9 @@ Ski(UT): Exports == Implementation where
   -- returns true if this is an atom, that is a leaf node
   -- otherwise return false if this is a compound term
   atom?(n: %):Boolean == (n case lf) or (n case vr)
+
+  -- returns true if this is an variable
+  variable?(n: %):Boolean == (n case vr)
 
   -- returns true if this is an I combinator node
   isI?(n: %):Boolean ==
@@ -1661,12 +2047,14 @@ Ski(UT): Exports == Implementation where
       if n.lf = 1 then s := "I"
       if n.lf = 2 then s := "K"
       if n.lf = 3 then s := "S"
-      --sayTeX$Lisp concat(["toString case i1=",s])
-      --sayTeX$Lisp n
     if n case nd then
       -- binary node which has two subnodes c1 and c2
       if atom?(n.nd.c2) then
-        s := concat([s,toString(n.nd.c1),toString(n.nd.c2)])
+        if variable?(n.nd.c2)
+          then
+            s := concat([s,toString(n.nd.c1)," ",toString(n.nd.c2)])
+          else
+            s := concat([s,toString(n.nd.c1),toString(n.nd.c2)])
       else
         s := concat([s,toString(n.nd.c1),"(",toString(n.nd.c2),")"])
     if n case vr then
@@ -1804,8 +2192,10 @@ SU to simplify notation:
 
 We can then create SKI combinators and convert them to λ functions.
 
-    For a tutorial about working with SKI combinators see above.
-    For a tutorial about working with λ functions see above.
+    For a tutorial about working with SKI combinators see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
+    For a tutorial about working with λ functions see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
 
 If the combinators don't have the required parameters then you
 will get a warning as follows. The code will attempt to add parameters
@@ -1845,32 +2235,32 @@ parameters. This conversion works by applying the following rules:
 
 So here are some examples:
 
-(6) -> parseSki("Ia")$SU::LU
+parseSki("Ia")$SU::LU
  
-util coerce apply rule SL1 in:Ia
+util coerce apply rule SL1 in:I a
 util coerce pass unbound variable a unchanged
 
    (6)  "a"
                                                     Type: Lambda(Untyped)
-(7) -> parseSki("Kab")$SU::LU
+parseSki("Ka b")$SU::LU
  
-util coerce apply rule SL2 in:Kab
+util coerce apply rule SL2 in:K a b
 util coerce pass unbound variable a unchanged
 
    (7)  "a"
                                                     Type: Lambda(Untyped)
-(8) -> parseSki("K(a b)c")$SU::LU
+parseSki("K(a b)c")$SU::LU
  
-util coerce apply rule SL2 in:K(ab)c
+util coerce apply rule SL2 in:K(a b) c
 util coerce rule SL4: Ski[(a b)] = (Ski[a] Ski[b])
 util coerce pass unbound variable a unchanged
 util coerce pass unbound variable b unchanged
 
    (8)  "(a b)"
                                                     Type: Lambda(Untyped)
-(9) -> parseSki("Sabc")$SU::LU
+parseSki("Sa b c")$SU::LU
  
-util coerce apply rule SL3 in:Sabc
+util coerce apply rule SL3 in:S a b c
 util coerce pass unbound variable a unchanged
 util coerce pass unbound variable c unchanged
 util coerce pass unbound variable b unchanged
@@ -1878,7 +2268,7 @@ util coerce pass unbound variable c unchanged
 
    (9)  "((a c) (b c))"
                                                     Type: Lambda(Untyped)
-(10) -> parseSki("S(K(SI))(S(KK)I)")$SU::LU
+parseSki("S(K(SI))(S(KK)I)")$SU::LU
  
 util coerce rule SL4: Ski[(S(K(SI)) S(KK)I)] = (Ski[S(K(SI))] Ski[S(KK)I])
 util coerce rule SL4: Ski[(S K(SI))] = (Ski[S] Ski[K(SI)])
@@ -1897,10 +2287,9 @@ util coerce rule SL2: Ski[K] = \v14.\v15.1
 util coerce rule SL1: Ski[I] = \v16.0
 
    (10)
-  "(((\v0.(\v1.(\v2.(v2 (v0 (v1 v0)))))) ((\v3.(\v4.v4))
-  ((\v5.(\v6.(\v7.(v7 (v5 (v6 v5)))))) (\v8.v8))))
-  (((\v9.(\v10.(\v11.(v11 (v9 (v10 v9)))))) ((\v12.(\v13.v13))
-  (\v14.(\v15.v15)))) (\v16.v16)))"
+  "(((\v0.(\v1.(\v2.(v2 (v0 (v1 v0)))))) ((\v3.(\v4.v4)) ((\v5.(\v6.(\v7.(v7 (v
+  5 (v6 v5)))))) (\v8.v8)))) (((\v9.(\v10.(\v11.(v11 (v9 (v10 v9)))))) ((\v12.(
+  \v13.v13)) (\v14.(\v15.v15)))) (\v16.v16)))"
                                                     Type: Lambda(Untyped)
 
 \section{λ functions to SKI combinators}
@@ -1935,14 +2324,14 @@ util coerce rule LS2 applied to:(x y) giving (x y)
 util coerce rule LS1 applied to:x giving x
 util coerce rule LS1 applied to:y giving y
 
-   (12)  "xy"
+   (12)  "x y"
                                                        Type: Ski(Untyped)
 (13) -> parseLambda("\x.1")$LU::SU
  
 util coerce rule LS3 applied to:(\x.1) giving K 1
 util coerce rule LS1 applied to:1 giving 1
 
-   (13)  "K1"
+   (13)  "K 1"
                                                        Type: Ski(Untyped)
 (14) -> parseLambda("\x.0")$LU::SU
  
@@ -1972,8 +2361,11 @@ util coerce rule LS4' applied to: \x.x giving I
 We can then create SKI combinators and convert them to intuitionistic
 logic.
 
-    For a tutorial about working with SKI combinators see this page.
-    For a tutorial about working with intuitionistic logic see this page.
+    For a tutorial about working with SKI combinators see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
+    For a tutorial about working with intuitionistic logic see:
+http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+
 
 This is known as the Curry–Howard isomorphism it uses the following rules:
 
@@ -1992,21 +2384,21 @@ creating x
 
    (16)  "((x->x)->(x->x))"
                                                              Type: ILogic
-(17) -> parseSki("Kab")$SU::ILogic
+(17) -> parseSki("Ka b")$SU::ILogic
  
-util coerce apply rule SI2 in:Kab
+util coerce apply rule SI2 in:K a b
 
    (17)  "(b->(a->b))"
                                                              Type: ILogic
 (18) -> parseSki("K(a b)c")$SU::ILogic
  
-util coerce apply rule SI2 in:K(ab)c
+util coerce apply rule SI2 in:K(a b) c
 
    (18)  "(c->((a\/b)->c))"
                                                              Type: ILogic
-(19) -> parseSki("Sabc")$SU::ILogic
+(19) -> parseSki("Sa b c")$SU::ILogic
  
-util coerce apply rule SI3 in:Sabc
+util coerce apply rule SI3 in:S a b c
 
    (19)  "((c->(b->a))->((c->b)->(c->a)))"
                                                              Type: ILogic
@@ -2131,7 +2523,7 @@ compUtil(UT): Exports == Implementation where
     --sayTeX$Lisp concat(["util coerce c1=",toString(c1)$SU," c2=",toString(c2)$SU," c11=",toString(c11)$SU," c12=",toString(c12)$SU])$String
     if isK?(c11)$SU then
       s12:String := name(variable(c12)$SU)$UT
-      sayTeX$Lisp concat(["**util coerce apply rule SL2 in:",toString(s)$SU])$String
+      sayTeX$Lisp concat(["util coerce apply rule SL2 in:",toString(s)$SU])$String
       return Ski2Lambda(c12)
     if atom?(c11)$SU then
       sayTeX$Lisp concat(["util coerce rule SL4: Ski[(",s1," ",s2,")] = (Ski[",s1,"] Ski[",s2,"])"])
@@ -2310,7 +2702,6 @@ compUtil(UT): Exports == Implementation where
     _\_/(c1::ILogic,c2::ILogic)
 
 @
-
 
 \section{License}
 <<license>>=
