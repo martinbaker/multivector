@@ -11,15 +11,23 @@ structures related to computation. These are:
 * ski.spad
 * ILogic.spad
 
-The aim here is to model and study λ-calculus, Combinators and
-Intuitionistic logic as abstact mathematical structures which were
-discovered before modern computers and are worthy of study in their own
-right.
+The aim here is to model and study lambda-calculus, Combinators and
+Intuitionistic logic as abstract mathematical structures which were
+discovered before modern computers and are worthy of study in their
+own right.
+
+The arguments of these 'computation' domains are functions and
+combinators and the operation is function composition. For
+combinators the number of arguments is variable and so function
+composition is non-associative hence it is represented by binary
+tree structure. For Lambda calculus we have bound and unbound
+variables so again non-associative and represented by binary
+tree structure.
 
 These domains all represent systems of logic and are constructed from
 tree structures and act on tree structures. These 'tree logics' seem
 to 'generate' other algebras, for instance, below, we see that
-this λ structure:
+this lambda structure:
 
 \x.\y.y x
 
@@ -40,9 +48,6 @@ these domains could be implemented as instances of a monad (a
 monad in category theory terms, not the current FriCAS monad
 category).
 
-I would also like to extend this to investigate abstract structures
-such as 'tree automata'.
-
 For more details see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/
 Tutorial for lambda calculus:
@@ -57,6 +62,45 @@ http://www.euclideanspace.com/maths/standards/program/mycode/computation/utility
 \eject
 \tableofcontents
 \eject
+\section{To Do}
+
+There are improvements and corrections required for later versions
+of this software.
+
+1) Overall architecture:
+   - Investigate possibility of basing implementation on Kernel or
+     SExpression domains. Or we could extend some non-associative or
+     binary tree structure class?
+
+2)  Possible generalisations:
+   - If I could find a way to do it, it would be good to have a
+     function composition (hom-set) domain and to implement these
+     as a special (non-associative) version of that.
+   - It would be interesting to see if these domains could be implemented
+     as instances of a monad.
+   - I would also like to extend this to investigate abstract structures
+     such as 'tree automata'.
+
+3) Need to improve and correct intuitionistic logic domain.
+   - investigate change of meaning of '=' for intuitionistic logic to
+     represent equivalence rather than equality.
+   - implement more complete algorithm to decide if two (quantifier-free)
+     intuitionistic formulas are equivalent.
+   - remove 'unproven' as a literal and treat symbolic values as unproven.
+
+4) Representation by symbols. Make code more maintainable by changing
+   encoding of distinct literal elements to use symbols rather than
+   specific strings or integers.
+
+5) Notation. At the moment, for compatibility reasons, Unicode cannot be
+   used to show:
+   - lambda symbol
+   - alpha (as in alpha-substitution)
+   - beta (as in beta-equivalence)
+   When the restrictions on using Unicode are lifted then use of the
+   Unicode lambda symbol and other Unicode characters would improve
+   readability.
+
 \section{Variables}
 
 Before we get on to the main domains we have some code to represent
@@ -71,6 +115,7 @@ two implementations of this category so far:
 * Typed - Typed represents an typed variable in Lambda and Ski
           domains, a variable has a name represented by a String
           and a type represented by a tree of strings.
+
 There may be possibly be other implementations in the future. For instance
 we could introduce a typed variable which could have FriCAS types instead
 of abstract types represented by strings. This might allow more interaction
@@ -81,26 +126,6 @@ structure.
 The two implementations: Untyped and Typed which can be constructed as
 follows:
 
-(1) -> )library VTYP
- 
-   VarTyp is now explicitly exposed in frame frame1 
-   VarTyp will be automatically loaded when needed from 
-      /home/martin/VTYP.NRLIB/VTYP
-(1) -> )library VARCAT
- 
-   VarCat is now explicitly exposed in frame frame1 
-   VarCat will be automatically loaded when needed from 
-      /home/martin/VARCAT.NRLIB/VARCAT
-(1) -> )library UNTYPED
- 
-   Untyped is now explicitly exposed in frame frame1 
-   Untyped will be automatically loaded when needed from 
-      /home/martin/UNTYPED.NRLIB/UNTYPED
-(1) -> )library TYPED
- 
-   Typed is now explicitly exposed in frame frame1 
-   Typed will be automatically loaded when needed from 
-      /home/martin/TYPED.NRLIB/TYPED
 (1) -> var("x")$Untyped
 
    (1)  "x"
@@ -457,7 +482,6 @@ Untyped() : Exports == Implementation where
 Next an implementation of the VarCat category which is intended to work with
 typed variables:
 
-
 \section{domain TYPED Typed}
 <<domain TYPED Typed>>=
 )abbrev domain TYPED Typed
@@ -500,12 +524,12 @@ Typed() : Exports == Implementation where
     name(v:%):String ==
       v.nme
 
-    -- returns the type of the variable. This may be a compund type, for
+    -- returns the type of the variable. This may be a compound type, for
     -- instance ["a","b"] represents a->b a function from type a to type b
     type(v:%):VarTyp ==
       v.typ
 
-    -- returns the name and the type in string form. This may be a compund
+    -- returns the name and the type in string form. This may be a compound
     -- type, for instance ["a","b"] represents a->b a function from type a
     -- to type b
     toString(v:%):String ==
@@ -554,23 +578,15 @@ by intuitionistic logic similar to boolean algebra.
 
 Intuitionistic or constructive logic is similar to classical logic
 but where the law of excluded middle is not used.
+
+Note: Please be aware that changes may be made in the future to improve
+      and correct intuitionistic logic domain, such as:
+   - investigate change of meaning of '=' for intuitionistic logic to
+     represent equivalence rather than equality.
+   - implement more complete algorithm to decide if two (quantifier-free)
+     intuitionistic formulas are equivalent.
+   - remove 'unproven' as a literal and treat symbolic values as unproven.
 \section{Intuitionistic Logic Tutorial}
-
-The intuitionisticLogic domain needs to be installed on your system.
-The source code is in a file called computation.spad.pamphlet, which
-is available here:
-
-https://github.com/martinbaker/multivector/
-
-Download and compile in the usual way. Make sure it is exposed since
-Axiom/FriCAS was started.
-
-(1) -> )library ILOGIC
- 
-   ILogic is now explicitly exposed in frame frame1 
-   ILogic will be automatically loaded when needed from 
-      /home/martin/ILOGIC.NRLIB/ILOGIC
-
 Intuitionistic logic has 3 possible values: false, true and unproven.
 These can be constructed as follows:
 
@@ -707,7 +723,7 @@ ILogic(): Exports == Implementation where
     ++  \/ returns the logical `join', e.g. `or'.
   redux:(n: %) -> %
     ++ attempt to simplify theory
-    ++ apply recusivly to subnodes
+    ++ apply recursively to subnodes
     ++ normally this should not be necessary since logic values are
     ++ interpreted when constructed
   "=": (a:%, b:%) -> Boolean
@@ -786,7 +802,7 @@ ILogic(): Exports == Implementation where
     [[0::NNI,a,b]]
 
   -- attempt to simplify theory
-  -- apply recusivly to subnodes
+  -- apply recursively to subnodes
   -- normally this should not be necessary since logic values are
   -- interpreted when constructed
   redux(n: %):% ==
@@ -872,27 +888,24 @@ ILogic(): Exports == Implementation where
 
 @
 
-\section{λ-Calculus}
+\section{lambda-Calculus}
 for more details see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
 
 \section{Notation}
 
-Externally a fairly standard notation is used, as would be familiar to
-someone using a textbook to study λ-calculus, or as close as we can get
-without using unicode. I would like to use the unicode 'λ' symbol to
-represent lambda in FriCAS I/O in many cases this would work fine but
-there are some consoles and lisps that don't support unicode so, for
-now, I have held off doing this for maximum compatibility.
-
-I have therefore used the '\' symbol to stand for λ.
+Externally a fairly standard notation is used, as may be familiar to
+someone using a textbook to study lambda-calculus, or as close as we can get
+without using unicode. I have used the '\' symbol to stand for lambda. At
+some stage in the future it may be possible to use unicode lambda symbol
+but not yet due to compatibility issues.
 
 Internally the domain stores bound variables using De Bruijn index,
 in most cases this should not concern the user as I/O uses string
 names for variables. Converting bound variables internally to index
 values means that the same variable name can be used, in different
 lambda terms, without ambiguity and without the need for
-α-substitution.
+alpha-substitution.
 
 De Bruijn index which is a integer where
 
@@ -903,14 +916,14 @@ De Bruijn index which is a integer where
 
 We will see how this works in the tutorial below.
 
-So internally the λ-calculus is stored as a binary tree structure
+So internally the lambda-calculus is stored as a binary tree structure
 using the following syntax:
 
 <term> ::= "\" var "."<term> | n | <term><term> | "("<term>")"
 
 where:
 
-    \ = λ
+    \ = lambda
     n = De Bruijn index which is a integer where,
         0=inside inner lambda term,
         1= next outer lambda term,
@@ -924,21 +937,6 @@ where:
 On this page we will be working with 'untyped' variables so we create
 an instance called UNTYP to simplify notation:
 
-(1) -> )library VARCAT
- 
-   VarCat is now explicitly exposed in frame frame1 
-   VarCat will be automatically loaded when needed from 
-      /home/martin/VARCAT.NRLIB/VARCAT
-(1) -> )library UNTYPED
- 
-   Untyped is now explicitly exposed in frame frame1 
-   Untyped will be automatically loaded when needed from 
-      /home/martin/UNTYPED.NRLIB/UNTYPED
-(1) -> )library LAMBDA
- 
-   Lambda is now explicitly exposed in frame frame1 
-   Lambda will be automatically loaded when needed from 
-      /home/martin/LAMBDA.NRLIB/LAMBDA
 (1) -> UNTYP := Lambda Untyped
 
    (1)  Lambda(Untyped)
@@ -947,19 +945,19 @@ an instance called UNTYP to simplify notation:
 \section{Constructors}
 
 First we can enter some variables, at the moment they are not inside
-a λ-term so they can't yet be bound, but later we can put them into
-a λ-term..
+a lambda-term so they can't yet be bound, but later we can put them into
+a lambda-term..
 
 A numeric name is interpreted as a De Bruijn index when put inside
-a λ-term, although we don't need this notation for I/O unless we are
+a lambda-term, although we don't need this notation for I/O unless we are
 trying to avoid some ambiguity, because free and bound variables can
 be constructed by giving the variable name as a string. So in (4) is
-not yet a vaild term on its own but it will be when put inside a
-λ-term, when this is done it will be given the name of the bound
+not yet a valid term on its own but it will be when put inside a
+lambda-term, when this is done it will be given the name of the bound
 variable rather than "0".
 
 Internally a string name will be converted to a De Bruijn index when
-put inside a matching λ-term, otherwise it will be interpreted as a
+put inside a matching lambda-term, otherwise it will be interpreted as a
 free variable.
 
 (2) -> v1 := lambda(var("x")$Untyped)$UNTYP
@@ -978,10 +976,10 @@ free variable.
                                                     Type: Lambda(Untyped)
 
 This can be built up into more complex lambda terms by using compound
-terms (as in (5)) and the λ-term itself (as in (6)).
+terms (as in (5)) and the lambda-term itself (as in (6)).
 
-Each λ-term can only have one bound variable, if more than one bound
-variable is required then λ-terms can be nested. λ-term requires that
+Each lambda-term can only have one bound variable, if more than one bound
+variable is required then lambda-terms can be nested. lambda-term requires that
 the bound variable be given a name.
 
 (5) -> n1 := lambda(v1,v2)$UNTYP
@@ -994,7 +992,7 @@ the bound variable be given a name.
    (6)  "(\x.(x y))"
                                                     Type: Lambda(Untyped)
 
-In (7) 'x' is a the bound variable and so, when the λ-term was created,
+In (7) 'x' is a the bound variable and so, when the lambda-term was created,
 this will be converted to De Bruijn index, in (7) we call toString to
 see the internal representation:
 
@@ -1036,7 +1034,7 @@ on whether we want to specify the index value directly or allow the
 code to generate it.
 
 In (14) we can see the use of numeric terms to avoid the ambiguity
-caused by nested λ-terms with the same name.
+caused by nested lambda-terms with the same name.
 
 (12) -> n4 := parseLambda("\x.\y. y x")$UNTYP
 
@@ -1059,7 +1057,7 @@ caused by nested λ-terms with the same name.
    (16)  "(\x.(\x'.(x x)))"
                                                     Type: Lambda(Untyped)
 
-\section{β-substitution}
+\section{beta-substitution}
 
 The command: subst:(n,a,b) substitutes 'a' for 'b' in 'n' as follows:
 
@@ -1075,8 +1073,8 @@ The command: subst:(n,a,b) substitutes 'a' for 'b' in 'n' as follows:
 \section{Issues}
 
 I realise that Axiom/FriCAS already has a way to create anonymous
-functions using +-> in a λ-calculus sort of way. But the aim here
-is to represent λ-calculus as a pure mathematical structure so that
+functions using +-> in a lambda-calculus sort of way. But the aim here
+is to represent lambda-calculus as a pure mathematical structure so that
 we can experiment with the properties of this structure without the
 messy features that are required for a practical computer language.
 I also need a domain structure which is related to SKI combinators
@@ -1084,13 +1082,13 @@ and IntuitionisticLogic domain and can be coerced to and from these
 other domain types as demonstrated on this page.
 
 I also realise that this is written in SPAD which is written in
-Lisp which is based on λ-Calculus (perhaps it could later be
+Lisp which is based on lambda-Calculus (perhaps it could later be
 optimised by having direct calls to Lisp?)
 Relationship to Other Domains
 
 \section{Relationship to Other Domains}
 
-λ-calculus can be coerced to and from SKI combinators. For a tutorial
+lambda-calculus can be coerced to and from SKI combinators. For a tutorial
 about how to coerce to/from this algebra see below.
 
 
@@ -1571,27 +1569,12 @@ mathematical logic. It is equivalent to lambda calculus but
 it can be used for doing, without variables, anything that
 would require variables in other systems.
 
-The structure is a self-modifing binary tree.
+The structure is a self-modifying binary tree.
 \section{Tutorial}
 
 On this page we will be working with 'untyped' SKI combinators
 so we create an instance called UNTYP to simplify notation:
 
-(1) -> )library VARCAT
- 
-   VarCat is now explicitly exposed in frame frame1 
-   VarCat will be automatically loaded when needed from 
-      /home/martin/VARCAT.NRLIB/VARCAT
-(1) -> )library UNTYPED
- 
-   Untyped is now explicitly exposed in frame frame1 
-   Untyped will be automatically loaded when needed from 
-      /home/martin/UNTYPED.NRLIB/UNTYPED
-(1) -> )library SKI
- 
-   Ski is now explicitly exposed in frame frame1 
-   Ski will be automatically loaded when needed from 
-      /home/martin/SKI.NRLIB/SKI
 (1) -> UNTYP := Ski Untyped
  
    (1)  Ski(Untyped)
@@ -1770,7 +1753,7 @@ y x
    (19)  "y x"
                                                        Type: Ski(Untyped)
 
-SKI combinators can be coerced to and from λ-calculus and
+SKI combinators can be coerced to and from lambda-calculus and
 intuitionistic logic. For a tutorial about how to coerce to/from these
 algebras see this page.
 \section{To Do}
@@ -1791,7 +1774,7 @@ It would be good to be able to use these combinators to operate on
 Axiom/FriCAS functions.
 See also
 
-I also have Axiom/FriCAS coding for λ-caculus, as explained on this
+I also have Axiom/FriCAS coding for lambda-caculus, as explained on this
 page, where there is explanation and tutorial.
 
 
@@ -1979,7 +1962,6 @@ Ski(UT): Exports == Implementation where
 
 
   -- Constructs combinators from a string
-  -- ski pass required to use ski lift
   -- notation assumes association to the left, in the absence of
   -- brackets, the term to the left binds more tightly than the
   -- one on the right.
@@ -2062,8 +2044,8 @@ Ski(UT): Exports == Implementation where
       s := toString(n.vr)$UT
     s
 
-  -- weak reduction - apply this combinator to rearange its
-  -- subnodes then apply recusivly to its subnodes
+  -- weak reduction - apply this combinator to rearrange its
+  -- subnodes then apply recursively to its subnodes
   redux1(n: %):% ==
     if n case nd then
       -- binary node which has two subnodes c1 and c2
@@ -2088,8 +2070,8 @@ Ski(UT): Exports == Implementation where
       return ski(left,right)
     n
 
-  -- weak reduction - apply this combinator to rearange its
-  -- subnodes then apply recusivly to its subnodes
+  -- weak reduction - apply this combinator to rearrange its
+  -- subnodes then apply recursively to its subnodes
   redux(n: %):% ==
     lastResult := [1::NNI]
     thisResult := redux1(n)
@@ -2146,39 +2128,9 @@ isomorphism.
 \section{Tutorial}
 
 On this page we will be working with 'untyped' variables
-in λ and SKI terms so we create instances called LU and
+in lambda and SKI terms so we create instances called LU and
 SU to simplify notation:
 
-(1) -> )library VARCAT
- 
-   VarCat is now explicitly exposed in frame frame1 
-   VarCat will be automatically loaded when needed from 
-      /home/martin/VARCAT.NRLIB/VARCAT
-(1) -> )library UNTYPED
- 
-   Untyped is now explicitly exposed in frame frame1 
-   Untyped will be automatically loaded when needed from 
-      /home/martin/UNTYPED.NRLIB/UNTYPED
-(1) -> )library ILOGIC
- 
-   ILogic is now explicitly exposed in frame frame1 
-   ILogic will be automatically loaded when needed from 
-      /home/martin/ILOGIC.NRLIB/ILOGIC
-(1) -> )library LAMBDA
- 
-   Lambda is now explicitly exposed in frame frame1 
-   Lambda will be automatically loaded when needed from 
-      /home/martin/LAMBDA.NRLIB/LAMBDA
-(1) -> )library SKI
-
-   Ski is now explicitly exposed in frame frame1
-   Ski will be automatically loaded when needed from
-      /home/martin/SKI.NRLIB/SKI
-(1) -> )library COMP
-
-   compUtil is now explicitly exposed in frame frame1
-   compUtil will be automatically loaded when needed from
-      /home/martin/COMP.NRLIB/COMP
 (1) -> LU := Lambda Untyped
 
    (1)  Lambda(Untyped)
@@ -2188,13 +2140,13 @@ SU to simplify notation:
    (2)  Ski(Untyped)
                                                                Type: Type
 
-\section{SKI combinators to λ functions}
+\section{SKI combinators to lambda functions}
 
-We can then create SKI combinators and convert them to λ functions.
+We can then create SKI combinators and convert them to lambda functions.
 
     For a tutorial about working with SKI combinators see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/ski/
-    For a tutorial about working with λ functions see:
+    For a tutorial about working with lambda functions see:
 http://www.euclideanspace.com/maths/standards/program/mycode/computation/lambda/
 
 If the combinators don't have the required parameters then you
@@ -2211,7 +2163,7 @@ util coerce rule SL1: Ski[I] = \v0.0
 
    (3)  "(\v0.v0)"
                                                     Type: Lambda(Untyped)
-													
+
 (4) -> K()$SU::LU
 
 util coerce rule SL2: Ski[K] = \v0.\v1.1
@@ -2225,7 +2177,7 @@ util coerce rule SL3: Ski[S] = \v0.\v1.\v2.(2 0 (1 0))
    (5)  "(\v0.(\v1.(\v2.(v2 (v0 (v1 v0))))))"
                                                     Type: Lambda(Untyped)
 
-In the following examples the combinators are provided with the reqired
+In the following examples the combinators are provided with the required
 parameters. This conversion works by applying the following rules:
 
     rule SL1: Ski[I] = \x.0
@@ -2292,12 +2244,12 @@ util coerce rule SL1: Ski[I] = \v16.0
   \v13.v13)) (\v14.(\v15.v15)))) (\v16.v16)))"
                                                     Type: Lambda(Untyped)
 
-\section{λ functions to SKI combinators}
+\section{lambda functions to SKI combinators}
 
-We can then create λ functions and convert them to SKI combinators.
+We can then create lambda functions and convert them to SKI combinators.
 
     For a tutorial about working with SKI combinators see this page.
-    For a tutorial about working with λ functions see this page.
+    For a tutorial about working with lambda functions see this page.
 
 This process is known as abstraction elimination. it is done by
 applying the following rules until all lambda terms have been
@@ -2422,7 +2374,7 @@ util coerce apply rule SI3 in:S a b c
 ++ Both Lambda are Ski are Turing complete and can be coerced
 ++ to each other. Lambda and Ski are not equal and they are only
 ++ isomorphic upto beta-equivalence and beta-equivalence is
-++ undecidable so there is not a direct correspondance
+++ undecidable so there is not a direct correspondence
 ++ between the nodes in their trees.
 ++ Also the names of bound variables and other such constructions
 ++ may be lost in Lambda -> Ski -> Lambda round trip.
@@ -2554,7 +2506,7 @@ compUtil(UT): Exports == Implementation where
     term:LU := Ski2Lambda(s)
     term
 
-  -- when we are coerceing Lambda to Ski and we apply rule LS5
+  -- when we are coercing Lambda to Ski and we apply rule LS5
   -- we call this
   lambdaOverSki(var:UT,sk:SU):SU ==
     --sayTeX$Lisp concat(["gives \",toString(var)$UT,".",toString(sk)])$String
