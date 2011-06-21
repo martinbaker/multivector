@@ -86,7 +86,7 @@ of this software.
      represent equivalence rather than equality.
    - implement more complete algorithm to decide if two (quantifier-free)
      intuitionistic formulas are equivalent.
-   - remove 'unproven' as a literal and treat symbolic values as unproven.
+   - add remaining simplifications.
 
 4) Representation by symbols. Make code more maintainable by changing
    encoding of distinct literal elements to use symbols rather than
@@ -595,25 +595,29 @@ These can be constructed as follows:
    (1)  "_|_"
                                                              Type: ILogic
 (2) -> logicT()
- 
+
    (2)  "T"
                                                              Type: ILogic
 (3) -> ~logicT()
 
-   (3)  "~(T)"
+   (3)  "_|_"
                                                              Type: ILogic
 
-The inverse of true is not necessarily false and the inverse of false
-is not necessarily true. Therefore the inverse of anything is unproven.
+This logic has different rules from boolean algebra and all constructions
+do not reduce to true or false. To test out our constructs we will use
+the following list:
 
-(4) -> l:List ILogic := [logicF(),logicT(),proposition("a")]
+(4) -> l:List ILogic := [logicF(),logicT(),proposition("a"),~proposition("a"),proposition("b"),~proposition("b")]
 
  LISP output:
-((0 0) (0 1) (1 a))
+((0 0) (0 1) (1 a) (3 0 1 a) (1 b) (3 0 1 b))
                                                        Type: List(ILogic)
+
+First we will try 'not':
+
 (5) -> [(~j)::OutputForm for j in l]
 
-   (5)  ["~(_|_)","~(T)","~(a)"]
+   (5)  ["~(_|_)","_|_","~(a)","~(~(a))","~(b)","~(~(b))"]
                                                    Type: List(OutputForm)
 
 We can print a truth table for 'and' and 'or'. This is the same as
@@ -622,32 +626,47 @@ boolean logic for true/false values and extended for the unproven case.
 (6) -> matrix[[(k /\ j)::OutputForm for j in l] for k in l]
 
    (6)
-
-["_|_","_|_","_|_"]
-["_|_","(T/\T)","(T/\a)"]
-["_|_","(a/\T)","(a/\a)"]
-
+   SUB
+      matrix
+      ["_|_","_|_","_|_","_|_","_|_","_|_"]
+      ["_|_","T","(T/\a)","(T/\~(a))","(T/\b)","(T/\~(b))"]                 
+      ["_|_","(a/\T)","a","_|_","(a/\b)","(a/\~(b))"]                       
+      ["_|_","(~(a)/\T)","_|_","~(a)","(~(a)/\b)","(~(a)/\~(b))"]       
+      ["_|_","(b/\T)","(b/\a)","(b/\~(a))","b","_|_"]
+      ["_|_","(~(b)/\T)","(~(b)/\a)","(~(b)/\~(a))","_|_","~(b)"]
                                                              Type: Symbol
+
 (7) -> matrix[[(k \/ j)::OutputForm for j in l] for k in l]
 
    (7)
-
-["(_|_\/_|_)","T","(_|_\/a)"]
-["T","T","T"]
-["(a\/_|_)","T","(a\/a)"]
+   SUB
+      matrix
+      ["(_|_\/_|_)","T","(_|_\/a)","(_|_\/~(a))","(_|_\/b)","(_|_\/~(b))"]
+      ["T","T","T","T","T","T"]
+      ["(a\/_|_)","T","(a\/a)","(a\/~(a))","(a\/b)","(a\/~(b))"]
+      ["(~(a)\/_|_)","T","(~(a)\/a)","(~(a)\/~(a))","(~(a)\/b)","(~(a)\/~(b))"]
+      ["(b\/_|_)","T","(b\/a)","(b\/~(a))","(b\/b)","(b\/~(b))"]
+      ["(~(b)\/_|_)","T","(~(b)\/a)","(~(b)\/~(a))","(~(b)\/b)","(~(b)\/~(b))"]
                                                              Type: Symbol
 
 'implies' produces the following truth table.
 
 (8) -> matrix[[implies(k,j)::OutputForm for j in l] for k in l]
+ 
 
    (8)
-
-["T","T","(_|_->a)"]
-["_|_","T","(T->a)"]
-["(a->_|_)","(a->T)","(a->a)"]
-
+   SUB
+      matrix
+      ["T","T","(_|_->a)","(_|_->~(a))","(_|_->b)","(_|_->~(b))"]
+      ["_|_","T","(T->a)","(T->~(a))","(T->b)","(T->~(b))"]
+      ["(a->_|_)","(a->T)","(a->a)","(a->~(a))","(a->b)","(a->~(b))"]
+      ["(~(a)->_|_)", "(~(a)->T)", "(~(a)->a)", "(~(a)->~(a))", "(~(a)->b)",
+       "(~(a)->~(b))"]
+      ["(b->_|_)","(b->T)","(b->a)","(b->~(a))","(b->b)","(b->~(b))"]
+      ["(~(b)->_|_)", "(~(b)->T)", "(~(b)->a)", "(~(b)->~(a))", "(~(b)->b)",
+       "(~(b)->~(b))"]
                                                              Type: Symbol
+
 
 Now that we can do intuitionistic logic with constant values we can
 go on to represent theories. We can enter a symbolic value as follows:
@@ -678,17 +697,18 @@ on 'a', however in (12) we cannot reduce to a single value.
 
    (13)  "_|_"
                                                              Type: ILogic
+
 \section{domain ILOGIC ILogic}
 <<domain ILOGIC ILogic>>=
 )abbrev domain ILOGIC ILogic
 ++ Author: Martin Baker
 ++ Date Created: March 2011
-++ Date Last Updated: April 2011
-++ Basic Operations: true, false, unproven
+++ Date Last Updated: June 2011
+++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: intuitionisticLogic
-++ Description: ILogic is an algebra with 3 values:
-++ true, false and unproven
+++ Description: ILogic is an algebra with
+++ true, false and other 'unproven' values
 ++ References:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
 
@@ -701,8 +721,6 @@ ILogic(): Exports == Implementation where
     ++ true is a logical constant.
   logicF:() -> %
     ++ false (contradiction) is a logical constant.
-  --logicU:() -> %
-  --  ++ false is a logical constant.
   proposition:(s:String) -> %
     ++ Constructs a proposition
   implies: (%, %) -> %
@@ -736,7 +754,6 @@ ILogic(): Exports == Implementation where
     ++ returns:
     ++ 0=false
     ++ 1=true
-    ++ 2=unproven
     ++ 3=proposition
     ++ 4=compound
   toString: (n: %) -> String
@@ -756,35 +773,66 @@ ILogic(): Exports == Implementation where
   -- Constructs a proposition
   proposition(s:String): % == [[s]]
 
-  -- constructors
+  -- literal constructors
   logicT() == [[1::NNI]]
   logicF() == [[0::NNI]]
-  --logicU() == [[2::NNI]]
 
+  -- not operator: returns the logical complement
+  -- in general case 'x' this will generate a new element '~x'
+  -- but for specific cases we can apply the simplification rules:
+  -- ~T -> F
+  -- ~(~T) -> T
   ~ b ==
+    -- apply rule: ~T -> F
+    if (b case const) then
+      if (b.const.val = 1::NNI) then return [[0::NNI]]
+    -- apply rule: ~(~T) -> T
+    if (b case unaryOp) then
+      c:% := b.unaryOp.c1
+      if (c case unaryOp) then
+        d:% := c.unaryOp.c1
+        if (d.const.val = 1::NNI) then return [[0::NNI]]
     [[0::NNI,b]]
 
   -- /\ returns the logical 'meet', e.g. 'and'.
+  --
+  -- simplification rules:
+  -- ~x /\ x -> F
+  -- x /\ ~x -> F
+  -- x /\ x -> x
+  -- F /\ x -> F
+  -- x /\ F -> F
+  --
   _/_\(a:%, b:%) ==
+    -- apply rule: F /\ x -> F
     if (a case const) then
       if (a.const.val = 0::NNI) then return [[0::NNI]]
+    -- apply rule: x /\ F -> F
     if (b case const) then
       if (b.const.val = 0::NNI) then return [[0::NNI]]
-    --if (a case const) and (b case const) then
-    --  if (a.const.val = 2::NNI) then return [[2::NNI]]
-    --  return [[b.const.val]]
+    -- apply rule: x /\ x -> x
+    if a=b then
+      return a
+    -- apply rule: x /\ ~x -> F
+    if a=(~b) then
+      return [[0::NNI]]
+    -- apply rule: ~x /\ x -> F
+    if (~a)=b then
+      return [[0::NNI]]
     [[1::NNI,a,b]]
 
 
   -- \/ returns the logical 'join', e.g. 'or'.
+  --
+  -- simplification rules:
+  -- T \/ x -> T
+  -- x \/ T -> T 
+  --
   _\_/(a:%, b:%) ==
     if (a case const) then
       if (a.const.val = 1::NNI) then return [[1::NNI]]
     if (b case const) then
       if (b.const.val = 1::NNI) then return [[1::NNI]]
-    --if (a case const) and (b case const) then
-    --  if (a.const.val = 2::NNI) then return [[2::NNI]]
-    --  return [[b.const.val]]
     [[2::NNI,a,b]]
 
   -- implies(a,b) returns the logical implication
@@ -803,17 +851,29 @@ ILogic(): Exports == Implementation where
   -- apply recursively to subnodes
   -- normally this should not be necessary since logic values are
   -- interpreted when constructed
+  --
+  -- simplification rules:
+  -- ~T -> F
+  -- ~(~T) -> T
+  -- ~x /\ x -> F
+  -- x /\ ~x -> F
+  -- x /\ x -> x
+  -- F /\ x -> F
+  -- x /\ F -> F
+  -- T \/ x -> T
+  -- x \/ T -> T 
+  --
   redux(n: %):% ==
     if n case const then
-      if (n.const.val = 0::NNI) then return [[0::NNI]]
-      if (n.const.val = 1::NNI) then return [[1::NNI]]
-      return [[2::NNI]]
+      return n
     if n case var then
       return n
     if n case binaryOp then
       if n.binaryOp.typ=0::NNI then return implies(n.binaryOp.c1,n.binaryOp.c2)
       if n.binaryOp.typ=1::NNI then return _/_\(n.binaryOp.c1,n.binaryOp.c2)
       if n.binaryOp.typ=2::NNI then return _\_/(n.binaryOp.c1,n.binaryOp.c2)
+    if n case unaryOp then
+      return ~(n.unaryOp.c1)
     n
 
   -- returns true if this is an atom, that is a leaf node
@@ -823,7 +883,6 @@ ILogic(): Exports == Implementation where
   -- returns:
   -- 0=false
   -- 1=true
-  -- 2=unproven
   -- 3=proposition
   -- 4=compound
   value(n: %):NNI ==
