@@ -1,0 +1,169 @@
+\documentclass{article}
+\usepackage{axiom}
+\begin{document}
+\title{computation related mathematical structures}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+Allows us to create structures representing morphisms between objects
+
+For more details see:
+http://www.euclideanspace.com/maths/standards/program/mycode/homset/
+\end{abstract}
+\section{Tutorial}
+The hom-set domain needs to be installed on your system. The source
+code is in a file called homset.spad.pamphlet, which is available
+here:
+
+https://github.com/martinbaker/multivector/
+
+Download and compile in the usual way. Make sure it is exposed since
+Axiom/FriCAS was started.
+
+(1) -> )library HOMSET
+ 
+   HomSet is now explicitly exposed in frame frame1 
+   HomSet will be automatically loaded when needed from 
+      /home/martin/HOMSET.NRLIB/HOMSET
+(1) -> hs := homSet(["a","b"])
+ 
+   (1)  "a,b"
+                                                             Type: HomSet
+(2) -> addObject!(hs,"c")
+ 
+   (2)  "a,b,c"
+                                                             Type: HomSet
+(3) -> addArrow!(hs,1,2)
+ 
+   (3)  "a,b,c :  a->b"
+                                                             Type: HomSet
+\section{domain HOMSET HomSet}
+<<domain HOMSET HomSet>>=
+)abbrev domain HOMSET HomSet
+++ Author: Martin Baker
+++ Date Created: June 2011
+++ Date Last Updated: June 2011
+++ Basic Operations: 
+++ Related Constructors:
+++ Keywords: hom-set, category theory
+++ Description: allows us to create structures representing morphisms
+++ between objects
+++ References:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+
+HomSet(): Exports == Implementation where
+
+ NNI==> NonNegativeInteger
+ ARROW ==> Record(fromOb:NNI,toOb:NNI,arrType:NNI)
+
+ Exports == with
+  homSet:(ob:List String) -> %
+    ++ constuctor for hom-set with given objects
+    ++ more objects and arrows can be added later
+  addObject!:(s:%,n:String) -> %
+    ++ adds an object to this hom-set
+  addArrow!:(s:%,n1:NNI,n2:NNI) -> %
+    ++ adds an arrow to this hom-set
+  toString: (n: %) -> String
+    ++ output
+  coerce: (n: %) -> OutputForm
+    ++ output
+
+ Implementation == add
+
+  Rep := Record(_
+         objects: List String,_
+         arrows:List List ARROW,_
+         commutes:List List Record(NNI,NNI)_
+         )
+
+  -- constuctor for hom-set with given objects
+  -- more objects and arrows can be added later
+  homSet(ob:List String): % ==
+    [ob,[],[]]
+
+  -- adds an object to this hom-set
+  addObject!(s:%,n:String):% ==
+    obs:List String := s.objects
+    if obs=nil()
+      then s.objects := [n]
+      else s.objects := concat(obs,n)
+    s
+
+  -- adds an arrow to this hom-set
+  addArrow!(s:%,n1:NNI,n2:NNI):% ==
+    arrss:List List ARROW := s.arrows
+    if arrss=nil()
+      then
+        r: ARROW := [n1,n2,0::NNI]
+        s.arrows := [[r]]
+        return s
+      else
+        return s
+
+  -- return string representation
+  toString(n: %):String ==
+    s:String := ""
+    ls: List String := n.objects
+    for i in ls repeat
+      if s=""
+        then s:=i
+        else s := concat([s,",",i])
+    arrss:List List ARROW := n.arrows
+    if arrss=nil() then return s
+    arrs:List ARROW := first arrss
+    if arrs=nil() then return s
+    s:=concat([s," : "])$String
+    for s1 in arrs repeat
+      s:=concat([s," ",ls.(s1.fromOb),"->",ls.(s1.toOb)])$String
+    s
+
+  -- output
+  coerce(n: %):OutputForm ==
+    toString(n)::OutputForm
+
+@
+
+
+\section{License}
+<<license>>=
+--Copyright (c) 2011, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@
+<<*>>=
+<<license>>
+@
+\eject
+\begin{thebibliography}{99}
+For more details see:
+http://www.euclideanspace.com/maths/standards/program/mycode/homset/
+\end{thebibliography}
+\end{document}
