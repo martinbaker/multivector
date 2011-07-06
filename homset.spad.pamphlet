@@ -8,62 +8,168 @@
 Allows us to create structures representing morphisms between objects
 
 For more details see:
-http://www.euclideanspace.com/maths/standards/program/mycode/homset/
+\url{http://www.euclideanspace.com/maths/standards/program/mycode/homset/}
+
+At the simplest level hom-set allows us to create a named set of
+objects together with a set of arrows between them.
+
+We can then go on to create higher order objects such as natural
+transformations (arrows between arrows) and so on upto any level.
+
+The way that we model hom-set is designed to scale up to very large
+models therefore the model is mutable so that we can add things to
+it in an efficient way.
 \end{abstract}
 \section{Tutorial}
 The hom-set domain needs to be installed on your system. The source
 code is in a file called homset.spad.pamphlet, which is available
 here:
 
-https://github.com/martinbaker/multivector/
+\url{https://github.com/martinbaker/multivector/}
 
 Download and compile in the usual way. Make sure it is exposed since
 Axiom/FriCAS was started.
-
+\begin{verbatim}
 (1) -> )library HOMSET
  
    HomSet is now explicitly exposed in frame frame1 
    HomSet will be automatically loaded when needed from 
       /home/martin/HOMSET.NRLIB/HOMSET
+\end{verbatim}
+First we will create a very simple hom-set without any information
+for creating diagrams.
+
+We begin by creating a set of objects, each of which is identified by
+its name, in this case "a" and "b".
+\begin{verbatim}
 (1) -> hs := homSet(["a","b"])
  
    (1)  "a,b"
                                                              Type: HomSet
+\end{verbatim}
+At any time we can add more objects with the addObject! function:
+\begin{verbatim}
 (2) -> addObject!(hs,"c")
  
    (2)  "a,b,c"
                                                              Type: HomSet
+\end{verbatim}
+How we have some objects to play with we can add arrows between them by
+using the addArrow! function. This identifies the source and target of
+each arrow by its index into the list of objects.
+\begin{verbatim}
 (3) -> addArrow!(hs,1,2)
  
    (3)  "a,b,c :  a->b"
                                                              Type: HomSet
+\end{verbatim}
+We could go on to add more objects and arrows but hopefully this is
+enough to explain the principles.
+
+We will now start a new hom-set model which is suitable for creating
+diagrams. For diagrams the objects not only need a name (string) but
+they also need a position in a two dimentional plane. The x and y
+coordinates are represented by integers in a 100 by 100 square.
+
+This information about each object is representd by a structure which
+we will define: 
+\begin{verbatim}                                                                
+(4) -> OBJT ==> Record(name:String,posX:NNI,posY:NNI)
+                                                               Type: Void
+\end{verbatim}
+We will create 3 instances of this structure to represent the objects oba,
+obb and obc each with different positions:
+\begin{verbatim}
+(5) -> oba:OBJT := ["a",10,10]
+
+   (5)  [name= "a",posX= 10,posY= 10]
+ Type: Record(name: String,posX: NonNegativeInteger,posY: NonNegativeInteger)
+
+(6) -> obb:OBJT := ["b",10,60]
+
+   (6)  [name= "b",posX= 10,posY= 60]
+ Type: Record(name: String,posX: NonNegativeInteger,posY: NonNegativeInteger)
+
+(7) -> obc:OBJT := ["c",60,10]
+
+   (7)  [name= "c",posX= 60,posY= 10]
+ Type: Record(name: String,posX: NonNegativeInteger,posY: NonNegativeInteger)
+\end{verbatim}
+We can now put these objects into a new model:
+\begin{verbatim}
+(8) -> hs2 := homSet([oba,obb,obc])
+
+   (8)  "a,b,c"
+                                                             Type: HomSet
+\end{verbatim}
+and we can create some arrows between the objects as we did with the
+previous model:
+\begin{verbatim}
+(9) -> addArrow!(hs2,1,2)
+
+   (9)  "a,b,c :  a->b"
+                                                             Type: HomSet
+
+(10) -> addArrow!(hs2,2,3)
+
+   (10)  "a,b,c :  a->b b->c"
+                                                             Type: HomSet
+\end{verbatim}
+Now we can output to an SVG diagram
+\begin{verbatim}
+(11) -> diagramSvg("tesths.svg",hs2)
+
+                                                               Type: Void
+\end{verbatim}
+This diagram needs to be tweeked by hand to look better.
+
+I can't show the diagram in this pamphlet so to see what it looks like
+look at this page:
+\url{http://www.euclideanspace.com/maths/standards/program/mycode/homset/}
 \section{domain HOMSET HomSet}
 <<domain HOMSET HomSet>>=
 )abbrev domain HOMSET HomSet
 ++ Author: Martin Baker
 ++ Date Created: June 2011
-++ Date Last Updated: June 2011
+++ Date Last Updated: July 2011
 ++ Basic Operations: 
 ++ Related Constructors:
 ++ Keywords: hom-set, category theory
 ++ Description: allows us to create structures representing morphisms
 ++ between objects
 ++ References:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+++ http://www.euclideanspace.com/maths/standards/program/mycode/homset/
 
 HomSet(): Exports == Implementation where
 
  NNI==> NonNegativeInteger
+ OBJT ==> Record(name:String,posX:NNI,posY:NNI)
  ARROW ==> Record(fromOb:NNI,toOb:NNI,arrType:NNI)
+ DF ==> DoubleFloat
+ PT ==> SCartesian(2)
+ BOUNDS ==> Record(mins:PT,maxs:PT)
 
- Exports == with
+ Exports == CoercibleTo(OutputForm) with
   homSet:(ob:List String) -> %
+    ++ constuctor for hom-set with given list of
+    ++ object names. Use this version of the contructor
+    ++ if you don't intend to create diagrams and therefore don't
+    ++ care about x,y coordinates.
+    ++ more objects and arrows can be added later if required.
+  homSet:(ob:List OBJT) -> %
     ++ constuctor for hom-set with given objects
-    ++ more objects and arrows can be added later
+    ++ more objects and arrows can be added later if required.
   addObject!:(s:%,n:String) -> %
+    ++ adds an object to this hom-set
+    ++ Use this version
+    ++ if you don't intend to create diagrams and therefore don't
+    ++ care about x,y coordinates.
+  addObject!:(s:%,n:OBJT) -> %
     ++ adds an object to this hom-set
   addArrow!:(s:%,n1:NNI,n2:NNI) -> %
     ++ adds an arrow to this hom-set
+  diagramSvg:(fileName:String,n:%) -> Void
+    ++ creates an SVG diagram
   toString: (n: %) -> String
     ++ output
   coerce: (n: %) -> OutputForm
@@ -72,19 +178,40 @@ HomSet(): Exports == Implementation where
  Implementation == add
 
   Rep := Record(_
-         objects: List String,_
+         objects: List OBJT,_
          arrows:List List ARROW,_
          commutes:List List Record(NNI,NNI)_
          )
 
-  -- constuctor for hom-set with given objects
-  -- more objects and arrows can be added later
+  -- constuctor for hom-set with given list of
+  -- object names. Use this version of the contructor
+  -- if you don't intend to create diagrams and therefore don't
+  -- care about x,y coordinates.
+  -- more objects and arrows can be added later if required.
   homSet(ob:List String): % ==
+    objs: List OBJT := [[x,0::NNI,0::NNI] for x in ob]
+    [objs,[],[]]
+
+  -- constuctor for hom-set with given objects
+  -- more objects and arrows can be added later if required.
+  homSet(ob:List OBJT): % ==
     [ob,[],[]]
 
   -- adds an object to this hom-set
+  -- Use this version
+  -- if you don't intend to create diagrams and therefore don't
+  -- care about x,y coordinates.
   addObject!(s:%,n:String):% ==
-    obs:List String := s.objects
+    obs:List OBJT := s.objects
+    obj:OBJT := [n,0::NNI,0::NNI]
+    if obs=nil()
+      then s.objects := [obj]
+      else s.objects := concat(obs,obj)
+    s
+
+  -- adds an object to this hom-set
+  addObject!(s:%,n:OBJT):% ==
+    obs:List OBJT := s.objects
     if obs=nil()
       then s.objects := [n]
       else s.objects := concat(obs,n)
@@ -93,29 +220,66 @@ HomSet(): Exports == Implementation where
   -- adds an arrow to this hom-set
   addArrow!(s:%,n1:NNI,n2:NNI):% ==
     arrss:List List ARROW := s.arrows
+    r: ARROW := [n1,n2,0::NNI]
     if arrss=nil()
       then
-        r: ARROW := [n1,n2,0::NNI]
         s.arrows := [[r]]
         return s
       else
+        arrs:List ARROW := concat(first arrss,r)
+        s.arrows := [arrs]
         return s
+
+  -- creates an SVG diagram
+  diagramSvg(fileName:String,n:%):Void ==
+    view:BOUNDS := [sipnt(0,0)$PT,sipnt(100,100)$PT]
+    sc := createSceneRoot(view)$Scene(PT)
+    gp := addSceneGroup(sc)$Scene(PT)
+    mt1 := addSceneMaterial(gp,3::DF,"blue","green")$Scene(PT)
+    mt2 := addSceneMaterial(gp,3::DF,"green","green")$Scene(PT)
+    ls: List OBJT := n.objects
+    for i in ls repeat
+      s:String :=i.name
+      x:NNI :=i.posX
+      y:NNI :=i.posY
+      addSceneText(gp,s,32::NNI,sipnt(x,y)$PT)$Scene(PT)
+    arrss:List List ARROW := n.arrows
+    if arrss=nil() then
+      writeSvg(sc,fileName)
+      return void
+    arrs:List ARROW := first arrss
+    if arrs=nil() then
+      writeSvg(sc,fileName)
+      return void
+    for s1 in arrs repeat
+      --sayTeX$Lisp concat(["HomSet diagramSvg fromOb x=",_
+      -- (mathObject2String$Lisp ls.(s1.fromOb).posX)@String,_
+      -- " fromOb y=",(mathObject2String$Lisp ls.(s1.fromOb).posY)@String,_
+      -- " toOb x=",(mathObject2String$Lisp ls.(s1.toOb).posX)@String,_
+      -- " toOb y=",(mathObject2String$Lisp ls.(s1.toOb).posY)@String_
+      -- ])$String
+      addSceneArrows(gp,[[_
+         sipnt(ls.(s1.fromOb).posX,ls.(s1.fromOb).posY)$PT_
+         ,sipnt(ls.(s1.toOb).posX,ls.(s1.toOb).posY)$PT_
+          ]],2::NNI,2::NNI)
+      s:=concat([s," ",ls.(s1.fromOb).name,"->",ls.(s1.toOb).name])$String
+    writeSvg(sc,fileName)
 
   -- return string representation
   toString(n: %):String ==
     s:String := ""
-    ls: List String := n.objects
+    ls: List OBJT := n.objects
     for i in ls repeat
       if s=""
-        then s:=i
-        else s := concat([s,",",i])
+        then s:=i.name
+        else s := concat([s,",",i.name])
     arrss:List List ARROW := n.arrows
     if arrss=nil() then return s
     arrs:List ARROW := first arrss
     if arrs=nil() then return s
     s:=concat([s," : "])$String
     for s1 in arrs repeat
-      s:=concat([s," ",ls.(s1.fromOb),"->",ls.(s1.toOb)])$String
+      s:=concat([s," ",ls.(s1.fromOb).name,"->",ls.(s1.toOb).name])$String
     s
 
   -- output
@@ -123,6 +287,7 @@ HomSet(): Exports == Implementation where
     toString(n)::OutputForm
 
 @
+
 
 
 \section{License}
