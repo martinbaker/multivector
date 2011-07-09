@@ -1,7 +1,7 @@
 \documentclass{article}
 \usepackage{axiom}
 \begin{document}
-\title{computation related mathematical structures}
+\title{allows us to create hom-set models}
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
