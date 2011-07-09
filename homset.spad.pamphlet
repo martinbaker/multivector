@@ -29,6 +29,7 @@ here:
 
 Download and compile in the usual way. Make sure it is exposed since
 Axiom/FriCAS was started.
+
 \begin{verbatim}
 (1) -> )library HOMSET
  
@@ -58,9 +59,9 @@ How we have some objects to play with we can add arrows between them by
 using the addArrow! function. This identifies the source and target of
 each arrow by its index into the list of objects.
 \begin{verbatim}
-(3) -> addArrow!(hs,1,2)
+(3) -> addArrow!(hs,"alpha",1,2)
  
-   (3)  "a,b,c :  a->b"
+   (3)  "a,b,c|alpha:a->b"
                                                              Type: HomSet
 \end{verbatim}
 We could go on to add more objects and arrows but hopefully this is
@@ -73,12 +74,13 @@ coordinates are represented by integers in a 100 by 100 square.
 
 This information about each object is representd by a structure which
 we will define: 
-\begin{verbatim}                                                                
+\begin{verbatim}
 (4) -> OBJT ==> Record(name:String,posX:NNI,posY:NNI)
                                                                Type: Void
 \end{verbatim}
 We will create 3 instances of this structure to represent the objects oba,
 obb and obc each with different positions:
+
 \begin{verbatim}
 (5) -> oba:OBJT := ["a",10,10]
 
@@ -96,6 +98,7 @@ obb and obc each with different positions:
  Type: Record(name: String,posX: NonNegativeInteger,posY: NonNegativeInteger)
 \end{verbatim}
 We can now put these objects into a new model:
+
 \begin{verbatim}
 (8) -> hs2 := homSet([oba,obb,obc])
 
@@ -105,14 +108,14 @@ We can now put these objects into a new model:
 and we can create some arrows between the objects as we did with the
 previous model:
 \begin{verbatim}
-(9) -> addArrow!(hs2,1,2)
+(9) -> addArrow!(hs2,"alpha",1,2)
 
-   (9)  "a,b,c :  a->b"
+   (9)  "a,b,c|alpha:a->b"
                                                              Type: HomSet
 
-(10) -> addArrow!(hs2,2,3)
+(10) -> addArrow!(hs2,"beta",2,3)
 
-   (10)  "a,b,c :  a->b b->c"
+   (10)  "a,b,c|alpha:a->b,beta:b->c"
                                                              Type: HomSet
 \end{verbatim}
 Now we can output to an SVG diagram
@@ -126,6 +129,68 @@ This diagram needs to be tweeked by hand to look better.
 I can't show the diagram in this pamphlet so to see what it looks like
 look at this page:
 \url{http://www.euclideanspace.com/maths/standards/program/mycode/homset/}
+
+We will now create another model to show how we can model structures
+such as natural transformations. using arrows between arrows.
+
+We begin by constructing two objects G and H which we put into a
+model:
+\begin{verbatim}
+(12) -> obg:OBJT := ["G",10,50]
+
+   (12)  [name= "G",posX= 10,posY= 50]
+ Type: Record(name: String,posX: NonNegativeInteger,posY: NonNegativeInteger)
+(13) -> obh:OBJT := ["H",60,50]
+
+   (13)  [name= "H",posX= 60,posY= 50]
+ Type: Record(name: String,posX: NonNegativeInteger,posY: NonNegativeInteger)
+(14) -> hs2 := homSet([obg,obh])
+
+   (14)  "G,H"
+                                                             Type: HomSet
+\end{verbatim}
+We can then add two arrows from G to H, this uses the extended form
+of the addArrow! function which allows us to supply the following
+parameters:
+\begin{itemize}
+\item s = model to oerate on
+\item level:NNI: 1=obj->obj, 2=arrow->arrow, and so on.
+\item nm:String: name of this arrow
+\item n1:NNI: from index
+\item n2:NNI: to index
+\item x:Integer: x coordinate offset
+\item y:Integer: y coordinate offset
+\end{itemize}
+The following two arrows both go from G to H so they are level 1. In
+order that these two arrows are not superimposed we set 'a1' to have
+a y coodinate offet of +10 and 'a1' to have a y coodinate offet of -10
+\begin{verbatim}
+(15) -> addArrow!(hs2,1,"a1",1,2,0,10)
+
+   (15)  "G,H|a1:G->H"
+                                                             Type: HomSet
+(16) -> addArrow!(hs2,1,"a2",1,2,0,-10)
+
+   (16)  "G,H|a1:G->H,a2:G->H"
+                                                             Type: HomSet
+\end{verbatim}
+We can now add and arrow at level 2, that is an arrow from an arrow to
+another arrow:
+\begin{verbatim}
+(17) -> addArrow!(hs2,2,"b1",1,2,0,0)
+
+   (17)  "G,H|a1:G->H,a2:G->H|b1:a1=>a2"
+                                                             Type: HomSet
+\end{verbatim}
+We can now draw a diagram for this model:
+\begin{verbatim}
+(18) -> diagramSvg("tesths2.svg",hs2)
+
+                                                               Type: Void
+\end{verbatim}
+diagram here:
+\url{http://www.euclideanspace.com/maths/standards/program/mycode/homset/}
+
 \section{domain HOMSET HomSet}
 <<domain HOMSET HomSet>>=
 )abbrev domain HOMSET HomSet
@@ -144,7 +209,9 @@ HomSet(): Exports == Implementation where
 
  NNI==> NonNegativeInteger
  OBJT ==> Record(name:String,posX:NNI,posY:NNI)
- ARROW ==> Record(fromOb:NNI,toOb:NNI,arrType:NNI)
+ ARROW ==> Record(name:String,arrType:NNI,fromOb:NNI,_
+           toOb:NNI,xOffset:Integer,yOffset:Integer)
+ COMM ==> Record(List Record(NNI,NNI),List Record(NNI,NNI))
  DF ==> DoubleFloat
  PT ==> SCartesian(2)
  BOUNDS ==> Record(mins:PT,maxs:PT)
@@ -166,8 +233,11 @@ HomSet(): Exports == Implementation where
     ++ care about x,y coordinates.
   addObject!:(s:%,n:OBJT) -> %
     ++ adds an object to this hom-set
-  addArrow!:(s:%,n1:NNI,n2:NNI) -> %
+  addArrow!:(s:%,name:String,n1:NNI,n2:NNI) -> %
     ++ adds an arrow to this hom-set
+  addArrow!:(s:%,level:NNI,nm:String,n1:NNI,n2:NNI,x:Integer,y:Integer) -> %
+    ++ adds an arrow to this hom-set with the
+    ++ ability to support higher level arrows
   diagramSvg:(fileName:String,n:%) -> Void
     ++ creates an SVG diagram
   toString: (n: %) -> String
@@ -180,8 +250,59 @@ HomSet(): Exports == Implementation where
   Rep := Record(_
          objects: List OBJT,_
          arrows:List List ARROW,_
-         commutes:List List Record(NNI,NNI)_
+         commutes:List COMM_
          )
+    ++ The model consists of 3 tables:
+    ++ objects:Nodes Table
+    ++ -------------------
+    ++ This table has an entry for each object
+    ++ Name (String),X coord (NNI),Y coord (NNI)
+    ++ Entries in this table are indexed by the following tables so
+    ++ the order of the objects can't be changed unless the index
+    ++ numbers in the following tables are changed.
+    ++
+    ++ Arrows Table
+    ++ ------------
+    ++ This has two levels of table, the first inner table contains
+    ++ a list of arrows between objects, the next inner table contains
+    ++ a list of arrows between arrows, and so on.
+    ++ Level,Inner Table
+    ++ Arrows:
+    ++ this is the first inner table and the index values are indexes
+    ++ to the object table above.
+    ++ name (String),arrType (NNI),From Index (NNI),To Index (NNI)
+    ++
+    ++ Natural Transformation:
+    ++ this is the next inner table and the index values are indexes
+    ++ to the arrow table above. For a Natural Transformation to be
+    ++ valid then, both the from-index and to-index must be mapped to
+    ++ arrows between the same objects, this may not be enforced by
+    ++ the software.
+    ++ name (String),arrType (NNI),From Index (NNI),To Index (NNI)
+    ++ Next level and so on:
+    ++
+    ++ following inner tables index into the table above it.
+    ++ name (String),arrType (NNI),From Index (NNI),To Index (NNI)
+    ++ In the above tables 'arrType' has the following values:
+    ++ *Equality
+    ++ *Isomorphism
+    ++ *Equivalence
+    ++ *Adjunction
+    ++
+    ++ Commutes Table
+    ++ --------------
+    ++ This table indicates which arrows commute. It takes entries from
+    ++ the Record(level:NNI,index:NNI) and forms them into a list which
+    ++ represents arrow (function) composition.
+    ++ First Composition,Second Composition
+    ++ This table represents a sequence of arrows where the target of
+    ++ the first arrow must be the source of the next arrow and so on.
+    ++
+    ++ The result of the first composition must be the same as the
+    ++ second composition, that is they must commute.
+    ++
+    ++ So each entry in the outer table represents a requirement that
+    ++ somthing must commute.
 
   -- constuctor for hom-set with given list of
   -- object names. Use this version of the contructor
@@ -218,9 +339,9 @@ HomSet(): Exports == Implementation where
     s
 
   -- adds an arrow to this hom-set
-  addArrow!(s:%,n1:NNI,n2:NNI):% ==
+  addArrow!(s:%,nm:String,n1:NNI,n2:NNI):% ==
     arrss:List List ARROW := s.arrows
-    r: ARROW := [n1,n2,0::NNI]
+    r: ARROW := [nm,0::NNI,n1,n2,0::Integer,0::Integer]
     if arrss=nil()
       then
         s.arrows := [[r]]
@@ -230,6 +351,43 @@ HomSet(): Exports == Implementation where
         s.arrows := [arrs]
         return s
 
+  -- put val into inList at place indicated by inx
+  -- extend length of list if required
+  -- since some list functions only work when list over SETCAT or
+  -- ATSHMUT or ORDSET then need to implement this here rather
+  -- than use built-in list functions
+  AddList(val:ARROW,inList:List List ARROW,inx: NNI):List List ARROW ==
+    res:List List ARROW := [[]]
+    ptr:NNI := 1::NNI
+    for v in inList repeat
+      if ptr ~= inx then
+        if res = [[]]
+          then res := [v]
+          else res := concat(res,v)
+      if ptr = inx then
+        if res = [[]]
+          then res := [concat(v,val)]
+          else res := concat(res,concat(v,val))
+      ptr:= ptr + 1::NNI
+    -- do we need to append to end of list
+    if ptr = inx then
+      if res = [[]]
+        then res := [[val]]
+        else res := concat(res,[val])
+    -- do we need to pad out list
+    if ptr < inx then
+      for x in (ptr..inx) repeat res := concat(res,[])
+      res := concat(res,[val])
+    res
+
+  -- adds an arrow to this hom-set with the
+  -- ability to support higher level arrows
+  addArrow!(s:%,level:NNI,nm:String,n1:NNI,n2:NNI,x:Integer,y:Integer):% ==
+    arrss:List List ARROW := s.arrows
+    r: ARROW := [nm,0::NNI,n1,n2,x,y]
+    s.arrows := AddList(r,arrss,level)
+    s
+
   -- creates an SVG diagram
   diagramSvg(fileName:String,n:%):Void ==
     view:BOUNDS := [sipnt(0,0)$PT,sipnt(100,100)$PT]
@@ -238,36 +396,65 @@ HomSet(): Exports == Implementation where
     mt1 := addSceneMaterial(gp,3::DF,"blue","green")$Scene(PT)
     mt2 := addSceneMaterial(gp,3::DF,"green","green")$Scene(PT)
     ls: List OBJT := n.objects
+    lastPointx:List NNI := []
+    lastPointy:List NNI := []
+    nextPointx:List NNI := []
+    nextPointy:List NNI := []
     for i in ls repeat
       s:String :=i.name
       x:NNI :=i.posX
       y:NNI :=i.posY
+      lastPointx:= concat(lastPointx,x)
+      lastPointy:= concat(lastPointy,y)
       addSceneText(gp,s,32::NNI,sipnt(x,y)$PT)$Scene(PT)
     arrss:List List ARROW := n.arrows
     if arrss=nil() then
       writeSvg(sc,fileName)
       return void
-    arrs:List ARROW := first arrss
-    if arrs=nil() then
-      writeSvg(sc,fileName)
-      return void
-    for s1 in arrs repeat
-      --sayTeX$Lisp concat(["HomSet diagramSvg fromOb x=",_
-      -- (mathObject2String$Lisp ls.(s1.fromOb).posX)@String,_
-      -- " fromOb y=",(mathObject2String$Lisp ls.(s1.fromOb).posY)@String,_
-      -- " toOb x=",(mathObject2String$Lisp ls.(s1.toOb).posX)@String,_
-      -- " toOb y=",(mathObject2String$Lisp ls.(s1.toOb).posY)@String_
-      -- ])$String
-      addSceneArrows(gp,[[_
-         sipnt(ls.(s1.fromOb).posX,ls.(s1.fromOb).posY)$PT_
-         ,sipnt(ls.(s1.toOb).posX,ls.(s1.toOb).posY)$PT_
-          ]],2::NNI,2::NNI)
-      s:=concat([s," ",ls.(s1.fromOb).name,"->",ls.(s1.toOb).name])$String
+    -- now draw arrows in diagram
+    lev1:NNI := 1::NNI
+    for arrs in arrss repeat
+      if arrs=nil() then
+        writeSvg(sc,fileName)
+        return void
+      for s1 in arrs repeat
+        --sayTeX$Lisp concat(["HomSet diagramSvg fromOb x=",_
+        -- (mathObject2String$Lisp ls.(s1.fromOb).posX)@String,_
+        -- " fromOb y=",(mathObject2String$Lisp ls.(s1.fromOb).posY)@String,_
+        -- " toOb x=",(mathObject2String$Lisp ls.(s1.toOb).posX)@String,_
+        -- " toOb y=",(mathObject2String$Lisp ls.(s1.toOb).posY)@String_
+        -- ])$String
+        fromX:NNI := lastPointx.(s1.fromOb)
+        toX:NNI := lastPointx.(s1.toOb)
+        fromX := (fromX+s1.xOffset)::NNI
+        toX := (toX+s1.xOffset)::NNI
+        fromY:NNI := lastPointy.(s1.fromOb)
+        toY:NNI := lastPointy.(s1.toOb)
+        fromY := (fromY+s1.yOffset)::NNI
+        toY := (toY+s1.yOffset)::NNI
+        midX:NNI := shift(toX + fromX,-1)
+        midY:NNI := shift(toY + fromY,-1)
+        nextPointx:= concat(nextPointx,midX)
+        nextPointy:= concat(nextPointy,midY)
+        addSceneArrows(gp,[[_
+           sipnt(fromX,fromY)$PT_
+           ,sipnt(toX,toY)$PT_
+            ]],2::NNI,2::NNI)
+        -- add the name of the arrow
+        s:String :=s1.name
+        addSceneText(gp,s,32::NNI,sipnt(midX,midY)$PT)$Scene(PT)
+      lev1 := lev1+1::NNI
+      lastPointx := [v for v in nextPointx]
+      lastPointy := [v for v in nextPointy]
+      nextPointx := []
+      nextPointy := []
     writeSvg(sc,fileName)
 
   -- return string representation
   toString(n: %):String ==
+    -- s holds result that we are constructing
     s:String := ""
+    -- first represent objects in s
     ls: List OBJT := n.objects
     for i in ls repeat
       if s=""
@@ -275,11 +462,25 @@ HomSet(): Exports == Implementation where
         else s := concat([s,",",i.name])
     arrss:List List ARROW := n.arrows
     if arrss=nil() then return s
-    arrs:List ARROW := first arrss
-    if arrs=nil() then return s
-    s:=concat([s," : "])$String
-    for s1 in arrs repeat
-      s:=concat([s," ",ls.(s1.fromOb).name,"->",ls.(s1.toOb).name])$String
+    -- now represent arrows in s
+    lev1:NNI := 1::NNI
+    for arrs in arrss repeat
+      -- arrs is List ARROW
+      if arrs=nil() then return s
+      s:=concat([s,"|"])$String
+      fst:Boolean := true()
+      for s1 in arrs repeat
+        arrStr:String := "=>"
+        if lev1= 1::NNI then arrStr := "->"
+        if not fst then s:=concat(s,",")
+        if lev1= 1::NNI then
+          s:=concat([s,s1.name,":",ls.(s1.fromOb).name,arrStr,_
+               ls.(s1.toOb).name])$String
+        if lev1> 1::NNI then
+          s:=concat([s,s1.name,":",arrss.(lev1-1).(s1.fromOb).name,arrStr,_
+               arrss.(lev1-1).(s1.toOb).name])$String
+        fst := false()
+      lev1 := lev1+1::NNI
     s
 
   -- output
@@ -287,8 +488,6 @@ HomSet(): Exports == Implementation where
     toString(n)::OutputForm
 
 @
-
-
 
 \section{License}
 <<license>>=
