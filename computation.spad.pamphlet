@@ -128,38 +128,41 @@ of this software.
    \item make sure we have all simplifications for implies,/\, \/ and ~.
    \end{itemize}
 
-\item Notation. At the moment, for compatibility reasons, Unicode cannot be
-   used to show:
-   \begin{itemize}
-   \item lambda symbol
-   \item alpha (as in alpha-substitution)
-   \item beta (as in beta-equivalence)
-   \item bottom symbol for _|_
-   \end{itemize}
-   When the restrictions on using Unicode are lifted then use of the
-   Unicode lambda symbol and other Unicode characters would improve
-   readability.
 \end{enumerate}
 \section{Notation}
 
-We use notation:
+It would be useful to be able to use unicode, at the moment we can't
+for compatibility reasons. When the restrictions on using unicode are
+lifted then the following would be useful:
 
-\begin{verbatim}T, _|_, /\, \/, ~ \end{verbatim}
+\begin{itemize}
+\item lambda symbol
+\item alpha (as in alpha-substitution)
+\item beta (as in beta-equivalence)
+\item bottom symbol for \verb'_|_'
+\end{itemize}
+
+Currently for logic symbols we use notation:
+
+\verb'T, _|_, /\, \/, ~'
 
 as opposed to other posibilities such as:
 \begin{itemize}
-\item \begin{verbatim}true, false, and or \end{verbatim}
-\item \begin{verbatim}0, 1, &, | \end{verbatim}
-\item \begin{verbatim}join, meet, ¬ \end{verbatim}
+\item \verb'true, false, and or'
+\item \verb'0, 1, &, |'
+\item \verb'join, meet, ¬'
 \end{itemize}
-This is because \begin{verbatim}/\, \/, ~ \end{verbatim} are built-in
+This is because \verb'/\, \/, ~' are built-in
 operators in FriCAS and are already used by Logic category.
 
 Also this emphasises the lattice-like structure of the intuitionistic
 logic domain.  Also some systems of logic seem to treat
-\begin{verbatim}_|_\end{verbatim}as a logical contradiction rather than
+\verb'_|_' as a logical contradiction rather than
 false. The aim is to use symbols that are compatible with both logic and
 lattice terminology.
+
+Implication is notated by -> to suggest its link to 'function'
+although perhaps this should be changed to more standard =>.
 
 \section{Related Structures}
 
@@ -180,9 +183,13 @@ extended into intuitionistic logic domain. I don't think partially
 ordered set (setorder.spad.pamphlet) would be in the right form to
 extend logic domains.
 
-Also graph structures appear to be related in a general way.
-
-Most of the domains in this document are tree structures.
+Also graph structures, for instance:
+\begin{itemize}
+\item A deductive system is a graph where the nodes are formulas and
+the arrows are deductions or proofs.
+\item The category of small graphs is a concrete category. 
+\end{itemize}
+Many of the domains in this document are also tree structures.
 
 \section{Category Theory}
 
