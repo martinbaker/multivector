@@ -97,6 +97,30 @@ renamings.
 'and' and 'or' they are not usable as functions names.  I replaced
 them by 'lnot', 'land' and 'lor'.
 \end{itemize}
+\section{notes from Gabriel Dos~Reis}
+\begin{itemize}
+\item See OpenAxiom's definition of BasicType.  
+     Any domain is free to override =\verb$BasicType, but most domains would
+     have regular enough representation that the default definition is
+     right and avoid endless boilerplate.
+     Another reason why someone would like to override the default is to 
+     avoid the default search, but then the comparison must be doing
+     something so trivial that it is worth the trouble and enable domain
+     inlining -- see domain Byte for example.
+\item In OpenAxiom, BooleanLogic is the category of domains implementing 
+     "Boolean logic" (therefore are lattices, hence satisfy Logic.)
+     However, not all domains that are lattices are BooleanLogic instances.
+     Hence, in OpenAxiom BooleanLogic and Logic are not redundant.
+\item Furthermore, BooleanLogic allows for shortcircuiting -- the
+     OpenAxiom compiler only implement half of it at the moment, but the
+     completion is planned (there are only 24 hours in a day.)  This
+     allows parameterization over the boolean logic domain without
+     having to rewrite a program -- example of another boolean logic
+     domain is the trivalent logic implemented by KleeneTrivalentLogic.
+\item (Due to a design bug afflicting all AXIOM flavours, care needs to
+     be exercised when using KleeneTrivalentLogic, but that should be
+     fixed when we have a unified parser.)
+\end{itemize}
 \section{Propositional Logic Example}
 PropositionalFormula can be defined over a set. Here we take, what
 seems to me, the simplest case and show how to use it when defined
