@@ -1,6 +1,8 @@
 \documentclass{article}
 \usepackage{axiom}
 \usepackage{url}
+\newcommand{\File}[1]{\url{#1}}
+
 \begin{document}
 \title{graph theory related mathematical structures}
 \author{Martin J Baker}
@@ -24,55 +26,65 @@ can be implemented by having arrows in both directions).
 
 A graph has two parts:
 \begin{itemize}
- \item A set of 'vertices' or 'objects'.
+\item A set of 'vertices' or 'objects'.
 \item A set of 'arrows' or 'edges'
 \end{itemize}
 \section{Installation}
 
 To install this code goto github
-(https://github.com/martinbaker/fricas/blob/master/src/algebra/graph.spad.pamphlet)
-and download the file:
+(\url{https://github.com/martinbaker/fricas/blob/master/src/algebra/graph.spad.pamphlet})
 
-graph.spad.pamphlet
+and download the file: \File{graph.spad.pamphlet}
 
 Then, from that file, copy the code for the Graph category into a
 file called 'graph.spad' and the code for the directedGraph domain
-into a file called 'directedGraph.spad'. Then compile them
+into a file called 'directedGraph.spad'.
 
 \begin{verbatim}
-(1) ->)co graph.spad
-(1) ->)co directedGraph.spad
+document --tangle="domain LOOP Loop" --output=loop.spad graph.spad.pamphlet
+document --tangle="category GRPH Graph" --output=graph.spad graph.spad.pamphlet
+document --tangle="domain DGRPH DirectedGraph" --output=dgraph.spad graph.spad.pamphlet
+document --tangle="domain FGRPH FunctionGraph" --output=fgraph.spad graph.spad.pamphlet
+document --tangle="domain UDGRPH UndirectedGraph" --output=udgraph.spad graph.spad.pamphlet
+document --tangle="domain MFGRPH MultifunctionGraph" --output=mfgraph.spad graph.spad.pamphlet
+document --tangle="domain WGRPH WeightedGraph" --output=wgraph.spad graph.spad.pamphlet
 \end{verbatim}
 
-There is currently a problem with this, directedGraph will not
-compile unless it already exists. I could only get it to compile by:
-\begin{itemize}
-\item Make a temporary version of 'directedGraph.spad' file
-\item Edit out the declarations and definitions for:
+where \File{document} is the script that you find in the build
+directory of your fricas compilation.
+\File{build/scripts/document}.
+
+Then compile them
 \begin{verbatim}
-        "*":(%,%) -> GRPHPROD
-        cartesian:(%,%) -> GRPHPROD
+(1) -> )co loop.spad
+(1) -> )co graph.spad
+(1) -> )boot $bootStrapMode := true
+(1) -> )co dgraph.spad
+(1) -> )co fgraph.spad
+(1) -> )co udgraph.spad
+(1) -> )co mfgraph.spad
+(1) -> )co wgraph.spad
+(1) -> )boot $bootStrapMode := false
+(1) -> )co dgraph.spad
+(1) -> )co fgraph.spad
+(1) -> )co udgraph.spad
+(1) -> )co mfgraph.spad
+(1) -> )co wgraph.spad
 \end{verbatim}
-\item Compile the temporary code.
-\item Compile the original code.
-\end{itemize}
-You should now be able to use the code.
 \section{Tutorial}
 
 If Graph and directedGraph are not already loaded then load them
 as follows:
 
 \begin{verbatim}
-(1) ->)library GRPH
-
-   Graph is already explicitly exposed in frame frame1
-   Graph will be automatically loaded when needed from
-      /home/martin/GRPH.NRLIB/GRPH
-(1) ->)library DGRPH
-
-   DirectedGraph is already explicitly exposed in frame frame1
-   DirectedGraph will be automatically loaded when needed from
-      /home/martin/DGRPH.NRLIB/DGRPH
+(1) -> )library LOOP
+(1) -> )library GRPH
+(1) -> )library GRPH-
+(1) -> )library DGRPH
+(1) -> )library FGRPH
+(1) -> )library UDGRPH
+(1) -> )library MFGRPH
+(1) -> )library WGRPH
 \end{verbatim}
 
 We will construct a graph over 'String'. If you don't care what
