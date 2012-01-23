@@ -12,25 +12,179 @@ Graphs, in addition to being interesting structures in their own
 right, have importance in representing data structures, finite
 automata, communication networks and so on.
 
+A graph is a example of a mathematical entity which can be thought
+of as a set together with a structure on that set. It can be drawn
+in a way that is visually easy to understand and so is very
+helpful in understanding such structures.
+
 For more information and diagrams see:
 \url{http://www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/}
-
 \end{abstract}
 \eject
 \tableofcontents
 \eject
 \section{Notation}
-
-This is an implementation of directed graphs (undirected graphs
-can be implemented by having arrows in both directions).
+This is an implementation mostly of directed graphs (undirected graphs
+are possible by having arrows in both directions and by using
+UndirectedGraph domain).
 
 A graph has two parts:
 \begin{itemize}
-\item A set of 'vertices' or 'objects'.
+\item A set of 'vertices', 'objects' or 'nodes'.
 \item A set of 'arrows' or 'edges'
 \end{itemize}
-\section{Installation}
+I will treat all these alternative terms equivalently and may switch
+between them in this document.
+\section{Design Issues}
+Probably the most efficient general representation coding of a graph
+is as a set of external 'objects' (graph is defined over a set)
+together with pairs of indices to represent the arrows. Because
+the arrows are defined in terms of indices this means that the order
+of the objects becomes important and therefore must be held in a
+list/array rather than a set. The issue of list verses array is a
+performance issue, more of that later.
 
+It seems to me that there is a complimentary coding of graph where
+the arrows are a set of external objects and each node would be
+defined as two lists of indices: a list of incoming nodes and a list
+of outgoing nodes. I have not implemented this complimentary coding
+because its more complicated and I can't think of a use for it.
+However I have implemented two special related cases:
+\begin{itemize}
+\item FunctionGraph
+\item MultifunctionGraph
+\end{itemize}
+In 'FunctionGraph' each vertex has one outgoing arrow and In
+'MultifunctionGraph' each vertex has exactly 'n' outgoing arrows
+where 'n' is the same for every vertex. These limitations mean that
+they can be coded more efficiently by having the arrow information
+directly associated with each vertex. As its name suggests
+'FunctionGraph' can represent a function, a mapping where the 
+domain and codomain are the same finite set of objects over which
+it is defined. 'MultifunctionGraph' can represent multiple function
+graphs such as Cayley graphs. Although these are special cases
+of the general graph, and could have used the general coding it
+is more efficient coding them in this way. They have a number of
+functions which are not applicable to the general case.
+
+The graph structures are concerned with finite graphs, that is
+finite numbers of vertices. It would be interesting to find ways
+to encode repetitive or repeating structures in an efficient way.
+
+Now I come to an issue which gives me a lot of concern: the
+representation so far includes only the information required to
+define the pure mathematical structures but there is other
+information associated with graphs which helps to make it more
+human understandable such as names for arrows and diagram
+coordinates. I think this information is very important because
+there are great benefits to human users in being able to 'see'
+the structure in an accessible way. As a general rule I think it
+is important to separate out these issues and as far as I can I
+put the graphics stuff into the graphics framework:
+'scene.spad.pamphlet'. However, in this case, I have not managed
+to separate out these issues.
+
+I did consider creating a wrapper domain, which would be external
+to the graph code, that would allow annotation and coordinate
+information to be associated with a vertex.
+\begin{verbatim}
+objectWrapper(S)
+....
+Rep := Record(value:S,name:String,posX:NNI,posY:NNI)
+\end{verbatim}
+However, if we want to do this with arrow information (which we
+do), then we would have to have a separate external arrow domain.
+There might be some benefits to this but its also quite messy, if
+we continue to use indexes then they have no meaning outside the
+graph and if we specify to objects directly then there are
+efficiency issues. If we do all that then, the Rep will be free of
+annotation and coordinate information, but the graph code still
+needs to know about coordinate information. For example, if we
+are taking the product of two graphs, then we can combine the
+coordinate of the two operands to generate useful coordinate
+information for the product graph as a whole.
+
+So, in the end, I could not separate out the graphical/annotation
+information. It was just easier and more efficient to leave this
+information in Rep even though it goes against certain principles.
+
+There is another issue about what goes into Rep, at the moment only
+certain combinations of graph type types are possible, for instance,
+we can't have a function 'FunctionGraph' with weighted arrows, it
+would be more general to allow all combinations of graph? If we do
+then the memory usage goes up a bit but if we don't then we need
+lots of combinations of domains:
+\begin{itemize}
+\item Weighted nodes + directed graph
+\item Weighted arrows + directed graph
+\item Weighted nodes + weighted arrows + directed graph
+\item Weighted nodes + undirected graph
+\item Weighted arrows + undirected graph
+\item Weighted nodes + weighted arrows + undirected graph
+\item Weighted nodes + function graph
+\item ... and so on
+\end{itemize}
+There are other types of graph that I would like to experiment with,
+for instance, what I think of as a multilevel graph which perhaps
+could be implemented in equivalent ways:
+\begin{itemize}
+\item As a graph whose elements are themselves graphs, where the outer
+graph can see inside (has arrows between the nodes of) the inner
+graph.
+\item As a set of graphs with mappings between them, where the whole
+system is treated as a graph.
+\item As a graph which also has arrows between the arrows.
+\end{itemize}
+How should these graph structures fit in and relate to the rest of
+the Axiom code library? It seems to me that structures like Tree,
+POSET/lattice are special cases of graph? Also there may be more
+general structures like Closed Cartesian Category (CCC) that should
+be categories in the code library?
+\section{Performance Issues}
+There is plenty of scope to improve the code. I have not tested how
+well it scales up (in terms of memory usage and runtime) but I suspect
+not very well at the moment. I think there is a lot of scope to
+improve the algorithms used.
+
+There is the issue (pointed out by Waldek) of using lists verses
+arrays in Rep. If we are thinking about how well this would scale up
+then I guess:
+\begin{itemize}
+\item mutable (using List) would be more efficient for constructing
+very large graphs.
+\item immutable (using array) would be more efficient for
+deconstructing/using the graphs once they have been constructed.
+\end{itemize}
+I guess it would be nice to have both mutable and immutable graphs but
+that would add even more permutations of domain types.
+\section{To Do}
+\begin{itemize}
+\item Check out definitions of 'spanningForestNode' and
+'spanningTreeArrow' to make sure there is no source of confusion.
+\item At the moment the loop detection uses 'spanningForestNode'
+as it is. I realise this is very inefficient (in terms of memory and
+runtime), I want to improve the loop detection and routing algorithms
+(perhaps use Floyd's algorithm or something line that) and not use
+spanningForestNode for this purpose. Although I think
+spanningForestNode should still be provided as it represents an
+important concept.
+\item Need to improve SVG output. While this is useful, at the moment
+we need to tweak the SVG files produced using a program such as
+Inkscape, It would be possible to produce SVG output that is more
+readable but this first requires improvements to the graphics
+framework: scene.spad.pamphlet
+\item I would like two-way graphical interaction by the user, so
+for instance, a user could drag a vertex and its arrows would
+move with it. This type of interaction is not possible by
+writing code in SPAD.
+\item Add domain parameter of type OrderedAbelianMonoid to weights
+to be other than NNI, in particular doubleFloat.
+\item Allow nodes to have weights in addition to arrows.
+\item I would also like to experiment with the connection between
+(duality?) this code and the computing framework. That is use graphs
+to implement finite-state machine, Turing machine, etc.
+\end{itemize}
+\section{Installation}
 To install this code goto github
 (\url{https://github.com/martinbaker/fricas/blob/master/src/algebra/graph.spad.pamphlet})
 
@@ -501,7 +655,40 @@ Weighted Graphs
 \end{itemize}
 To follow the whole tutorial start on \url{http://www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/construct/index.htm}
 this page with constructing graphs. 
+\section{Loop Tutorial}
+The aim of this domain is to hold a loop as a sequence of node or arrow
+indexes. We consider two loops equal if they go through the same
+nodes/arrows in the same order, regardless of where we happen to
+start in the sequence.
 
+So I took an arbitrary decision to store the loop with the smallest
+index first (I can't think of a more canonical form) This is done
+in the loop constructor.
+
+So in the following [5,6,2,8] is = to [2,8,5,6] (they are both stored
+as [2,8,5,6]) but different to [5,2,6,8] (which is stored as
+[2,6,8,5])
+\begin{verbatim}
+(9) -> l1 := loop([5::NNI,6::NNI,2::NNI,8::NNI])
+   (9)  "[->2->8->5->6]"
+
+                                                           Type: Loop
+(10) -> l2 := loop([2::NNI,8::NNI,5::NNI,6::NNI])
+   (10)  "[->2->8->5->6]"
+
+                                                           Type: Loop
+(11) -> l3 := loop([5::NNI,2::NNI,6::NNI,8::NNI])
+   (11)  "[->2->6->8->5]"
+
+                                                           Type: Loop
+(12) -> (l1 = l2)::Boolean
+   (12)  true
+
+                                                        Type: Boolean
+(13) -> (l1 = l3)::Boolean
+   (13)  false
+                                                        Type: Boolean
+\end{verbatim}
 \section{domain LOOP Loop}
 <<domain LOOP Loop>>=
 )abbrev domain LOOP Loop
@@ -539,24 +726,21 @@ Loop(): Exports == Implementation where
     Rep := PrimitiveArray NNI
 
     -- construct loop with list of indexes
+    -- rotate so that smallest index is always at the beginning
+    -- (thanks to Ralf for patch to this constructor)
     loop(li:List NNI):% ==
-      -- first find the index of the minimum entry
-      minValue:NNI := 10000::NNI
-      minIndex:NNI := 0::NNI
-      for i in 1..#li repeat
-        if (li.i)<minValue then
-          minValue := li.i
-          minIndex := i
-      --sayMsg concat("min=",string(minIndex))$String
-      beforeIndex := subtractIfCan(minIndex,1::NNI)
-      if beforeIndex = "failed" then return construct(li)
-      beforeMin:List NNI := first(li,beforeIndex::NNI)
-      --sayMsg concat("beforeMin=",math_to_string beforeMin)$String
-      afterIndex := subtractIfCan((#li+1)::NNI,minIndex)
-      if afterIndex = "failed" then return construct(li)
-      afterMin:List NNI := last(li,afterIndex::NNI)$List(NNI)
-      --sayMsg concat("afterMin=",math_to_string afterMin)$String
-      construct(concat(afterMin,beforeMin))$PrimitiveArray(NNI)
+      empty? li => error "cannot form empty loop"
+      minValue:NNI := first li
+      lx:List(NNI) := []
+      l1 := li -- initialize part that comes first
+      l2 := lx -- initialize part that comes after l1
+      while not empty? li repeat
+        if first li < minValue then
+          l1 := li
+          l2 := lx
+        lx := cons(first li, lx)
+        li := rest li
+      construct(concat(l1, reverse! l2))
 
     entries(lp:%):List NNI ==
       entries(lp pretend PrimitiveArray(NNI))$PrimitiveArray(NNI)
@@ -576,9 +760,9 @@ Loop(): Exports == Implementation where
     latex(s:%): String == "\mbox{\bf Unimplemented}"
 
     -- returns true if x equals y
-    -- this is equality and not isomorphism
-    -- that is it returns true only if exact index values and names are used
-    -- in addition to the structure(arrows) being the same.
+    -- Since the constructor always makes sure that the Rep is
+    -- rotated so that the smallest index is at the beginning,
+    -- this test is not sensitive to where we start in the loop.
     _=(x:%,y:%):Boolean ==
       if #x ~= #y then return false
       for i in 1..#x repeat
@@ -2058,24 +2242,16 @@ FunctionGraph(S): Exports == Implementation where
   -- Vertices (or objects or nodes)
   -- ------------------------------
   -- This table has an entry for each vertex:
-  -- Record(value:S,posX:NNI,posY:NNI)
+  -- Record(value:S,posX:NNI,posY:NNI,next:NNI)
   -- posX and posY are not part of the mathematical structure but
   -- are useful so that it can be drawn in a useful way.
   -- Although this is thought of as a set (no duplication or ordering)
   -- it is implemented as a list because entries in this table are
   -- indexed by the following part so the order of the objects can't
   -- be changed unless the index numbers in the following tables are
-  -- changed.
-  --
-  -- Arrows (or edges)
-  -- -----------------
-  -- This table has an entry for each arrow:
-  -- Record(name:String,arrType:NNI,fromOb:NNI,
-  --     toOb:NNI,xOffset:Integer,yOffset:Integer)
-  -- fromOb and toOb are the endpoints of the arrow which are
-  -- indexes into the vertex list.
-  -- arrType is used for multigraphs
-  -- name,xOffset and yOffset are used to draw the graph.
+  -- changed. The arrows are encoded here in the 'next' entry, each
+  -- vertex can only have 1 outgoing arrow which is enforced by this
+  -- coding.
   Rep := Record(objects: List FOBJT)
 
   sayMsg ==> sayBrightly$Lisp
@@ -3011,29 +3187,17 @@ MultifunctionGraph(S): Exports == Implementation where
 
  Implementation ==> add
 
-  -- The representation consists of 2 Lists:
-  --
-  -- Vertices (or objects or nodes)
-  -- ------------------------------
-  -- This table has an entry for each vertex:
-  -- Record(value:S,posX:NNI,posY:NNI)
+  -- This representation has an entry for each vertex:
+  -- Record(value:S,posX:NNI,posY:NNI,next:List NNI)
   -- posX and posY are not part of the mathematical structure but
   -- are useful so that it can be drawn in a useful way.
   -- Although this is thought of as a set (no duplication or ordering)
   -- it is implemented as a list because entries in this table are
   -- indexed by the following part so the order of the objects can't
   -- be changed unless the index numbers in the following tables are
-  -- changed.
-  --
-  -- Arrows (or edges)
-  -- -----------------
-  -- This table has an entry for each arrow:
-  -- Record(name:String,arrType:NNI,fromOb:NNI,
-  --     toOb:NNI,xOffset:Integer,yOffset:Integer)
-  -- fromOb and toOb are the endpoints of the arrow which are
-  -- indexes into the vertex list.
-  -- arrType is used for multigraphs
-  -- name,xOffset and yOffset are used to draw the graph.
+  -- changed. The arrows are encoded here in the 'next' entry, each
+  -- NNI in this list is an outgoing arrow, this helps to enforce the
+  -- rule that there can only be 'n' outgoing arrows for each vertex.
   Rep := Record(objects: List MFOBJT)
 
   sayMsg ==> sayBrightly$Lisp
@@ -3386,6 +3550,7 @@ MultifunctionGraph(S): Exports == Implementation where
     -- should never get here as we should reach a loop by
     -- a number of steps equal to the degree of the graph
     loop([])
+
 @
 
 \section{domain WGRPH WeightedGraph}
