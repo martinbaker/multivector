@@ -2485,8 +2485,9 @@ FunctionGraph(S): Exports == Implementation where
       newX := ((oldObj.posX)+offsetX)::NNI
       newY := ((oldObj.posY)+offsetY)::NNI
       newNext := m.(oldObj.next)
-      n:FOBJT :=[newObj,newX,newY,newNext]
-      if i ~= inext then newObjs.i:= n
+      nv:FOBJT :=[newObj,newX,newY,newNext] -- assemble new vertex
+      if i ~= inext then newObjs.i:= nv -- add it if it does not
+                                        -- point to itself
       --sayMsg concat(["map oi=",string(oi),_
       -- " i=",string(i),_
       -- " newObj=",math_to_string newObj," inext=",math_to_string inext,_
@@ -3163,14 +3164,14 @@ MultifunctionGraph(S): Exports == Implementation where
     ++ product V(G) × V(H); and any two vertices (u,u') and (v,v')
     ++ are adjacent in G × H if and only if u' is adjacent with
     ++ v' and u is adjacent with v.
-  --cartesian:(%,%) -> GRPHPROD
-    ++ Cartesian product does apply to function graph
-    ++ produces two arrows out of every node
+  cartesian:(%,%) -> GRPHPROD
+    ++ Cartesian product doubles the size of next list in each
+    ++ object, that is it produces two arrows out of every node
   closedTensor:(a:%,b:%,f:(S,S)->S) -> %
     ++ as tensor product but returns %.
-  --closedCartesian:(a:%,b:%,f:(S,S)->S) -> %
-    ++ Cartesian product does apply to function graph
-    ++ produces two arrows out of every node
+  closedCartesian:(a:%,b:%,f:(S,S)->S) -> %
+    ++ Cartesian product doubles the size of next list in each
+    ++ object, that is it produces two arrows out of every node
   coAdjoint:(s:%,m: List NNI) -> AJMAP
     ++ given a mapping from this graph this function tries to
     ++ calculate a unique reverse mapping back to this graph
@@ -3248,9 +3249,9 @@ MultifunctionGraph(S): Exports == Implementation where
     error "this form of addObject! not supported in multifunctionGraph"
     [[]]
 
-  -- This should really be replaceArrow! in multifunctionGraph but
-  -- we use the name addArrow! for compatibility with directedGraph
-  -- and any other implementations of Graph
+  -- Don't use.
+  -- This should really be replaceFirst Arrow! in multifunctionGraph
+  -- we put hare for compatibility with directedGraph only
   -- where:
   -- s is the graph where the arrow is to be replaced
   -- nm is the name of the arrow (not used)
@@ -3343,14 +3344,31 @@ MultifunctionGraph(S): Exports == Implementation where
     error "merge not valid in function graph"
     [[]]
 
-  -- this is a local function used by both tensor and Cartesian
+  -- this is a local function used by both tensorNext and
+  -- cartesianNext and so ultimately by tensor and Cartesian
   -- product to calculate the new index.
   indexProd(aObj:%,a:NNI,b:NNI):NNI ==
-    x:NNI := a + ((b::Integer-1)::NNI * #aObj.objects)
-    --sayMsg concat(["indexProd a=",string(a),_
-    --               " b=",string(b),_
-    --               " a*b=",string(x)])$String
-    x
+    a + ((b::Integer-1)::NNI * #aObj.objects)
+
+  -- this is a local function used by tensor product to calculate
+  -- the new next index list.
+  tensorNext(aObj:%,a:List NNI,b:List NNI):List NNI ==
+    if #a ~= #b then error "tensor product with different degree"
+    res:List NNI := []
+    for i in 1..#a repeat
+      x := indexProd(aObj,a.i,b.i)
+      res := concat(res,x)$List(NNI)
+    res
+
+  -- this is a local function used by cartesian product to calculate
+  -- the new next index list.
+  cartesianNext(aObj:%,a:List NNI,b:List NNI):List NNI ==
+    res:List NNI := []
+    for i in 1..#a repeat
+      for j in 1..#b repeat
+        x := indexProd(aObj,a.i,b.j)
+        res := concat(res,x)$List(NNI)
+    res
 
   -- tensor product : the tensor product A*B of graphs A and B is
   -- a graph such that the vertex set of A*B is the Cartesian
@@ -3366,15 +3384,15 @@ MultifunctionGraph(S): Exports == Implementation where
       ai:S := aoi.value
       axi:NNI := aoi.posX
       ayi:NNI := aoi.posY
-      ani:NNI := aoi.next.1
+      ani:List NNI := aoi.next
       for boi in b.objects repeat
         bi:S := boi.value
         bxi:NNI := boi.posX
         byi:NNI := boi.posY
-        bni:NNI := boi.next.1
+        bni:List NNI := boi.next
         x:NNI := bxi*diagramWidth(a)+axi
         y:NNI := byi*diagramHeight(a)+ayi
-        nextA := indexProd(b,bni,ani)
+        nextA := tensorNext(b,bni,ani)
         --sayMsg concat(["objProd axi=",math_to_string axi,_
         -- " ayi=",math_to_string ayi,_
         -- " bxi=",math_to_string bxi," byi=",math_to_string byi,_
@@ -3382,7 +3400,40 @@ MultifunctionGraph(S): Exports == Implementation where
         -- " x=",math_to_string x," y=",math_to_string y_
         -- ])$String
         sp:SPROD := construct(ai,bi)$SPROD
-        ob:OBJTPROD := [sp,x,y,[nextA]]
+        ob:OBJTPROD := [sp,x,y,nextA]
+        newObjs := concat(newObjs,ob)
+    multifunctionGraph(newObjs)$GRPHPROD
+
+  -- Cartesian product: the vertex set of A o B is the Cartesian
+  -- product V(A) × V(B) and any two vertices <au,bu> and <av,bv>
+  --  are adjacent in A o B if and only if either
+  -- au = av and bu is adjacent with bv or
+  -- bu = bv and au is adjacent with av.
+  -- Cartesian product doubles the size of next list in each
+  -- object, that is it produces two arrows out of every node
+  cartesian(a:%,b:%):GRPHPROD ==
+    newObjs:List OBJTPROD := []
+    for aoi in a.objects repeat
+      ai:S := aoi.value
+      axi:NNI := aoi.posX
+      ayi:NNI := aoi.posY
+      ani:List NNI := aoi.next
+      for boi in b.objects repeat
+        bi:S := boi.value
+        bxi:NNI := boi.posX
+        byi:NNI := boi.posY
+        bni:List NNI := boi.next
+        x:NNI := bxi*diagramWidth(a)+axi
+        y:NNI := byi*diagramHeight(a)+ayi
+        nextA := cartesianNext(b,bni,ani)
+        --sayMsg concat(["objProd axi=",math_to_string axi,_
+        -- " ayi=",math_to_string ayi,_
+        -- " bxi=",math_to_string bxi," byi=",math_to_string byi,_
+        -- " nexta=",math_to_string ani," nextb=",math_to_string bni,_
+        -- " x=",math_to_string x," y=",math_to_string y_
+        -- ])$String
+        sp:SPROD := construct(ai,bi)$SPROD
+        ob:OBJTPROD := [sp,x,y,nextA]
         newObjs := concat(newObjs,ob)
     multifunctionGraph(newObjs)$GRPHPROD
 
@@ -3395,17 +3446,45 @@ MultifunctionGraph(S): Exports == Implementation where
       ai:S := aoi.value
       axi:NNI := aoi.posX
       ayi:NNI := aoi.posY
-      ani:NNI := aoi.next.1
+      ani:List NNI := aoi.next
       for boi in b.objects repeat
         bi:S := boi.value
         bxi:NNI := boi.posX
         byi:NNI := boi.posY
-        bni:NNI := boi.next.1
+        bni:List NNI := boi.next
         x:NNI := bxi*diagramWidth(a)+axi
         y:NNI := byi*diagramHeight(a)+ayi
-        nextA := indexProd(b,bni,ani)
+        nextA := tensorNext(b,bni,ani)
         sp:S := f(ai,bi)
-        ob:MFOBJT := [sp,x,y,[nextA]]
+        ob:MFOBJT := [sp,x,y,nextA]
+        newObjs := concat(newObjs,ob)
+        --sayMsg concat(["objProd ai=",math_to_string ai,_
+        -- " bi=",math_to_string bi,_
+        -- " nexta=",math_to_string ani," nextb=",math_to_string bni,_
+        -- " x=",math_to_string x," y=",math_to_string y_
+        -- ])$String
+    multifunctionGraph(newObjs)
+
+  -- as tensor product but returns %.
+  closedCartesian(a:%,b:%,f:(S,S)->S):% ==
+    -- new objects are calculated by local closedObjProd function
+    -- calculate new arrows:
+    newObjs:List MFOBJT := []
+    for aoi in a.objects repeat
+      ai:S := aoi.value
+      axi:NNI := aoi.posX
+      ayi:NNI := aoi.posY
+      ani:List NNI := aoi.next
+      for boi in b.objects repeat
+        bi:S := boi.value
+        bxi:NNI := boi.posX
+        byi:NNI := boi.posY
+        bni:List NNI := boi.next
+        x:NNI := bxi*diagramWidth(a)+axi
+        y:NNI := byi*diagramHeight(a)+ayi
+        nextA := cartesianNext(b,bni,ani)
+        sp:S := f(ai,bi)
+        ob:MFOBJT := [sp,x,y,nextA]
         newObjs := concat(newObjs,ob)
         --sayMsg concat(["objProd ai=",math_to_string ai,_
         -- " bi=",math_to_string bi,_
@@ -3428,24 +3507,20 @@ MultifunctionGraph(S): Exports == Implementation where
     for oi in 1..#oldObjs repeat
       oldObj := oldObjs.oi
       i:NNI := m.oi
-      inext:NNI := m.(oldObj.next.1)
       newObj := newOb.i
       newX := ((oldObj.posX)+offsetX)::NNI
       newY := ((oldObj.posY)+offsetY)::NNI
-      newNext := m.(oldObj.next.1)
-      n:MFOBJT :=[newObj,newX,newY,[newNext]]
-      if i ~= inext then newObjs.i:= n
+      newNext:List NNI := []
+      for n in oldObj.next repeat
+        newNext := concat(newNext,m.n)
+      nv:MFOBJT :=[newObj,newX,newY,newNext] -- assemble new vertex
+      newObjs.i:= nv -- replace holding value
       --sayMsg concat(["map oi=",string(oi),_
       -- " i=",string(i),_
       -- " newObj=",math_to_string newObj," inext=",math_to_string inext,_
       -- " newX=",math_to_string newX," newY=",math_to_string newY,_
       -- " newNext=",math_to_string newNext_
       -- ])$String
-    -- make sure all newObjs have 'next' set to valid index
-    for p in 1..#newObjs repeat
-      nwob := newObjs.p
-      -- make unassigned 'next' values loop to themselves
-      if nwob.next.1 < 1 then nwob.next.1 := p
     [newObjs]
 
   -- similar to map function but reverses the directions of
@@ -3458,26 +3533,21 @@ MultifunctionGraph(S): Exports == Implementation where
     for oi in 1..#oldObjs repeat
       oldObj := oldObjs.oi
       i:NNI := m.oi
-      inext:NNI := m.(oldObj.next.1)
       newObj := newOb.i
       newX := ((oldObj.posX)+offsetX)::NNI
       newY := ((oldObj.posY)+offsetY)::NNI
-      incoming:List NNI := nodeToNode(s,oi)
-      if #incoming ~= 1 then error "not a MultifunctionGraph"
-      newNext := m.(first incoming)
-      n:MFOBJT :=[newObj,newX,newY,[newNext]]
-      if i ~= inext then newObjs.i:= n
+      newNext:List NNI := []
+      for n in oldObj.next repeat
+        incoming:List NNI := nodeToNode(s,m.n)
+        newNext := concat(newNext,incoming)
+      nv:MFOBJT :=[newObj,newX,newY,newNext] -- assemble new vertex
+      newObjs.i:= nv -- replace holding value
       --sayMsg concat(["map oi=",string(oi),_
       -- " i=",string(i),_
       -- " newObj=",math_to_string newObj," inext=",math_to_string inext,_
       -- " newX=",math_to_string newX," newY=",math_to_string newY,_
       -- " newNext=",math_to_string newNext_
       -- ])$String
-    -- make sure all newObjs have 'next' set to valid index
-    for p in 1..#newObjs repeat
-      nwob := newObjs.p
-      -- make unassigned 'next' values loop to themselves
-      if nwob.next.1 < 1 then nwob.next.1 := p
     [newObjs]
 
   -- given a mapping from this graph this function tries to
