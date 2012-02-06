@@ -1955,7 +1955,7 @@ STransform(PT) : Exports == Implementation where
                  multiv: PrimitiveArray DF,_
                  iden:"iden")
 
-  Exports ==> Type with
+  Exports == with
 
     stransform: (m:List List DF) -> %
       ++ construct with given matrix elements
@@ -1981,7 +1981,7 @@ STransform(PT) : Exports == Implementation where
     coerce: (tr: %) -> OutputForm
       ++ output
 
-  Implementation ==> Type add
+  Implementation == add
 
     Rep := PARAMS
 
