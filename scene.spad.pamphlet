@@ -771,8 +771,8 @@ SCartesian(n) : Exports == Implementation where
   -- Domains for points, subspaces and properties of components in
   -- a subspace
   n: PositiveInteger
-  PI   ==> PositiveInteger
-  DF   ==> DoubleFloat
+  PI ==> PositiveInteger
+  DF ==> DoubleFloat
 
   Exports ==> SPointCategory()
 
@@ -789,9 +789,9 @@ SCartesian(n) : Exports == Implementation where
     -- of type DF
     spnt(a:DF,b:DF):% ==
       --sayMsg concat([_
-      --  "spnt(",(math_to_string a)@String,_
-      --  ",",(math_to_string b)@String,_
-      --  ")"])$String
+      -- "spnt(",(math_to_string a)@String,_
+      -- ",",(math_to_string b)@String,_
+      -- ")"])$String
       pt := new(n+1,0$DF)$Rep
       pt.0 := a
       pt.1 := b
@@ -827,7 +827,7 @@ SCartesian(n) : Exports == Implementation where
       pt.n := 0@DF
       pt
 
-    dimension(p) == n+1  -- dimension of base space
+    dimension(p) == n+1 -- dimension of base space
 
     -- Test for NaN (Not a Number)
     -- That is have we divided by zero or taken sqrt of negative number at
@@ -999,7 +999,7 @@ SArgand() : Exports == Implementation where
   C ==> Complex DF
   PI ==> PositiveInteger
 
-  Exports ==  SPointCategory() with
+  Exports == SPointCategory() with
     coerce: % -> C
     coerce: C -> %
 
@@ -1012,9 +1012,9 @@ SArgand() : Exports == Implementation where
     -- of type DF
     spnt(a:DF,b:DF):% ==
       --sayMsg concat([_
-      --  "spnt(",(math_to_string a)@String,_
-      --  ",",(math_to_string b)@String,_
-      --  ")"])$String
+      -- "spnt(",(math_to_string a)@String,_
+      -- ",",(math_to_string b)@String,_
+      -- ")"])$String
       [a,b]
 
     -- spnt(a,b,c) constructs a 3D point defined by a,b and c
@@ -1032,7 +1032,7 @@ SArgand() : Exports == Implementation where
     svec(a:DF,b:DF,c:DF):% ==
       [a,b]
 
-    dimension p == 2  -- dimension of base space
+    dimension p == 2 -- dimension of base space
 
     -- Test for NaN (Not a Number)
     -- That is have we divided by zero or taken sqrt of negative number at
@@ -1187,7 +1187,7 @@ SConformal(n) : Exports == Implementation where
   --                     [0@DF,0@DF,0@DF,1@DF]])
   --CA ==> CliffordAlgebra(4,DF,bLin)
 
-  Exports ==  SPointCategory() with
+  Exports == SPointCategory() with
     normalisePoint:(pt:%) -> %
       ++ normalalised point has scalar value of one, if this is not the
       ++ case then scale values
@@ -1252,7 +1252,7 @@ SConformal(n) : Exports == Implementation where
       if n>2 then z.16 := c
       z
 
-    dimension(p)== 2  -- dimension of base space
+    dimension(p)== 2 -- dimension of base space
 
     -- Test for NaN (Not a Number)
     -- That is have we divided by zero or taken sqrt of negative number at
@@ -1340,7 +1340,7 @@ SConformal(n) : Exports == Implementation where
       pt
 
     -- return true if param is inside bounding box
-    -- where bounding box is specified by 'min' and 'max'
+    -- where bounding box is specified by min and max
     inBounds?(pt: %,mns: %,mxs: %):Boolean ==
      -- left of box - check minimum x
       qelt(pt,4) < qelt(mns,4) => false
@@ -1449,7 +1449,7 @@ SceneIFS(PT): Exports == Implementation where
 
  NNI==> NonNegativeInteger
  DF==> DoubleFloat
- SEG  ==> Segment DF
+ SEG ==> Segment DF
  Triad ==> Record(tang:PT,norm:PT,bin:PT)
  Clipd ==> Record(source: DF -> PT,_
                    ranges: List SEG,_
@@ -1458,10 +1458,10 @@ SceneIFS(PT): Exports == Implementation where
 
  Exports== with
   smesh: (ptin:List List PT,clos: Boolean) -> %
-    ++ constuct a ifs representation of a mesh from a 2 dimensional
+    ++ construct a ifs representation of a mesh from a 2 dimensional
     ++ array of points
   singleFace: (ptin:List PT) -> %
-    ++ constuct a ifs representation of a face from an array of points
+    ++ construct a ifs representation of a face from an array of points
   subdivide: (me:%) -> %
     ++ for each face calculate a new point in the centre of the face, then
     ++ build a new set of faces which include the new point.
@@ -1495,7 +1495,7 @@ SceneIFS(PT): Exports == Implementation where
 
   meshIndex(i:Integer,j:Integer,c:Integer):NNI == ((j*(c)) + i)::NNI
 
-  -- constuct a ifs representation of a mesh from a 2 dimensional
+  -- construct a ifs representation of a mesh from a 2 dimensional
   -- array of points
   smesh(ptin:List List PT,clos: Boolean): % ==
    pt2: List PT := nil()
@@ -1523,7 +1523,7 @@ SceneIFS(PT): Exports == Implementation where
      j := j+1
    [in2,pt2]
 
-  -- constuct a ifs representation of a face from an array of points
+  -- construct a ifs representation of a face from an array of points
   singleFace(ptin:List PT):% ==
    pt2: List PT := ptin
    --in2: List List NNI := [concat([i for i in 0..(#ptin - 1)],0)]
@@ -1541,7 +1541,7 @@ SceneIFS(PT): Exports == Implementation where
       newPt := sipnt(0,0,0)
       for ptIx in faceIx repeat
         newPt := newPt + pt2.(ptIx+1)
-      newPt :=  (1 / #faceIx)::DF * newPt
+      newPt := (1 / #faceIx)::DF * newPt
       -- add new point to list of points
       pt2 := concat(pt2,newPt)
       indexPos := 1
@@ -1567,7 +1567,7 @@ SceneIFS(PT): Exports == Implementation where
         ix2:NNI := offset+1
         if ix2 > #faceIx then ix2 := 1
         newPt := pt2.((faceIx.ix1) + 1) + pt2.((faceIx.ix2) + 1)
-        newPt :=  0.5::DF * newPt
+        newPt := 0.5::DF * newPt
         pt2 := concat(pt2,newPt)
       index1:NNI := ((#faceIx) - 1)::NNI
       index2:NNI := 0
@@ -1608,7 +1608,7 @@ SceneIFS(PT): Exports == Implementation where
       outList := concat(curve.points,outList)
     outList
 
-  LINMAX  := convert(0.995)@DF
+  LINMAX := convert(0.995)@DF
   XHAT := sipnt(1,0,0)
   YHAT := sipnt(0,1,0)
   PREV0 := sipnt(1,1,0)
@@ -1626,7 +1626,7 @@ SceneIFS(PT): Exports == Implementation where
       t := unitVector(pr - pl)
       -- compute n as orthogonal to t in plane containing po.
       pol := pl - po
-      n   := unitVector orthog(t,pol)
+      n := unitVector orthog(t,pol)
       [t,n,perpendicular(t,n)]
 
   curveTriads(l:List PT):List Triad ==
@@ -1657,11 +1657,11 @@ SceneIFS(PT): Exports == Implementation where
 
   -- cosSinInfo(n) returns the list of lists of values for n, in the
   -- form: [[cos(n - 1) a,sin(n - 1) a],...,[cos 2 a,sin 2 a],[cos a,sin a]]
-  -- where a = 2 pi/n.  Note: n should be greater than 2.
+  -- where a = 2 pi/n. Note: n should be greater than 2.
   cosSinInfo(n:Integer):List List DF ==
       ans : List List DF := nil()
       theta : DF := 2 * pi()/n
-      for i in 1..(n-1) repeat             --!! make more efficient
+      for i in 1..(n-1) repeat --!! make more efficient
         angle := i * theta
         ans := concat([cos angle,sin angle],ans)
       ans
@@ -2361,9 +2361,9 @@ XmlElement(): Exports==Implementation where
 
  Exports == with
   xmlElement:(name:String,elements:List %,attributes:List XmlAttribute) -> %
-    ++ constuct an element with structured elements
+    ++ construct an element with structured elements
   xmlElement:(name:String,txt: String,attributes:List XmlAttribute) -> %
-    ++ constuct an element with unstructured text
+    ++ construct an element with unstructured text
   empty?:(el:%) -> Boolean
   coerce: % -> List String
   outputVRML:(rp:%,f1:TextFile) -> Void
@@ -2374,14 +2374,14 @@ XmlElement(): Exports==Implementation where
   sayMsg ==> sayBrightly$Lisp
   math_to_string ==> mathObject2String$Lisp
 
-  -- constuct an element with structured elements
+  -- construct an element with structured elements
   xmlElement(name:String,elements:List %,attributes:List XmlAttribute): % ==
-   --sayMsg "xmlElement constuct unstructured"
+   --sayMsg "xmlElement construct unstructured"
    [name,elements,attributes,""]
 
-  -- constuct an element with unstructured text
+  -- construct an element with unstructured text
   xmlElement(name:String,txt: String,attributes:List XmlAttribute): % ==
-   --sayMsg "xmlElement constuct structured"
+   --sayMsg "xmlElement construct structured"
    [name,[],attributes,txt]
 
   outputStructured(rp:%): List String ==
