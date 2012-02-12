@@ -3407,6 +3407,9 @@ MultifunctionGraph(S): Exports == Implementation where
   toCayleyGraph:(pg:PermutationGroup S) -> _
                 MultifunctionGraph(String)
     ++ convert PermutationGroup to a Cayley graph
+  toPermutation:(s:%) -> PermutationGroup(NNI)
+    ++ generates a permutation group from this graph
+    ++ assumes this graph represents a valid group
 
  Implementation ==> add
 
@@ -4047,6 +4050,29 @@ MultifunctionGraph(S): Exports == Implementation where
   toCayleyGraph(pg:PermutationGroup S):MultifunctionGraph(String) ==
     perms:(List Permutation S) := generators(pg)
     toCayleyGraph(perms,false)
+
+  -- generates a permutation group from this graph
+  -- assumes this graph represents a valid group
+  toPermutation(s:%) : PermutationGroup(NNI) ==
+    lp:List Permutation NNI := []
+    preTable: List List NNI
+    objs:List MFOBJT := s.objects
+    for obj in objs for oi in 1..#objs repeat
+      newNext:List NNI := obj.next
+      preTable := concat(preTable,newNext)
+    -- transpose preTable to give cayleyTable
+    numRows := #preTable
+    numCols := #(first preTable)
+    cayleyTable: List List NNI := [[preTable.j.i for j in 1..numRows] for i in 1..numCols]
+    --print(hconcat("toPermutation cayleyTable="::OutputForm,cayleyTable::OutputForm))
+    preImgs := [p for p in 1..numRows]
+    for i in 1..(# cayleyTable) repeat
+      imgs := cayleyTable.i
+      --print(hconcat("toPermutation preImgs="::OutputForm,preImgs::OutputForm))
+      --print(hconcat("toPermutation imgs="::OutputForm,imgs::OutputForm))
+      p:(Permutation NNI) := coercePreimagesImages([preImgs,imgs])
+      lp := concat(lp,p)
+    permutationGroup(lp)
 
 @
 
