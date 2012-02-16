@@ -4088,8 +4088,7 @@ MultifunctionGraph(S): Exports == Implementation where
 ++ Description: allows us to model weighted graphs
 ++ This graph assigns a weight to each arrow. This is used when
 ++ calculating say, lowest 'cost' routes.
-++ At the moment weights are restricted to NNI but I may change that to
-++ real (DoubleFloat) numbers.
+++ The values of the weights are OrderedAbelianMonoid.
 ++ An arrow with a higher weight is more 'costly'
 ++ in some way and therefore we try to choose the minimum weight.
 ++ For arrows in series the overall weight is the sum of the individual
@@ -4169,8 +4168,12 @@ WeightedGraph(S,W): Exports == Implementation where
     ++ as tensor product but returns %.
   closedCartesian:(a:%,b:%,f:(S,S)->S) -> %
     ++ as Cartesian product but returns %.
-  weightedDistanceMatrix:(%) -> Matrix WEIGHT
-    ++ Distance weights between nodes.
+  weightedDistanceMatrix:(%) -> TwoDimensionalArray WEIGHT
+    ++ The elements of the returned array will represent the
+    ++ distance weights between vertices.
+    ++ if there is no connection between the vertices then the
+    ++ element will be set to "disjoint"
+
 
  Implementation ==> add
 
@@ -4796,11 +4799,18 @@ WeightedGraph(S,W): Exports == Implementation where
     -- " res=",string(res)])$String
     res
 
-  -- Distance weights between nodes.
-  weightedDistanceMatrix(s:%):Matrix WEIGHT ==
-    m:List List WEIGHT := [[distanceWeighted(s,u,v)_
-          for u in 1..#(getVertices s)]for v in 1..#(getVertices s)]
-    matrix(m)
+  -- The elements of the returned array will represent the
+  -- distance weights between vertices.
+  -- if there is no connection between the vertices then the
+  -- element will be set to "disjoint"
+  weightedDistanceMatrix(s:%):TwoDimensionalArray WEIGHT ==
+    arr := new(#(getVertices s),#(getVertices s),0)$TwoDimensionalArray(WEIGHT)
+    for u in 1..#(getVertices s) repeat
+      for v in 1..#(getVertices s) repeat
+        --print(hconcat("weightedDistanceMatrix #(getVertices s)="::OutputForm,#(getVertices s)::OutputForm))
+        --print(hconcat("weightedDistanceMatrix dw="::OutputForm,distanceWeighted(s,u,v)::OutputForm))
+        qsetelt!(arr,(u::Integer),(v::Integer),distanceWeighted(s,u,v))
+    arr
 
 @
 
