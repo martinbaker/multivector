@@ -253,63 +253,7 @@ to be other than NNI, in particular doubleFloat.
 (duality?) this code and the computing framework. That is use graphs
 to implement finite-state machine, Turing machine, etc.
 \end{itemize}
-\section{Installation}
-To install this code goto github
-(\url{https://github.com/martinbaker/fricas/blob/master/src/algebra/graph.spad.pamphlet})
-
-and download the file: \File{graph.spad.pamphlet}
-
-Then, from that file, copy the code for the FiniteGraph category into a
-file called 'ffgraph.spad' and the code for the directedGraph domain
-into a file called 'directedGraph.spad'.
-
-\begin{verbatim}
-document --tangle="domain LOOP Loop" --output=loop.spad graph.spad.pamphlet
-document --tangle="category FGRPH Graph" --output=fgraph.spad graph.spad.pamphlet
-document --tangle="domain DGRPH DirectedGraph" --output=dgraph.spad graph.spad.pamphlet
-document --tangle="domain FNGRPH FunctionGraph" --output=fngraph.spad graph.spad.pamphlet
-document --tangle="domain UDGRPH UndirectedGraph" --output=udgraph.spad graph.spad.pamphlet
-document --tangle="domain MFGRPH MultifunctionGraph" --output=mfgraph.spad graph.spad.pamphlet
-document --tangle="domain WGRPH WeightedGraph" --output=wgraph.spad graph.spad.pamphlet
-\end{verbatim}
-
-where \File{document} is the script that you find in the build
-directory of your fricas compilation.
-\File{build/scripts/document}.
-
-Then compile them
-\begin{verbatim}
-(1) -> )co loop.spad
-(1) -> )co fgraph.spad
-(1) -> )boot $bootStrapMode := true
-(1) -> )co dgraph.spad
-(1) -> )co fngraph.spad
-(1) -> )co udgraph.spad
-(1) -> )co mfgraph.spad
-(1) -> )co wgraph.spad
-(1) -> )boot $bootStrapMode := false
-(1) -> )co dgraph.spad
-(1) -> )co fngraph.spad
-(1) -> )co udgraph.spad
-(1) -> )co mfgraph.spad
-(1) -> )co wgraph.spad
-\end{verbatim}
 \section{Tutorial}
-
-If Graph and directedGraph are not already loaded then load them
-as follows:
-
-\begin{verbatim}
-(1) -> )library LOOP
-(1) -> )library FGRPH
-(1) -> )library FGRPH-
-(1) -> )library DGRPH
-(1) -> )library FNGRPH
-(1) -> )library UDGRPH
-(1) -> )library MFGRPH
-(1) -> )library WGRPH
-\end{verbatim}
-
 We will construct a graph over 'String'. If you don't care what
 the graph is constructed over, then 'String' is a good choice,
 as it allows us to use the string to name the nodes.
@@ -833,7 +777,8 @@ Loop(): Exports == Implementation where
 ++ Basic Operations: 
 ++ Related Constructors:
 ++ Keywords: graph theory
-++ Description: allows us to model graph theory
+++ Description:
+++  Category of finite graphs, allows us to model graph theory
 ++ 
 ++ References:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
@@ -853,20 +798,27 @@ FiniteGraph(S): Category == Definition where
 
  Definition ==> Join(CoercibleTo(OutputForm),SetCategory) with
    addObject!:(s:%,n:S) -> %
-    ++ adds an object to this graph
+    ++ addObject!(s, n) adds object n to the graph s.
     ++ Use this version
     ++ if you don't intend to create diagrams and therefore don't
     ++ care about x,y coordinates.
    addObject!:(s:%,n:OBJT) -> %
-    ++ adds an arrow to this graph,where:
-    ++ s is the graph where the arrow is to be added
+    ++ addObject!(s, n) adds object with coordinates n to the
+    ++ graph s.
+   addArrow!:(s:%,name:String,n1:NNI,n2:NNI) -> %
+    ++ addArrow!(s, nm, n1, n2) adds an arrow to the graph s, where:
     ++ nm is the name of the arrow
     ++ n1 is the index of the start object
     ++ n2 is the index of the end object
-   addArrow!:(s:%,name:String,n1:NNI,n2:NNI) -> %
-    ++ adds an arrow to this graph
+   addArrow! : (%, String, S, S) -> %
+    ++ addArrow!(s, nm, o1, o2) adds an arrow to the graph s, where:
+    ++ nm is the name of the arrow
+    ++ o1 is the start object
+    ++ o2 is the end object
    getVertices:(s:%) -> List OBJT
-    ++ a list of all the vertices (or objects)
+    ++ a list of all the vertices (or objects).
+   getVertexIndex :  (%, S) -> NNI
+    ++ getVertexIndex(s, o) gives index of object o.
    getArrows:(s:%) -> List ARROW
     ++ a list of all the arrows (or edges)
    initial:() -> %
@@ -888,12 +840,14 @@ FiniteGraph(S): Category == Definition where
     ++ followed by a number starting at 1 and incremented for each
     ++ arrow
    unit:(objs:List S,arrowName:String) -> %
+    ++ unit(objs, arrowName)
     ++ constructs a graph with vertices (from objs) and arrows from
     ++ each object to itself.
     ++ arrowName is a prefix for all arrow names, this will be
     ++ followed by a number starting at 1 and incremented for each
     ++ arrow
    kgraph:(objs:List S,arrowName:String) -> %
+    ++ kgraph(objs, arrowName)
     ++ constructs a graph with vertices (from objs) and fully
     ++ connected arrows, that is, each object has an arrow to
     ++ every other object except itself.
@@ -901,9 +855,11 @@ FiniteGraph(S): Category == Definition where
     ++ followed by a number starting at 1 and incremented for each
     ++ arrow
    isDirectSuccessor?:(s:%,a:NNI,b:NNI) -> Boolean
+    ++ isDirectSuccessor?(s, a, b) is
     ++ true if 'b' is a direct successor of 'a'
     ++ that is, if there is a direct arrow from 'a' to 'b'
    isGreaterThan?:(s:%,a:NNI,b:NNI) -> Boolean
+    ++ isGreaterThan?((s, a, b) is
     ++ true if we can get from vertex 'a' to 'b' through a
     ++ sequence of arrows but we can't go in the opposite
     ++ direction from 'b' to 'a'
@@ -924,26 +880,32 @@ FiniteGraph(S): Category == Definition where
     ++ subset of the vertices. Gives 0 if no such node exists
     ++ or if it is not unique, if there is a loop for instance.
    isFixPoint?:(s:%,a:NNI) -> Boolean
+    ++ isFixPoint?(s, a) is
     ++ true if 'a' has an arrow to itself
    arrowName:(s:%,a:NNI,b:NNI) -> String
+    ++ arrowName(s, a, b) retrives
     ++ the name of arrow a->b
     ++ if it does not exist then return "?"
    getArrowIndex:(s:%,a:NNI,b:NNI) -> NNI
-    ++ arrow index from two vertex indices
+    ++ getArrowIndex(s, a, b) retrives
+    ++ arrow index of the arrow form a to b
    inDegree:(s:%,a:NNI) -> NNI
-    ++ the number of arrows leading in to node 'a' in graph 's'
+    ++ inDegree(s, a) gives the number of arrows leading in to node
+    ++ 'a' in graph 's'
    outDegree:(s:%,a:NNI) -> NNI
+    ++ outDegree(s, a) gives
     ++ the number of arrows leading out of node 'a' in graph 's'
    nodeFromNode:(s:%,a:NNI) -> List NNI
-    ++ index of all nodes with a direct arrow leading
+    ++ nodeFromNode(s, a) gives list
+    ++ of all nodes with a direct arrow leading
     ++ in to node 'a' in graph 's'
    nodeToNode:(s:%,a:NNI) -> List NNI
-    ++ index of all nodes with a direct arrow leading
+    ++ nodeToNode(s, a) gives list of all nodes with a direct arrow leading
     ++ out of node 'a' in graph 's'
    arrowsFromNode:(s:%,a:NNI) -> List NNI
-    ++ index of all arrows leading to a given node
+    ++ arrowsFromNode(s, a) gives list of all arrows leading to a given node
    arrowsToNode:(s:%,a:NNI) -> List NNI
-    ++ index of all arrows leading from a given node
+    ++ arrowsToNode(s, a) gives list of all arrows leading from a given node
    nodeFromArrow:(s:%,a:NNI) -> List NNI
     ++ index of all nodes with a direct arrow leading
     ++ in to arrow 'a' in graph 's'
@@ -955,19 +917,21 @@ FiniteGraph(S): Category == Definition where
    arrowsToArrow:(s:%,a:NNI) -> List NNI
     ++ index of all arrows leading from a given arrow
    routeNodes:(s:%,a:NNI,b:NNI) -> List NNI
-    ++ the shortest route between 'a' and 'b' as a
-    ++ sequence of node indexes.
+    ++ routeNodes(s, a, b) gives the shortest route between
+    ++ nodes 'a' and 'b' as a sequence of node indexes.
     ++ [a] if  'a' = 'b'
     ++ [] if it is not possible to go from 'a' to 'b'
    routeArrows:(s:%,a:NNI,b:NNI) -> List NNI
-    ++ the shortest route between 'a' and 'b' as a
+    ++ routeArrows(s, a, b) gives
+    ++ the shortest route between nodes 'a' and 'b' as a
     ++ sequence of arrow indexes.
     ++ [] if  'a' = 'b'
     ++ [0] if it is not possible to go from 'a' to 'b'
    distance:(s:%,a:NNI,b:NNI) -> Integer
-    ++ the shortest distance between 'a' and 'b' as a
+    ++ distance(s, a, b) gives the shortest distance between
+    ++ nodes 'a' and 'b' as a
     ++ number of hops.
-    ++ 0 if  'a' = 'b'
+    ++ 0 if  'a' = 'b',
     ++ -1 if it is not possible to go from 'a' to 'b'
    "+":(%,%) -> %
     ++ sum : disjoint union of nodes with arrows from appropriate
@@ -988,8 +952,8 @@ FiniteGraph(S): Category == Definition where
    spanningForestArrow:(s:%) -> List Tree Integer
     ++ constructs a spanning tree for every arrow.
    spanningTreeNode:(s:%,i:NNI) -> Tree Integer
-    ++ constructs a spanning tree for graph 's' rooted at the
-    ++ node indexed by 'i'.
+    ++ spanningTreeNode(s, i) constructs a spanning tree for graph 's'
+    ++ rooted at the node indexed by 'i'.
     ++ The tree will expand out from 'i' only stopping when reaching
     ++ a vertex that has already been visited (that is: loop detected).
     ++ Elements in the tree are Integer, a positive Integer represents
@@ -1000,9 +964,9 @@ FiniteGraph(S): Category == Definition where
     ++ a list of loops for this graph
     ++ in this case the loop is represented by the indexes of the
     ++ sequence of nodes passed through.
-    ++ to-do: it would be better to use a more efficient algorithm,
-    ++ currently the code calls spanningForestNode and traverses the result
-    ++ for loops, it might be more efficient to use Floyds algorithm.
+    -- to-do: it would be better to use a more efficient algorithm,
+    -- currently the code calls spanningForestNode and traverses the result
+    -- for loops, it might be more efficient to use Floyds algorithm.
    loopsAtNode:(s:%,a:NNI) -> List Loop
     ++ a list of loops for this graph that pass through vertex index 'a'
    loopsArrows:(s:%) -> List Loop
@@ -1014,13 +978,14 @@ FiniteGraph(S): Category == Definition where
     ++ for loops, it might be more efficient to use Floyds algorithm.
    isAcyclic?:(s:%) -> Boolean
     ++ returns true if there are no loops
-   incidenceMatrix:(%) -> Matrix NNI
+   incidenceMatrix:(%) -> Matrix Integer
     ++ The graph is represented by a matrix of size |V| by |E|
     ++ where:
     ++ V=number of vertices
     ++ E=number of edges
     ++ entry [vertex, arrow] = arrow endpoint
-    ++ data (simplest case: 1 - incident, 0 - not incident).
+    ++ data (undirected case case: 1 - incident, 0 - not incident,
+    ++ directed case: -1 - start, 1 - end, 0 - not incident).
    adjacencyMatrix:(%) -> Matrix NNI
     ++ This is an n by n matrix A, where n is the number of vertices
     ++ in the graph. If there is an edge from a vertex x to a vertex y,
@@ -1033,24 +998,28 @@ FiniteGraph(S): Category == Definition where
     ++ inDegree(vi) if i = j (number of incoming links)
     ++ -1 if i not = j and vi is adjacent to vj
     ++ 0 otherwise
-    ++ Alternatively this is defined as D − A, where D is the diagonal
+    ++ Alternatively this is defined as D - A, where D is the diagonal
     ++ degree matrix.
     ++ It contains both adjacency information and degree information.
     ++ There are other, similar matrices, that are also called "Laplacian
     ++ matrices" of a graph.
    distanceMatrix:(%) -> Matrix Integer
+    ++ gives matrix of distances between vertices.  Element a_{i, j}
+    ++ is the distance from i to j.
     ++ Distance matrices are related to adjacency matrices, with the
     ++ differences that:
     ++ a) the latter only provides the information which vertices are connected
-    ++    but does not tell about costs or distances between the vertices and
-    ++ b) an entry of a distance matrix is smaller
-    ++    if two elements are closer, while "close" (connected) vertices yield
-    ++    larger entries in an adjacency matrix.
+    ++    but does not tell about costs or distances between the vertices
+    ++ b) adjacency matrix only tells us about directly connected
+    ++    vertices while distance matrix also considers indirect connections.
    isFunctional?:(%) -> Boolean
     ++ a functional graph is a directed graph in which each vertex has
     ++ a single outgoing arrow
+   isDirected? : () -> Boolean
+    ++ isDirected? is true iff % is domain consisting of directed
+    ++ graphs, false for undirected graphs.
    diagramSvg:(fileName:String,n:%,dispArrowName:Boolean) -> Void
-    ++ creates an SVG diagram
+    ++ diagramSvg(fileName, n, dispArrowName) creates an SVG diagram
     ++ fileName:String is the name of the SVG file that will be created
     ++ n:% is the graph that will be written
     ++ dispArrowName:Boolean is true to include the name of each arrow
@@ -1079,12 +1048,13 @@ FiniteGraph(S): Category == Definition where
     ++ general as isomorphism.
     ++ it only requires the same number of vertices but does not
     ++ require the objects themselves being equal.
-    ++ the arrows must be the same, that is if the order of
-    ++ vertices is changed then false is changed so this is not
+    ++ the arrows must be the same, that is it may return false
+    ++ if the order of vertices is changed so this is not
     ++ isomorphism test.
-    ++ I would like to enhance this code into a true isomorphism test
+    -- I would like to enhance this code into a true isomorphism test
    map:(s:%,m: List NNI,newOb:List S,offsetX:Integer,offsetY:Integer) -> %
-    ++ create a new graph by mapping from this one
+    ++ map(s, m, newOb, offsetX, offsetY) creates a new graph by
+    ++ mapping from this one
     ++ newOb should contain the new list of vertices.
     ++ m should contain a NNI value for each vertex, this is the
     ++ new index into newOb. It is allowed that newOb may contain
@@ -1099,16 +1069,32 @@ FiniteGraph(S): Category == Definition where
    sayMsg ==> sayBrightly$Lisp
    math_to_string ==> mathObject2String$Lisp
 
+   getVertexIndex(s : %, o : S) : NNI ==
+       for i in 1.. for v in getVertices(s) repeat
+           if v.value = o then return i
+
+   addArrow!(s : %, name : String, o1 : S, o2 : S) : % ==
+       addArrow!(s, name, getVertexIndex(s, o1), getVertexIndex(s, o2))
+
+   isDirected?() == true
+
    -- The graph is represented by a matrix of size |V| by |E|
    -- where:
    -- V=number of vertices
    -- E=number of edges
    -- entry [vertex, arrow] = arrow endpoint
    -- data (simplest case: 1 - incident, 0 - not incident).
-   incidenceMatrix(s:%): Matrix NNI ==
-    m:List List NNI := [[if ar.fromOb = obn then 1::NNI else 0::NNI_
-                        for obn in 1..#(getVertices s)]for ar in (getArrows s)]
-    matrix(m)
+   incidenceMatrix(s:%): Matrix Integer ==
+       vl := getVertices s
+       al := getArrows s
+       res := zero(#vl, #al)$Matrix(Integer)
+       ss : Integer :=
+           isDirected?() => -1
+           1
+       for ar in al for j in 1.. repeat
+           res(ar.fromOb, j) := ss
+           res(ar.toOb, j) := 1
+       res
 
    -- This is an n by n matrix A, where n is the number of vertices
    -- in the graph. If there is an arrow from a vertex x to a vertex y,
@@ -1135,7 +1121,7 @@ FiniteGraph(S): Category == Definition where
    -- inDegree(vi) if i = j (number of incoming links)
    -- -1 if i not = j and vi is adjacent to vj
    -- 0 otherwise
-   -- Alternatively this is defined as D − A, where D is the diagonal
+   -- Alternatively this is defined as D - A, where D is the diagonal
    -- degree matrix.
    -- It contains both adjacency information and degree information.
    -- There are other, similar matrices, that are also called "Laplacian
@@ -1756,7 +1742,8 @@ FiniteGraph(S): Category == Definition where
 ++ Basic Operations: 
 ++ Related Constructors:
 ++ Keywords: graph theory
-++ Description: allows us to model graph theory
+++ Description: 
+++  Category of directed graphs, allows us to model graph theory
 ++ 
 ++ References:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
@@ -1787,29 +1774,32 @@ DirectedGraph(S): Exports == Implementation where
     ++ constructor for graph with given objects
     ++ more objects and arrows can be added later if required.
   directedGraph:(ob:List OBJT,ar:List ARROW) -> %
-    ++ constructor for graph with given objects and arrows
-    ++ more objects and arrows can be added later if required.
+    ++ directedGraph(ob, ar) construcs graph with objects ob
+    ++ and arrows ar, more objects and arrows can be added
+    ++ later if required.
   directedGraph:(ob:List S,am:List List NNI) -> %
-    ++ constructor for graph with given objects and adjacency
-    ++ matrix.
+    ++ directedGraph(ob, am) construcs graph with objects ob
+    ++ and adjacency matrix am.
   directedGraph:(perms:List Permutation S) -> %
     ++ construct graph from a list of permutations.
   "*":(%,%) -> GRPHPROD
     ++ tensor product : the tensor product G*H of graphs G and H is
     ++ a graph such that the vertex set of G*H is the Cartesian
-    ++ product V(G) × V(H); and any two vertices (u,u') and (v,v')
-    ++ are adjacent in G × H if and only if u' is adjacent with
+    ++ product V(G) \times V(H); and any two vertices (u,u') and (v,v')
+    ++ are adjacent in G \times H if and only if u' is adjacent with
     ++ v' and u is adjacent with v.
   cartesian:(%,%) -> GRPHPROD
     ++ Cartesian product: the vertex set of G o H is the Cartesian
-    ++ product V(G) × V(H) and any two vertices (u,u') and (v,v')
+    ++ product V(G) \times V(H) and any two vertices (u,u') and (v,v')
     ++  are adjacent in G o H if and only if either
     ++ u = v and u' is adjacent with v' in H, or
     ++ u' = v' and u is adjacent with v in G.
   closedTensor:(a:%,b:%,f:(S,S)->S) -> %
-    ++ as tensor product but returns %.
+    ++ closedTensor(a, b, f) builds tensor product of a and b and then
+    ++ maps it back to % using f.
   closedCartesian:(a:%,b:%,f:(S,S)->S) -> %
-    ++ as Cartesian product but returns %.
+    ++ closedCartesian(a, b, f) builds Cartesian product of a and b
+    ++ and then maps it back to % using f.
   _~: % -> %
     ++ The complement or inverse of a graph is a graph on the same
     ++ vertices such that there is an arrow if and only if there
@@ -2158,8 +2148,8 @@ DirectedGraph(S): Exports == Implementation where
 
   -- tensor product : the tensor product A*B of graphs A and B is
   -- a graph such that the vertex set of A*B is the Cartesian
-  -- product V(A) × V(B)
-  -- any two vertices <au,bu> and <av,bv> are adjacent in A × B
+  -- product V(A) \times V(B)
+  -- any two vertices <au,bu> and <av,bv> are adjacent in A \times B
   -- if and only if bu is adjacent with bv
   -- and au is adjacent with av.
   --
@@ -2187,7 +2177,7 @@ DirectedGraph(S): Exports == Implementation where
     directedGraph(objProd(a,b),newArrs)$GRPHPROD
 
   -- Cartesian product: the vertex set of A o B is the Cartesian
-  -- product V(A) × V(B) and any two vertices <au,bu> and <av,bv>
+  -- product V(A) \times V(B) and any two vertices <au,bu> and <av,bv>
   --  are adjacent in A o B if and only if either
   -- au = av and bu is adjacent with bv or
   -- bu = bv and au is adjacent with av.
@@ -2391,8 +2381,8 @@ FunctionGraph(S): Exports == Implementation where
   "*":(%,%) -> GRPHPROD
     ++ tensor product : the tensor product G*H of graphs G and H is
     ++ a graph such that the vertex set of G*H is the Cartesian
-    ++ product V(G) × V(H); and any two vertices (u,u') and (v,v')
-    ++ are adjacent in G × H if and only if u' is adjacent with
+    ++ product V(G) \times V(H); and any two vertices (u,u') and (v,v')
+    ++ are adjacent in G \times H if and only if u' is adjacent with
     ++ v' and u is adjacent with v.
   --cartesian:(%,%) -> GRPHPROD
     ++ Cartesian product does apply to function graph
@@ -2603,8 +2593,8 @@ FunctionGraph(S): Exports == Implementation where
 
   -- tensor product : the tensor product A*B of graphs A and B is
   -- a graph such that the vertex set of A*B is the Cartesian
-  -- product V(A) × V(B)
-  -- any two vertices <au,bu> and <av,bv> are adjacent in A × B
+  -- product V(A) \times V(B)
+  -- any two vertices <au,bu> and <av,bv> are adjacent in A \times B
   -- if and only if bu is adjacent with bv
   -- and au is adjacent with av.
   --
@@ -2850,12 +2840,12 @@ UndirectedGraph(S): Exports == Implementation where
   "*":(%,%) -> GRPHPROD
     ++ tensor product : the tensor product G*H of graphs G and H is
     ++ a graph such that the vertex set of G*H is the Cartesian
-    ++ product V(G) × V(H); and any two vertices (u,u') and (v,v')
-    ++ are adjacent in G × H if and only if u' is adjacent with
+    ++ product V(G) \times V(H); and any two vertices (u,u') and (v,v')
+    ++ are adjacent in G \times H if and only if u' is adjacent with
     ++ v' and u is adjacent with v.
   cartesian:(%,%) -> GRPHPROD
     ++ Cartesian product: the vertex set of G o H is the Cartesian
-    ++ product V(G) × V(H) and any two vertices (u,u') and (v,v')
+    ++ product V(G) \times V(H) and any two vertices (u,u') and (v,v')
     ++  are adjacent in G o H if and only if either
     ++ u = v and u' is adjacent with v' in H, or
     ++ u' = v' and u is adjacent with v in G.
@@ -2896,6 +2886,8 @@ UndirectedGraph(S): Exports == Implementation where
 
   sayMsg ==> sayBrightly$Lisp
   math_to_string ==> mathObject2String$Lisp
+
+  isDirected?() == false
 
   -- constructor for graph with given list of
   -- object names. Use this version of the constructor
@@ -3149,8 +3141,8 @@ UndirectedGraph(S): Exports == Implementation where
 
   -- tensor product : the tensor product A*B of graphs A and B is
   -- a graph such that the vertex set of A*B is the Cartesian
-  -- product V(A) × V(B)
-  -- any two vertices <au,bu> and <av,bv> are adjacent in A × B
+  -- product V(A) \times V(B)
+  -- any two vertices <au,bu> and <av,bv> are adjacent in A \times B
   -- if and only if bu is adjacent with bv
   -- and au is adjacent with av.
   --
@@ -3178,7 +3170,7 @@ UndirectedGraph(S): Exports == Implementation where
     undirectedGraph(objProd(a,b),newArrs)$GRPHPROD
 
   -- Cartesian product: the vertex set of A o B is the Cartesian
-  -- product V(A) × V(B) and any two vertices <au,bu> and <av,bv>
+  -- product V(A) \times V(B) and any two vertices <au,bu> and <av,bv>
   --  are adjacent in A o B if and only if either
   -- au = av and bu is adjacent with bv or
   -- bu = bv and au is adjacent with av.
@@ -3363,8 +3355,8 @@ MultifunctionGraph(S): Exports == Implementation where
   "*":(%,%) -> GRPHPROD
     ++ tensor product : the tensor product G*H of graphs G and H is
     ++ a graph such that the vertex set of G*H is the Cartesian
-    ++ product V(G) × V(H); and any two vertices (u,u') and (v,v')
-    ++ are adjacent in G × H if and only if u' is adjacent with
+    ++ product V(G) \times V(H); and any two vertices (u,u') and (v,v')
+    ++ are adjacent in G \times H if and only if u' is adjacent with
     ++ v' and u is adjacent with v.
   cartesian:(%,%) -> GRPHPROD
     ++ Cartesian product doubles the size of next list in each
@@ -3666,8 +3658,8 @@ MultifunctionGraph(S): Exports == Implementation where
 
   -- tensor product : the tensor product A*B of graphs A and B is
   -- a graph such that the vertex set of A*B is the Cartesian
-  -- product V(A) × V(B)
-  -- any two vertices <au,bu> and <av,bv> are adjacent in A × B
+  -- product V(A) \times V(B)
+  -- any two vertices <au,bu> and <av,bv> are adjacent in A \times B
   -- if and only if bu is adjacent with bv
   -- and au is adjacent with av.
   --
@@ -3699,7 +3691,7 @@ MultifunctionGraph(S): Exports == Implementation where
     multifunctionGraph(newObjs)$GRPHPROD
 
   -- Cartesian product: the vertex set of A o B is the Cartesian
-  -- product V(A) × V(B) and any two vertices <au,bu> and <av,bv>
+  -- product V(A) \times V(B) and any two vertices <au,bu> and <av,bv>
   --  are adjacent in A o B if and only if either
   -- au = av and bu is adjacent with bv or
   -- bu = bv and au is adjacent with av.
@@ -4088,7 +4080,6 @@ MultifunctionGraph(S): Exports == Implementation where
 ++ Description: allows us to model weighted graphs
 ++ This graph assigns a weight to each arrow. This is used when
 ++ calculating say, lowest 'cost' routes.
-++ The values of the weights are OrderedAbelianMonoid.
 ++ An arrow with a higher weight is more 'costly'
 ++ in some way and therefore we try to choose the minimum weight.
 ++ For arrows in series the overall weight is the sum of the individual
@@ -4133,8 +4124,8 @@ WeightedGraph(S,W): Exports == Implementation where
     ++ constructor for graph with given objects
     ++ more objects and arrows can be added later if required.
   weightedGraph:(ob:List WOBJT,ar:List WARROW) -> %
-    ++ constructor for graph with given objects and arrows
-    ++ more objects and arrows can be added later if required.
+    ++ weightedGraph(ob, ar) constructs graph with objects on and arrows ar.
+    ++ More objects and arrows can be added later if required.
   weightedGraph:(ob:List OBJT,ar:List ARROW) -> %
     ++ constructor for graph with given objects and arrows
     ++ more objects and arrows can be added later if required.
@@ -4142,7 +4133,9 @@ WeightedGraph(S,W): Exports == Implementation where
     ++ constructor for graph with given objects and adjacency
     ++ matrix.
   addWArrow!:(s:%,name:String,n1:NNI,n2:NNI,w:W) -> %
-    ++ adds a weighted arrow to this graph
+    ++ addWArrow!(s, name, n1, n2, w) adds a weighted arrow to the graph s,
+    ++ where name is name of the arrow, w is weight of the arrow,
+    ++ n1 is starting point of the arrow, n2 is endpoint of the arrow.
   distanceWeighted:(s:%,a:NNI,b:NNI) -> WEIGHT
     ++ the shortest distance between 'a' and 'b' in terms of
     ++ weight.
@@ -4155,12 +4148,12 @@ WeightedGraph(S,W): Exports == Implementation where
   "*":(%,%) -> GRPHPROD
     ++ tensor product : the tensor product G*H of graphs G and H is
     ++ a graph such that the vertex set of G*H is the Cartesian
-    ++ product V(G) × V(H); and any two vertices (u,u') and (v,v')
-    ++ are adjacent in G × H if and only if u' is adjacent with
+    ++ product V(G) \times V(H); and any two vertices (u,u') and (v,v')
+    ++ are adjacent in G \times H if and only if u' is adjacent with
     ++ v' and u is adjacent with v.
   cartesian:(%,%) -> GRPHPROD
     ++ Cartesian product: the vertex set of G o H is the Cartesian
-    ++ product V(G) × V(H) and any two vertices (u,u') and (v,v')
+    ++ product V(G) \times V(H) and any two vertices (u,u') and (v,v')
     ++  are adjacent in G o H if and only if either
     ++ u = v and u' is adjacent with v' in H, or
     ++ u' = v' and u is adjacent with v in G.
@@ -4480,8 +4473,8 @@ WeightedGraph(S,W): Exports == Implementation where
 
   -- tensor product : the tensor product A*B of graphs A and B is
   -- a graph such that the vertex set of A*B is the Cartesian
-  -- product V(A) × V(B)
-  -- any two vertices <au,bu> and <av,bv> are adjacent in A × B
+  -- product V(A) \times V(B)
+  -- any two vertices <au,bu> and <av,bv> are adjacent in A \times B
   -- if and only if bu is adjacent with bv
   -- and au is adjacent with av.
   --
@@ -4509,7 +4502,7 @@ WeightedGraph(S,W): Exports == Implementation where
     weightedGraph(objProd(a,b),newArrs)$GRPHPROD
 
   -- Cartesian product: the vertex set of A o B is the Cartesian
-  -- product V(A) × V(B) and any two vertices <au,bu> and <av,bv>
+  -- product V(A) \times V(B) and any two vertices <au,bu> and <av,bv>
   -- are adjacent in A o B if and only if either
   -- au = av and bu is adjacent with bv or
   -- bu = bv and au is adjacent with av.
@@ -4804,14 +4797,12 @@ WeightedGraph(S,W): Exports == Implementation where
   -- if there is no connection between the vertices then the
   -- element will be set to "disjoint"
   weightedDistanceMatrix(s:%):TwoDimensionalArray WEIGHT ==
-    arr := new(#(getVertices s),#(getVertices s),0)$TwoDimensionalArray(WEIGHT)
-    for u in 1..#(getVertices s) repeat
-      for v in 1..#(getVertices s) repeat
-        --print(hconcat("weightedDistanceMatrix #(getVertices s)="::OutputForm,#(getVertices s)::OutputForm))
-        --print(hconcat("weightedDistanceMatrix dw="::OutputForm,distanceWeighted(s,u,v)::OutputForm))
-        qsetelt!(arr,(u::Integer),(v::Integer),distanceWeighted(s,u,v))
-    arr
-
+    n := # getVertices s
+    m: TwoDimensionalArray := new(n, n, 0)
+    for u in 1..n repeat
+        for v in 1..n repeat
+            qsetelt!(m,u,v, distanceWeighted(s,u,v))
+    m
 @
 
 \section{License}
