@@ -15,6 +15,7 @@ point is to build finite versions of some common abstract structures:
 \begin{itemize}
 \item finite preorder.
 \item partially ordered sets (posets).
+\item chain.
 \item directed set (directed preorder)
 \item directed complete partial orders (dcpo or dcpos)
 \item w-continuous poset (wcpos)
@@ -34,6 +35,38 @@ For more information and diagrams see:
 \eject
 \tableofcontents
 \eject
+\section{Requirements used to Design the Following Code}
+1) The code needs to be able to represent the following finite structures:
+\begin{itemize}
+\item finite preorder.
+\item partially ordered sets (posets).
+\item chain.
+\item directed set (directed preorder)
+\item directed complete partial orders (dcpo or dcpos)
+\item w-continuous poset (wcpos)
+\item lattices
+\item join-semilattice
+\item meet-semilattice
+\item totally ordered set
+\end{itemize}
+
+2) These finite structures must be user definable over any set and be of
+arbitary complexity.
+
+3) We need to be able to define, not only elements of these sets, but
+also subsets. That is, not only do we want to model and work with the
+structure defined by the '<=' relation, but we want to combine this with
+the subset structure.
+
+4) We need to be able to draw (Hasse like) diagrams of these structures. The
+command line interface is not very good for building potentially complex
+finite structures. For these structures it requires users to enter and try
+to interpret complicated strings of characters. I suspect that not many users
+will find it worthwhile to work with such a clunky interface. Ideally FriCAS
+would have a graphical interface in addition to the command line interface
+but I can't see any sign of that happening in the forseable future. As a
+second best option a minimal reqirement is the ability to export to SVG
+diagrams. By using the existing graph theory code we get that ability.
 \section{Some classes of ordered sets}
 Below we define the ordered sets that we are going to implement in this
 pamphlet.
@@ -55,17 +88,56 @@ obey the following axioms:
 That is, it is a preorder which is antisymmetric. So it has an equals '='
 relation which is defined by the '<=' relation.
 
-Some definitions for posets:
+Some definitions for posets which involve subsets:
+If 'A' is a subset of 'X' then:
 \begin{itemize}
 \item upperBound - This is an element 'x' where for every element 'a'
 then a<=x. 
-\item lowerBound
-\item greatestElement
-\item leastElement
-\item maximal
-\item minimal
+\item lowerBound - This is an element 'x' where for every element 'a'
+then x<=a.
+\item greatestElement - This is an element 'x' where it is an upperBound
+and it is a member of A
+\item leastElement - This is an element 'x' where it is an lowerBound
+and it is a member of A
+\item maximal - an element 'a' if for every element 'b' of A then if
+b<=a implies b=a
+\item minimal - an element 'a' if for every element 'b' of A then if
+a<=b implies b=a
+\item meet - a meet of two, or more, elements (in the general case the
+subset A) if it exists is the greatest lowerBound or infirmum.
+\item join - of A , if it exists, is the least element in the set
+of upperBounds for A.
 \end{itemize}
+The existance of meets and joins for subsets of preordered sets is known
+as:
+\begin{itemize}
+\item if meet exists - called completeness.
+\item if join exists - called cocompleteness.
+\end{itemize}
+\subsection{Chain}
+A chain is a preorder if for every x and y we have either x<=y or y<=x.
 \section{Implementation Issues}
+Before attemping this code I looked at the existing codebase in case I was
+duplicating anything that I could use. I found the following:
+In catdef.spad.pamphlet I found:
+\begin{itemize}
+\item category PORDER PartialOrder
+\item category ORDSET OrderedSet
+\end{itemize}
+PORDER is transitive and reflexive but no mention of antisymmetric, should
+it really be preorder?
+These categories do not allow an arbitary finite set to be defined so I
+don't think that I can use them?
+
+In setorder.spad.pamphlet:
+\begin{itemize}
+\item package UDPO UserDefinedPartialOrdering
+\item package UDVO UserDefinedVariableOrdering
+\end{itemize}
+These packages have the usual minimal level of documentation so I don't
+really know how they are intended to be used. They are packages rather than
+domains so I don't really think I can use them?
+
 Here we implement all these finite order relations as finite graphs with
 various constrains added. It would have been good to build the domains
 constructivly but I can only think of a way to do it by starting with the
