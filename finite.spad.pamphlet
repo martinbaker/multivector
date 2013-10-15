@@ -1,0 +1,222 @@
+\documentclass{article}
+\usepackage{axiom}
+\usepackage{url}
+\newcommand{\File}[1]{\url{#1}}
+
+\begin{document}
+\title{Some basic finite mathematical structures}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+I would like to investigate 'domain theory' using FriCAS.
+\url{http://en.wikipedia.org/wiki/Domain_theory/}
+I am not yet sure how to build this in FriCAS but I think a good starting
+point is to build finite versions of some common abstract structures:
+\begin{itemize}
+\item finite preorder.
+\item partially ordered sets (posets).
+\item directed set (directed preorder)
+\item directed complete partial orders (dcpo or dcpos)
+\item w-continuous poset (wcpos)
+\item lattices
+\item join-semilattice
+\item meet-semilattice
+\item totally ordered set
+\end{itemize}
+The aim is to build finite versions of these structures which can be
+configured by the user or by a program to hold any valid instance of these
+structures.
+
+
+For more information and diagrams see:
+\url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/}
+\end{abstract}
+\eject
+\tableofcontents
+\eject
+\section{Some classes of ordered sets}
+Below we define the ordered sets that we are going to implement in this
+pamphlet.
+\subsection{Preorder}
+A (finite in this case) set equiped with a binary relation '<=' which is
+\begin{itemize}
+\item reflexive: a<=a
+\item transitive: if a<=b and b<=c then a<=c
+\end{itemize}
+
+\subsection{Poset}
+A (finite in this case) set equiped with a binary relations '=' and '<=' which
+obey the following axioms:
+\begin{itemize}
+\item reflexive: a<=a
+\item transitive: if a<=b and b<=c then a<=c
+\item antisymmetric: if a<=b and b<=a then a=b
+\end{itemize}
+That is, it is a preorder which is antisymmetric. So it has an equals '='
+relation which is defined by the '<=' relation.
+
+Some definitions for posets:
+\begin{itemize}
+\item upperBound - This is an element 'x' where for every element 'a'
+then a<=x. 
+\item lowerBound
+\item greatestElement
+\item leastElement
+\item maximal
+\item minimal
+\end{itemize}
+\section{Implementation Issues}
+Here we implement all these finite order relations as finite graphs with
+various constrains added. It would have been good to build the domains
+constructivly but I can only think of a way to do it by starting with the
+very general case of a graph and subtracting capability (adding constraints)
+to build the more specific structures.
+
+We map the '<=' relation to the edges in the directed graph as follows:
+\begin{verbatim}
+a    b    (a<=b)=false (b<=a)=false
+a--->b    (a<=b)=false (b<=a)=true
+a<---b    (a<=b)=true  (b<=a)=false
+a<-->b    (a<=b)=true  (b<=a)=true
+\end{verbatim}
+
+\section{FPORDER FinitePreOrder}
+<<category FPORDER FinitePreOrder>>=
+)abbrev category FPORDER FinitePreOrder
+++ Author: Martin Baker
+++ Description:
+++ based on PORDER in catdef.spad.pamphlet which is a
+++ class of partially ordered sets, that is sets equipped with
+++ transitive and reflexive relation \spad{<=}.
+
+PartialOrder(S) : Category == Definition where
+ S : SetCategory
+
+ Definition ==> Join(CoercibleTo(OutputForm), SetCategory) with
+
+    "<": (n:S,%,%) -> Boolean
+      ++ x < y is a less than test.
+    ">": (n:S,%, %) -> Boolean
+      ++ x > y is a greater than test.
+    ">=": (n:S,%, %) -> Boolean
+      ++ x >= y is a greater than or equal test.
+    "<=": (n:S,%, %) -> Boolean
+      ++ x <= y is a less than or equal test.
+
+  add
+
+     x >= y == y <= x
+
+     x > y == y < x
+
+     x < y == x <= y and not(y <= x)
+
+@
+
+\section{FPORDER FinitePartialOrder}
+<<category FPORDER FinitePartialOrder>>=
+)abbrev category FPORDER FinitePartialOrder
+++ Author: Martin Baker
+++ Description:
+++ based on PORDER in catdef.spad.pamphlet which is a
+++ class of partially ordered sets, that is sets equipped with
+++ transitive and reflexive relation \spad{<=}.
+
+PartialOrder(S) : Category == Definition where
+ S : SetCategory
+
+ Definition ==> Join(CoercibleTo(OutputForm), SetCategory) with
+
+    "<": (n:S,%,%) -> Boolean
+      ++ x < y is a less than test.
+    ">": (n:S,%, %) -> Boolean
+      ++ x > y is a greater than test.
+    ">=": (n:S,%, %) -> Boolean
+      ++ x >= y is a greater than or equal test.
+    "<=": (n:S,%, %) -> Boolean
+      ++ x <= y is a less than or equal test.
+
+  add
+
+     x >= y == y <= x
+
+     x > y == y < x
+
+     x < y == x <= y and not(y <= x)
+
+@
+
+
+\section{domain DGRPH DirectedGraph}
+<<domain DGRPH DirectedGraph>>=
+)abbrev domain DGRPH DirectedGraph
+++ Author: Martin Baker
+++ Date Created: December 2013
+++ Date Last Updated: March 2013
+++ Basic Operations:
+++ Related Constructors:
+++ Keywords: partial order poset
+++ Description:
+++  finite partial order
+++
+++ References:
+++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+
+DirectedGraph(S) : Exports == Implementation where
+
+ S : SetCategory
+
+ Exports ==> Join(DirectedGraph(S),PartialOrder)
+
+ Implementation ==> add
+
+     x >= y == routeNodeRecursive(s, x, y, []) ~= []
+
+@
+
+\section{License}
+<<license>>=
+--Copyright (c) 2013, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@
+<<*>>=
+<<license>>
+@
+\eject
+\begin{thebibliography}{99}
+For more details see:
+[1] Floyd's algorithm
+\url{http : //en.wikipedia.org/wiki/Floyd–Warshall_algorithm}
+[2] Wiki page about 2-categories
+\url{http : //en.wikipedia.org/wiki/2-category}
+
+\end{thebibliography}
+\end{document}
