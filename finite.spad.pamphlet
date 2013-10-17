@@ -67,6 +67,7 @@ would have a graphical interface in addition to the command line interface
 but I can't see any sign of that happening in the forseable future. As a
 second best option a minimal reqirement is the ability to export to SVG
 diagrams. By using the existing graph theory code we get that ability.
+
 \section{Some classes of ordered sets}
 Below we define the ordered sets that we are going to implement in this
 pamphlet.
@@ -116,6 +117,40 @@ as:
 \end{itemize}
 \subsection{Chain}
 A chain is a preorder if for every x and y we have either x<=y or y<=x.
+\subsection{Lattice}
+A lattice is a preorder which has finite meets and joins.
+\subsection{Join-semilattice}
+A join-semilattice is a preorder which has finite joins.
+\subsection{Meet-semilattice}
+A meet-semilattice is a preorder which has finite meets.
+\subsection{Boolean lattice}
+A boolean lattice is a distributive lattice which also has compliments of
+all elements.
+\subsection{Heyting lattice}
+A Heyting lattice is a lattice for which each pair of elements: y,z there
+is an element y=>z such that:
+x <=y => z iff x /\\y <= z.
+
+Every boolean lattice is a Heyting lattice.
+
+\subsection{directed set (directed preorder)}
+A subset 'A' of a preorder 'X' is 'directed' if it is non empty and each
+pair of elements in 'A' has an upperBound in 'A'.
+
+A subset 'A' of a preorder 'X' is 'ideal' if it is non empty and each
+pair of elements in 'A' has an lowerBound in 'A'.
+
+\subsection{directed complete partial orders (dcpo or dcpos)}
+A partially ordered set is a directed-complete partial order (dcpo) if
+each of its directed subsets has a supremum.
+
+Every finite poset is a dcpo
+
+\subsection{w-continuous poset (wcpos)}
+w-continuous poset (wcpos) is a poset in which every w-chain
+(x1<=x2<=x3<=x4<=...) has a supremum.
+Every dcpo is an wcpos, since every w-chain is a directed set.
+
 \section{Implementation Issues}
 Before attemping this code I looked at the existing codebase in case I was
 duplicating anything that I could use. I found the following:
@@ -161,7 +196,7 @@ a<-->b    (a<=b)=true  (b<=a)=true
 ++ class of partially ordered sets, that is sets equipped with
 ++ transitive and reflexive relation \spad{<=}.
 
-PartialOrder(S) : Category == Definition where
+FinitePreOrder(S) : Category == Definition where
  S : SetCategory
 
  Definition ==> Join(CoercibleTo(OutputForm), SetCategory) with
@@ -177,11 +212,14 @@ PartialOrder(S) : Category == Definition where
 
   add
 
-     x >= y == y <= x
+     ">="(n:S,x:%,y:%) == "<="(n,y,x)
+       -- x >= y == y <= x
 
-     x > y == y < x
+     ">"(n:S,x:%,y:%) == "<"(n,y,x)
+       -- x > y == y < x
 
-     x < y == x <= y and not(y <= x)
+     "<": (n:S,x:%,y:%) == "<="(n,x,y) and not("<="(n,y,x))
+       -- x < y == x <= y and not(y <= x)
 
 @
 
@@ -192,29 +230,21 @@ PartialOrder(S) : Category == Definition where
 ++ Description:
 ++ based on PORDER in catdef.spad.pamphlet which is a
 ++ class of partially ordered sets, that is sets equipped with
-++ transitive and reflexive relation \spad{<=}.
+++ transitive, reflexive and antisymmetric relation \spad{<=}.
 
 PartialOrder(S) : Category == Definition where
  S : SetCategory
 
- Definition ==> Join(CoercibleTo(OutputForm), SetCategory) with
+ Definition ==> FinitePreOrder(S) with
 
-    "<": (n:S,%,%) -> Boolean
-      ++ x < y is a less than test.
-    ">": (n:S,%, %) -> Boolean
-      ++ x > y is a greater than test.
-    ">=": (n:S,%, %) -> Boolean
-      ++ x >= y is a greater than or equal test.
-    "<=": (n:S,%, %) -> Boolean
-      ++ x <= y is a less than or equal test.
+    "=": (n:S,%,%) -> Boolean
+      ++ antisymmetric: if x<=y and y<=x then x=y
 
   add
 
-     x >= y == y <= x
-
-     x > y == y < x
-
-     x < y == x <= y and not(y <= x)
+     "="(n:S,x:%,y:%) == "<="(n,x,y) and "<="(n,y,x)
+      -- x = y == x <= y and y <= x
+      -- antisymmetric: if x<=y and y<=x then x=y
 
 @
 
