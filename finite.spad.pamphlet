@@ -187,9 +187,31 @@ a<---b    (a<=b)=true  (b<=a)=false
 a<-->b    (a<=b)=true  (b<=a)=true
 \end{verbatim}
 
+I would have liked to use '<=' for 'less than or equal' and '<' for
+'less than' and so on, but we need to specify the set that it is
+applied to and these are binary operations, so that won't work.
+
+My next thought was to define it like this:
+\begin{verbatim}
+"<=": (n:S,%, %) -> Boolean
+\end{verbatim}
+but that fails with the following (unhelpful) error message:
+\begin{verbatim}
+   >> Apparent user error:
+   bad == form
+\end{verbatim}
+So I had to use the following notation:
+\begin{itemize}
+\item 'lt(n,x,y)' means 'x < y' in set 'n'
+\item 'gt(n,x,y)' means 'x > y' in set 'n'
+\item 'ge(n,x,y)' means 'x >= y' in set 'n'
+\item 'le(n,x,y)' means 'x <= y' in set 'n'
+\end{itemize}
+Which is horrible notation but it is the best that I can do with the
+current version of FriCAS
 \section{FPORDER FinitePreOrder}
 <<category FPORDER FinitePreOrder>>=
-)abbrev category FPORDER FinitePreOrder
+)abbrev category FPREORD FinitePreOrder
 ++ Author: Martin Baker
 ++ Description:
 ++ based on PORDER in catdef.spad.pamphlet which is a
@@ -201,25 +223,25 @@ FinitePreOrder(S) : Category == Definition where
 
  Definition ==> Join(CoercibleTo(OutputForm), SetCategory) with
 
-    "<": (n:S,%,%) -> Boolean
+    lt: (n:S,%,%) -> Boolean
       ++ x < y is a less than test.
-    ">": (n:S,%, %) -> Boolean
+    gt: (n:S,%, %) -> Boolean
       ++ x > y is a greater than test.
-    ">=": (n:S,%, %) -> Boolean
+    ge: (n:S,%, %) -> Boolean
       ++ x >= y is a greater than or equal test.
-    "<=": (n:S,%, %) -> Boolean
+    le: (n:S,%, %) -> Boolean
       ++ x <= y is a less than or equal test.
 
   add
 
-     ">="(n:S,x:%,y:%) == "<="(n,y,x)
-       -- x >= y == y <= x
+     ge(n:S,x:%,y:%) == le(n,y,x)
+       -- impliments x >= y == y <= x
 
-     ">"(n:S,x:%,y:%) == "<"(n,y,x)
-       -- x > y == y < x
+     gt(n:S,x:%,y:%) == lt(n,y,x)
+       -- impliments x > y == y < x
 
-     "<": (n:S,x:%,y:%) == "<="(n,x,y) and not("<="(n,y,x))
-       -- x < y == x <= y and not(y <= x)
+     lt(n:S,x:%,y:%) == le(n,x,y) and not(le(n,y,x))
+       -- impliments x < y == x <= y and not(y <= x)
 
 @
 
@@ -237,17 +259,16 @@ PartialOrder(S) : Category == Definition where
 
  Definition ==> FinitePreOrder(S) with
 
-    "=": (n:S,%,%) -> Boolean
+    eq: (n:S,%,%) -> Boolean
       ++ antisymmetric: if x<=y and y<=x then x=y
 
   add
 
-     "="(n:S,x:%,y:%) == "<="(n,x,y) and "<="(n,y,x)
+     eq(n:S,x:%,y:%) == le(n,x,y) and le(n,y,x)
       -- x = y == x <= y and y <= x
       -- antisymmetric: if x<=y and y<=x then x=y
 
 @
-
 
 \section{domain DGRPH DirectedGraph}
 <<domain DGRPH DirectedGraph>>=
