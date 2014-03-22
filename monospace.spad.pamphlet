@@ -1,0 +1,1264 @@
+\documentclass{article}
+\usepackage{axiom}
+\begin{document}
+\title{\$SPAD/src/algebra monospace.spad}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+MonospaceFormat is a package to output text from OutputForm.
+\end{abstract}
+\eject
+\tableofcontents
+\eject
+\section{Preface}
+This is a formatter for outputing text to a monospaced,
+two-dimensional output device, typically the command line
+console.
+
+The existing mathprint and mathprintWithNumber in 'i-output.boot'
+(sometimes known in the documentaion as algebraFormat)
+is written in boot code and this is intended to replace it
+using SPAD code.
+
+\section{Overview}
+
+I am currently testing by compiling with the same name as an
+existing formatter: 'htmlFormat'.
+So the output can then be enabled by typing:
+
+\begin{verbatim}
+)set output html on
+\end{verbatim}
+
+\section{Installing}
+
+If you don't want to replace the html formatter but want to add it as
+an additional formatter then the following files need to be modified:
+\begin{verbatim}
+src/interp/setvars.boot.pamphlet
+src/algebra/Makefile.pamphlet
+src/algebra/exposed.lsp.pamphlet
+src/doc/axiom.bib.pamphlet
+interp/i-output.boot.pamphlet
+\end{verbatim}
+
+\section{Using the formatter}
+We can cause the command line interpreter to output by typing
+the following:
+
+\begin{verbatim}
+)set output monospace on
+\end{verbatim}
+
+After this the command line will output (in addition to other formats
+that are enabled).
+
+
+
+\section{Matrix Formatting}
+
+
+There are many other possibilities, for instance we can generate a matrix
+with bars either side to indicate a determinant. All we have to do is
+change the css for the site, page or individual element.
+
+\section{Programmers Guide}
+This package converts from OutputForm, which is a hierarchical tree structure,
+to html which uses tags arranged in a hierarchical tree structure. So the
+package converts from one tree (graph) structure to another.
+
+This conversion is done in two stages using an intermediate Tree String
+structure. This Tree String structure represents HTML where:
+\begin{verbatim}
+leafs represents unstructured text
+string in leafs contains the text
+non-leafs represents xml elements
+string in non-leafs represents xml attributes
+\end{verbatim}
+
+This is created by traversing OutputForm while building up the Tree String
+structure.
+
+The second stage is to convert the Tree Structure to text.
+
+
+\subsection{CharRectangle}
+<<domain CRECT CharRectangle>>=
+)abbrev domain CRECT CharRectangle
+++ Author: Martin Baker
+++ Date Created: March 2014
+++ Date Last Updated: March 2014
+++ Related Domains: MonospaceFormatter
+++ Description:
+++   This is really only intended as a helper to MonospaceFormatter
+++   I guess it could be used by other domains but I can't think of
+++   a reason why it would.
+++   For this reason, and to avoid infinite loops, I have not
+++   included a coecion to OutputForm.
+++
+++   This domain represent a rectangular area of the output device,
+++   typically a command line console, which is using a fixed
+++   width font.
+++   This means that we can represent the restangle by a 2D array
+++   of Character.
+++   All functions assume all rows are the same length (no trim)
+++   that is, padded out if necessary with trailing spaces.
+++   Anyone writing code must ensure that rows are not accidently
+++   given different lengths. It is faster if we can assume this
+++   and dont have to check it each time.
+CharRectangle : Exports == Implementation where
+  NNI==> NonNegativeInteger
+
+  Exports == with
+
+    charRectangle:(a:String) -> %
+      ++ constructor to create rectangle
+    empty:() -> %
+      ++ contruct an empty rectangle with no rows or columns
+    getHeight:(a:%) -> NNI
+      ++ heights are measured in numbers of lines, this is designed for
+      ++ something like a command line console where we can't offset
+      ++ by fractions of a like.
+    getWidth:(a:%) -> NNI
+      ++ widths are measured in number of characters, This is designed for
+      ++ monospaced (fixed width) fonts so every character is the same
+      ++ width and offsets of fractions of a character width are not
+      ++ possible
+    vpad:(a:%,height:NNI) -> %
+      ++ pad with spaces to make rectangle a given height
+      ++ try to pad equally at the top and bottom so that the content
+      ++ remains in the middle. if this can't be done evenly then put
+      ++ extra line at the top.
+    hpad:(a:%,width:NNI) -> %
+      ++ pad with spaces to make rectangle a given width
+      ++ try to pad equally on the left and right so that the content
+      ++ remains in the middle. if this can't be done evenly then put
+      ++ extra line on the right.
+    vconcat:(a:List %) -> %
+      ++ vertical concatination of rectangles produces a new rectangle
+      ++ consisting of all the supplied rectangles, one above the other.
+      ++ The order of the list is assumed to be top to bottom.
+      ++ Concatinated rectangles don't have to match in either width or
+      ++ height. The values will all be increased to the value of the
+      ++ biggest and padded so that they are centred.
+    hconcat:(a:List %) -> %
+      ++ horizontal concatination of rectangles produces a new rectangle
+      ++ consisting of all the suppled rectangles, side by side.
+      ++ The order of the list is assumed to be left to right.
+      ++ Concatinated rectangles don't have to match in either width or
+      ++ height. The values will all be increased to the value of the
+      ++ biggest and padded so that they are centred.
+    stringise:(a:%) -> List String
+      ++ generates a string for each line. Trailing spaces are stripped
+      ++ off the end of each line.
+
+  Implementation ==> add
+
+    -- We store as a two dimentianal array of characters, rather than
+    -- a one dimentional array of strings, because this makes it
+    -- easier to concatinate in the vertical and horizontal directions.
+    -- I have used List List Character instead of PrimitiveArray Character
+    -- because PrimitiveArray looks like a wrapper for a lisp type and
+    -- I wanted to get rid of all lisp and accociated pretends
+    Rep := List List Character
+
+    -- constructor to create rectangle
+    charRectangle(a:String):% ==
+      [entries(a)]
+
+    -- contruct an empty rectangle with no rows or columns
+    empty():%  == (empty()$List(List(Character)))::%
+
+    -- heights are measured in numbers of lines, this is designed for
+    -- something like a command line console where we can't offset
+    -- by fractions of a like.
+    getHeight(a:%):NNI ==
+      #(a pretend List(List(Character)))
+
+    -- widths are measured in number of characters, This is designed for
+    -- monospaced (fixed width) fonts so every character is the same
+    -- width and offsets of fractions of a character width are not
+    -- possible
+    getWidth(a:%):NNI ==
+      maxWidth:NNI := 0
+      for x in a repeat
+        if #x > maxWidth then maxWidth := #x
+      maxWidth
+
+    -- pad with spaces to make rectangle a given height
+    -- try to pad equally at the top and bottom so that the content
+    -- remains in the middle. if this can't be done evenly then put
+    -- extra line at the top.
+    vpad(a:%,requiredHeight:NNI):% ==
+      -- if requiredHeight is already equal or greater than that
+      -- required then return without changing
+      (getHeight(a) >= requiredHeight) => a
+      -- work out ammount to padded
+      deltaU:Union(NNI,"failed") := subtractIfCan(requiredHeight,getHeight(a))
+      if deltaU case "failed" then return a
+      delta:NNI := deltaU::NNI
+      dR:Record(quotient:NNI,remainder:NNI) := divide(delta::NNI,2::NNI)$NNI
+      topPadCount:NNI := dR.quotient
+      if dR.remainder > 0 then topPadCount := topPadCount + 1
+      bottomPadCount:NNI := dR.quotient
+      paddedLine:List Character := [char(" ")]
+      for x in 1..(getWidth(a)) repeat
+        if x=1 then paddedLine := [char(" ")]
+        else paddedLine := concat(paddedLine,char(" "))$List(Character)
+      -- can I replace above 'for' loop with list comprehension?
+      -- paddedLine:List Character := [char(" ") for x in [1..(getWidth(a)::NNI)]]
+      newRectangle:List List Character := [paddedLine]
+      for i in 1..topPadCount repeat
+        if i=1 then newRectangle:= [paddedLine]
+        else newRectangle := concat(newRectangle,paddedLine)$List(List(Character))
+      for b in a repeat
+        newRectangle := concat(newRectangle,b)$List(List(Character))
+      for i in 1..bottomPadCount repeat
+        newRectangle := concat(newRectangle,paddedLine)$List(List(Character))
+      newRectangle::%
+    
+    -- pad with spaces to make rectangle a given width
+    -- try to pad equally on the left and right so that the content
+    -- remains in the middle. if this can't be done evenly then put
+    -- extra line on the right.
+    hpad(a:%,requiredWidth:NNI):% ==
+      -- if requiredWidth is already equal or greater than that
+      -- required then return without changing
+      (getWidth(a) >= requiredWidth) => a
+      -- work out ammount to padded
+      deltaU:Union(NNI,"failed") := subtractIfCan(requiredWidth,getWidth(a))
+      if deltaU case "failed" then return a
+      delta:NNI := deltaU::NNI
+      dR:Record(quotient:NNI,remainder:NNI) := divide(delta::NNI,2::NNI)$NNI
+      rightPadCount:NNI := dR.quotient
+      if dR.remainder > 0 then rightPadCount := rightPadCount + 1
+      leftPadCount:NNI := dR.quotient
+      oldRectangle:List List Character := a pretend List List Character
+      newRectangle:List List Character := a pretend List List Character
+      padLeft:List Character := [char(" ")]
+      for x in 1..leftPadCount repeat
+        if x=1 then padLeft := [char(" ")]
+        else padLeft := concat(padLeft,char(" "))$List(Character)
+      padRight:List Character := [char(" ")]
+      for x in 1..rightPadCount repeat
+        if x=1 then padRight := [char(" ")]
+        else padRight := concat(padRight,char(" "))$List(Character)
+      firstRowFlag:Boolean := true
+      for thisRow in oldRectangle repeat
+        newRow:List Character := concat([padLeft,thisRow,padRight])$List(Character)
+        if firstRowFlag then newRectangle := [newRow]
+        else newRectangle := concat(newRectangle,newRow)$List(List(Character))
+        firstRowFlag := false
+      newRectangle::%
+
+    -- vertical concatination of rectangles produces a new rectangle
+    -- consisting of all the supplied rectangles, one above the other.
+    -- The order of the list is assumed to be top to bottom.
+    -- Concatinated rectangles don't have to match in either width or
+    -- height. The values will all be increased to the value of the
+    -- biggest and padded so that they are centred.
+    vconcat(a:List %):% ==
+      -- first we calculate the maximum width and height of all then
+      -- rectangles to be concatinated.
+      maxWidth:NNI := 0
+      maxHeight:NNI := 0
+      for x in a repeat
+        w := getWidth(x)
+        h := getHeight(x)
+        if w > maxWidth then maxWidth:= w
+        if h > maxHeight then maxHeight:= h
+      res:List List Character := empty()$List(List(Character))
+      -- go through each input rectangle and pad them out to
+      -- the same width
+      -- put all the rows on after the other.
+      for x in a repeat
+        paddedIn:% := hpad(x,maxWidth)
+        for y in paddedIn repeat -- 'y' is a row
+          -- so 'res' contains the rows in all the inputs
+          res := concat(res,y)$List(List(Character))
+      res::%
+      
+    -- horizontal concatination of rectangles produces a new rectangle
+    -- consisting of all the suppled rectangles, side by side.
+    -- The order of the list is assumed to be left to right.
+    -- Concatinated rectangles don't have to match in either width or
+    -- height. The values will all be increased to the value of the
+    -- biggest and padded so that they are centred.
+    hconcat(a:List %):% ==
+      -- first we calculate the maximum width and height of all then
+      -- rectangles to be concatinated.
+      maxWidth:NNI := 0
+      maxHeight:NNI := 0
+      for x in a repeat
+        w := getWidth(x)
+        h := getHeight(x)
+        if w > maxWidth then maxWidth:= w
+        if h > maxHeight then maxHeight:= h
+--      sayTeX$Lisp concat(["maxWidth=",(mathObject2String$Lisp maxWidth)," ",_
+--        " maxHeight=",(mathObject2String$Lisp maxHeight)])$String
+      -- initialise return value 
+      res:List List Character := empty()$List(List(Character))
+      for j in 1..maxHeight repeat
+        --res := concat(res,[char(".")])$List(List(Character))
+        res := concat(res,empty()$List(Character))$List(List(Character))
+      -- go through each input rectangle and pad them out to
+      -- the same height
+      -- put all the columns on after the other.
+      for x in a repeat
+        paddedIn:% := vpad(x,maxHeight)
+        for y in paddedIn for i in 1..(#paddedIn) repeat
+--          sayTeX$Lisp concat(["i=",(mathObject2String$Lisp i)," ",_
+--            " x=",(mathObject2String$Lisp x),_
+--            " paddedIn=",(mathObject2String$Lisp paddedIn),_
+--            " res=",(mathObject2String$Lisp res)," y=",_
+--            (mathObject2String$Lisp y)@String])$String
+          res.i := concat(res.i,y)$List(Character)
+      res::%
+
+    -- generates a string for each line. Trailing spaces are stripped
+    -- off the end of each line.
+    stringise(a:%):List String ==
+      if #a < 1 then return [""]
+      [rightTrim(construct(b),char(" ")) for b in a]
+
+@
+
+\subsection{MonospaceFormat}
+<<package MONOFORM MonospaceFormat>>=
+)abbrev domain MONOFORM MonospaceFormat
+++ Author: Martin J Baker
+++ Date: March 2014
+++ Description:
+++    \spadtype{MonospaceFormat} provides a coercion from \spadtype{OutputForm}
+++    to monospaced text.
+
+MonospaceFormat() : public == private where
+  E      ==> OutputForm
+  I      ==> Integer
+  L      ==> List
+  S      ==> String
+
+  public == SetCategory with
+    coerce :    E -> S
+      ++ coerce(o) changes o in the standard output format to html
+      ++ format.
+    coerceS :   E -> S
+      ++ coerceS(o) changes o in the standard output format to html
+      ++ format and displays formatted result.
+    coerceL :   E -> S
+      ++ coerceL(o) changes o in the standard output format to html
+      ++ format and displays result as one long string.
+    exprex :    E -> S
+      ++ exprex(o) coverts \spadtype{OutputForm} to \spadtype{String}
+    display :   S -> Void
+      ++ display(o) prints the string returned by coerce.
+
+  private == add
+    import OutputForm
+    import Character
+    import Integer
+    import List OutputForm
+    import List String
+
+    -- other formatters have specialisd formatters such as sayHtml$Lisp
+    -- is that needed here?
+    sayMono ==> sayTeX$Lisp
+    
+    expr : E
+    prec, opPrec : I
+    str :  S
+    blank         : S := " \  "
+
+    maxPrec       : I   := 1000000
+    minPrec       : I   := 0
+
+    unaryOps      : L S := ["-"]$(L S)
+    unaryPrecs    : L I := [700]$(L I)
+
+    -- the precedence of / in the following is relatively low because
+    -- the bar obviates the need for parentheses.
+    binaryOps     : L S := ["+->","|","^","/","<",">","=","OVER"]$(L S)
+    binaryPrecs   : L I := [0, 0, 900, 700, 400, 400, 400, 700]$(L I)
+    naryOps       : L S := ["-","+","*",blank,",",";"," ","ROW","",
+       " \cr ","&","/\","\/"]$(L S)
+    naryPrecs     : L I := [700, 700, 800, 800, 110, 110, 0, 0, 0, 0, 0, 600, 600]$(L I)
+    naryNGOps     : L S := ["ROW","&"]$(L S)
+    plexOps       : L S := ["SIGMA","SIGMA2","PI","PI2","INTSIGN",_
+                            "INDEFINTEGRAL"]$(L S)
+    plexPrecs     : L I := [700, 800, 700, 800, 700, 700]$(L I)
+    specialOps    : L S := ["MATRIX","BRACKET","BRACE","CONCATB","VCONCAT",_
+                            "AGGLST","CONCAT","OVERBAR","ROOT","SUB","TAG",_
+                            "SUPERSUB","ZAG","AGGSET","SC","PAREN",_
+                            "SEGMENT","QUOTE","theMap", "SLASH"]
+
+    -- the next two lists provide translations for some strings for
+    -- which HTML has some special character codes.
+    specialStrings : L S :=
+      ["cos", "cot", "csc", "log", "sec", "sin", "tan", _
+       "cosh", "coth", "csch", "sech", "sinh", "tanh", _
+       "acos","asin","atan","erf","...","$","infinity","Gamma", _
+       "%pi","%e","%i"]
+    specialStringsInHTML : L S :=
+      ["cos","cot","csc","log","sec","sin","tan", _
+       "cosh","coth","csch","sech","sinh","tanh", _
+       "arccos","arcsin","arctan","erf","&#x2026;","$","&#x221E;",_
+       "&#x0413;","&#x003C0;","&#x02147;","&#x02148;"]
+
+    debug := true
+
+    atomize : E -> L E
+
+    formatBinary : (S, L E, I) -> CharRectangle
+
+    formatFunction : (CharRectangle, L E, I) -> CharRectangle
+
+    formatMatrix : L E -> CharRectangle
+
+    formatNary : (S, L E, I) -> CharRectangle
+
+    formatNaryNoGroup : (S, L E, I) -> CharRectangle
+
+    formatNullary : S -> CharRectangle
+
+    formatPlex : (S, L E, I) -> CharRectangle
+
+    formatSpecial : (S, L E, I) -> CharRectangle
+
+    formatUnary : (S,  E, I) -> CharRectangle
+
+    formatMonomode : (E, I) -> CharRectangle
+
+    precondition : E -> E
+      -- this function is applied to the OutputForm expression before
+      -- doing anything else.
+
+    outputTree : Tree S -> Void
+      -- This function traverses the tree and linierises it into a string.
+      -- To get the formatting we use a nested set of tables. It also checks
+      -- for +- and removes the +. it may also need to remove the outer
+      -- set of brackets.
+
+    outputRectangle : CharRectangle -> Void
+      -- This function traverses the tree and linierises it into a string.
+      -- To get the formatting we use a nested set of tables. It also checks
+      -- for +- and removes the +. it may also need to remove the outer
+      -- set of brackets.
+
+    stringify : E -> S
+
+    coerce(expr : E) : S ==
+      outputRectangle formatMonomode(precondition expr, minPrec)
+      " "
+
+    coerceS(expr : E) : S ==
+      outputRectangle formatMonomode(precondition expr, minPrec)
+      " "
+
+    coerceL(expr : E) : S ==
+      outputRectangle formatMonomode(precondition expr, minPrec)
+      " "
+
+    display(html : S) : Void ==
+      sayMono html
+      void()$Void
+
+--    newNode(tag : S, node : charRectangle) : (charRectangle) ==
+--      t := charRectangle(S, [node])
+--      setvalue!(t, tag)
+--      t
+--      empty()$CharRectangle
+
+--    newNodes(tag : S, nodes : L charRectangle) : (charRectangle) ==
+--      t := charRectangle(S, nodes)
+--      setvalue!(t, tag)
+--      t
+--      empty()$CharRectangle
+
+    -- returns true if this can be represented without a table
+    notTable?(node : Tree S) : Boolean ==
+      empty?(node) => true
+      leaf?(node) => true
+      prefix?("table",value(node))$String => false
+      c := children(node)
+      for a in c repeat
+        if not notTable?(a) then return false
+      true
+
+    -- this retuns a string representation of OutputForm arguments
+    -- it is used when debug is true to trace the calling of functions
+    -- in this package
+    argsToString(args : L E) : S ==
+      sop : S := exprex first args
+      args := rest args
+      s : S := concat ["{",sop]
+      for a in args repeat
+          s1 : S := exprex a
+          s := concat [s, s1]
+      s := concat [s,"}"]
+
+    exprex(expr : E) : S ==
+      -- This breaks down an expression into atoms and returns it as
+      -- a string.  It's for developmental purposes to help understand
+      -- the expressions.
+      a : E
+      expr := precondition expr
+      (ATOM(expr)$Lisp@Boolean) or (stringify expr = "NOTHING") =>
+        concat ["{",stringify expr,"}"]
+      le : L E := (expr pretend L E)
+      op := first le
+      sop : S := exprex op
+      args : L E := rest le
+      nargs : I := #args
+      s : S := concat ["{",sop]
+      if nargs > 0  then
+        for a in args repeat
+          s1 : S := exprex a
+          s := concat [s, s1]
+      s := concat [s,"}"]
+
+    atomize(expr : E) : L E ==
+      -- This breaks down an expression into a flat list of atomic
+      -- expressions.
+      -- expr should be preconditioned.
+      le : L E := nil()
+      a : E
+      letmp : L E
+      (ATOM(expr)$Lisp@Boolean) or (stringify expr = "NOTHING") =>
+        le := append(le, list(expr))
+      letmp := expr pretend L E
+      for a in letmp repeat
+        le := append(le, atomize a)
+      le
+
+    -- output html test using tables and
+    -- remove unnecessary '+' at end of first string
+    -- when second string starts with '-'
+    outputRectangle(c:CharRectangle):Void ==
+      sayMono stringise(c)
+      void()$Void
+
+    
+    -- output html test using tables and
+    -- remove unnecessary '+' at end of first string
+    -- when second string starts with '-'
+    outputTree(t : CharRectangle) : Void ==
+--      endWithPlus : Boolean := false -- if the last string ends with '+'
+--      -- and the next string starts with '-' then the '+' needs to be
+--      -- removed
+--      if empty?(t) then
+--        --if debug then sayMono "outputTree empty"
+--        return void()$Void
+--      if leaf?(t) then
+--        --if debug then sayMono concat("outputTree leaf:",value(t))
+--        sayMono value(t)
+--        return void()$Void
+--      tagName := copy value(t)
+--      tagPos := position(char(" "),tagName,1)$String
+--      if tagPos > 1 then
+--        tagName := split(tagName,char(" ")).1
+--        --sayMono "outputTree: tagPos="string(tagPos)" "tagName
+--      if value(t) ~= "" then sayMono concat["<",value(t),">"]
+--      c := children(t)
+--      enableGrid : Boolean := (#c > 1) and not notTable?(t)
+--      if enableGrid then
+--        if tagName = "table" then enableGrid := false
+--        if tagName = "tr" then enableGrid := false
+--      b : List Boolean := [leaf?(c1) for c1 in c]
+--      -- if all children are strings then no need to wrap in table
+--      allString : Boolean := true
+--      for c1 in c repeat if not leaf?(c1) then allString := false
+--      if allString then
+--        s:String := ""
+--        for c1 in c repeat s := concat(s, value(c1))
+--        sayMono s
+--        if value(t) ~= "" then sayMono concat["</",tagName,">"]
+--        return void()$Void
+--      if enableGrid then
+--        sayMono "<table border='0'>"
+--        sayMono "<tr>"
+--      for c1 in c repeat
+--        if enableGrid then sayMono "<td>"
+--        outputTree(c1)
+--        if enableGrid then sayMono "</td>"
+--      if enableGrid then
+--        sayMono "</tr>"
+--        sayMono "</table>"
+--      if value(t) ~= "" then sayMono concat["</",tagName,">"]
+      void()$Void
+
+    stringify expr == (mathObject2String$Lisp expr)@S
+
+    precondition expr ==
+      outputTran$Lisp expr
+
+    -- I dont know what SC is so put it in a table for now
+    formatSC(args : L E, prec : I)  : CharRectangle ==
+      if debug then sayMono "formatSC: "concat[" args=",_
+        argsToString(args)," prec=",string(prec)$S]
+--      null args => charRectangle("")
+--      cells : L CharRectangle := [_
+--        newNode("td id='sc' style='border-bottom-style:solid'",_
+--        formatMonomode(a, prec)) for a in args]
+--      row:CharRectangle := newNodes("tr id='sc'",cells)
+--      newNode("table border='0' id='sc'",row)
+      empty()$CharRectangle
+
+    -- to build an overbar we put it in a single column,
+    -- single row table and set the top border to solid
+    buildOverbar(content : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildOverbar"
+--      cell : CharRectangle := _
+--        newNode("td id='overbar' style='border-top-style:solid'",content)
+--      row:CharRectangle := newNode("tr id='overbar'",cell)
+--      newNode("table border='0' id='overbar'",row)
+      empty()$CharRectangle
+
+    -- to build an square root we put it in a double column,
+    -- single row table and set the top border of the second column to
+    -- solid
+    buildRoot(content : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildRoot"
+--      if leaf?(content) then
+--        -- root of a single term so no need for overbar
+--        return newNodes("",[tree("&radic;"),content])
+--      cell1:CharRectangle := newNode("td id='root'",tree("&radic;"))
+--      cell2 : CharRectangle := _
+--        newNode("td id='root' style='border-top-style:solid'",content)
+--      row:CharRectangle := newNodes("tr id='root'",[cell1,cell2])
+--      newNode("table border='0' id='root'",row)
+      empty()$CharRectangle
+
+    -- to build an 'n'th root we put it in a double column,
+    -- single row table and set the top border of the second column to
+    -- solid
+    buildNRoot(content : CharRectangle, nth : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildNRoot"
+--      power:CharRectangle := newNode("sup",nth)
+--      if leaf?(content) then
+--        -- root of a single term so no need for overbar
+--        return newNodes("",[power,tree("&radic;"),content])
+--      cell1:CharRectangle := newNodes("td id='nroot'",[power,tree("&radic;")])
+--      cell2 : CharRectangle := _
+--        newNode("td id='nroot' style='border-top-style:solid'",content)
+--      row:CharRectangle := newNodes("tr id='nroot'",[cell1,cell2])
+--      newNode("table border='0' id='nroot'",row)
+      empty()$CharRectangle
+
+    -- formatSpecial handles "theMap","AGGLST","AGGSET","TAG","SLASH",
+    -- "VCONCAT", "CONCATB","CONCAT","QUOTE","BRACKET","BRACE","PAREN",
+    -- "OVERBAR","ROOT", "SEGMENT","SC","MATRIX","ZAG"
+    -- note "SUB" and "SUPERSUB" are handled directly by formatMonomode
+    formatSpecial(op : S, args : L E, prec : I) : CharRectangle ==
+      if debug then sayMono _
+        "formatSpecial: "concat["op=",op," args=",argsToString(args),_
+          " prec=",string(prec)$S]
+      arg : E
+      prescript : Boolean := false
+      op = "theMap" => charRectangle("theMap(...)")
+      op = "AGGLST" =>
+        -- sayMono "calling formatNary with ,"
+        formatNary(",",args,prec)
+      op = "AGGSET" =>
+        formatNary(";",args,prec)
+      op = "TAG" =>
+        if debug then sayMono "TAG - not yet handled"
+        formatMonomode(second args, prec) -- temp
+--        newNodes("",[formatMonomode(first args,prec),tree("&#x02192;"),_
+--          formatMonomode(second args, prec)])
+--        --RightArrow
+      op = "SLASH" =>
+        if debug then sayMono "SLASH - not yet handled"
+        formatMonomode(second args, prec) -- temp
+--        newNodes("",[formatMonomode(first args, prec),tree("/"),_
+--          formatMonomode(second args, prec)])
+      op = "VCONCAT" =>
+        if debug then sayMono "VCONCAT - not yet handled"
+        empty()$CharRectangle -- temp
+--        newNodes("table",[newNode("td",formatMonomode(u, minPrec))_
+--           for u in args]::L CharRectangle)
+      op = "CONCATB" =>
+        formatNary(" ",args,prec)
+      op = "CONCAT" =>
+        formatNary("",args,minPrec)
+      op = "QUOTE" =>
+        hconcat([charRectangle("abc"),charRectangle("d e f"),charRectangle("ghi")])
+--        newNodes("",[tree("'"),formatMonomode(first args, minPrec)])
+      op = "BRACKET" =>
+        hconcat([charRectangle("["),formatMonomode(first args, minPrec),charRectangle("]")])
+--        newNodes("",[tree("["),formatMonomode(first args, minPrec),tree("]")])
+      op = "BRACE" =>
+        hconcat([charRectangle("{"),formatMonomode(first args, minPrec),charRectangle("}")])
+--        newNodes("",[tree("{"),formatMonomode(first args, minPrec),tree("}")])
+      op = "PAREN" =>
+        hconcat([charRectangle("("),formatMonomode(first args, minPrec),charRectangle(")")])
+--        newNodes("",[tree("("),formatMonomode(first args, minPrec),tree(")")])
+      op = "OVERBAR" =>
+        null args => charRectangle("")
+        buildOverbar(formatMonomode(first args, minPrec))
+      op = "ROOT" and #args < 1 => charRectangle("")
+      op = "ROOT" and #args = 1 => _
+        buildRoot(formatMonomode(first args, minPrec))
+--      op = "ROOT" and #args > 1 => _
+--        buildNRoot(formatMonomode(first args, minPrec), _
+--          formatMonomode(second args, minPrec))
+--      op = "SEGMENT" =>
+--        -- '..' indicates a range in a list for example
+--        tmp : CharRectangle := newNodes("",[formatMonomode(first args, minPrec),_
+--          charRectangle("..")])
+--        null rest args =>  tmp
+--        newNodes("",[tmp,formatMonomode(first rest args, minPrec)])
+--      op = "SC" => formatSC(args,minPrec)
+--      op = "MATRIX" => formatMatrix rest args
+--      op = "ZAG" =>
+--        -- {{+}{3}{{ZAG}{1}{7}}{{ZAG}{1}{15}}{{ZAG}{1}{1}}{{ZAG}{1}{25}}_
+--        --      {{ZAG}{1}{1}}{{ZAG}{1}{7}}{{ZAG}{1}{4}}}
+--        -- to format continued fraction traditionally need to intercept
+--        -- it at the formatNary of the "+"
+--        newNodes("",[tree(" \zag{"),formatMonomode(first args, minPrec),
+--          charRectangle("}{"),
+--          formatMonomode(first rest args,minPrec),tree("}")])
+      charRectangle("formatSpecial not implemented:"op)
+
+
+    formatSuperSub(expr : E, args : L E, opPrec : I) : CharRectangle ==
+      -- This one produces ordinary derivatives with differential notation,
+      -- it needs a little more work yet.
+      -- first have to divine the semantics, add cases as needed
+      if debug then sayMono _
+        "formatSuperSub: "concat["expr=",stringify expr," args=",_
+          argsToString(args)," prec=",string(opPrec)$S]
+--      atomE : L E := atomize(expr)
+--      op : S := stringify first atomE
+--      op ~= "SUPERSUB" => charRectangle("Mistake in formatSuperSub: no SUPERSUB")
+--      #args ~= 1 => charRectangle("Mistake in SuperSub: #args <> 1")
+--      var : E := first args
+--      -- should be looking at something like {{SUPERSUB}{var}{ }{, ,..., }}
+--      -- for example here's the second derivative of y w.r.t. x
+--      -- {{{SUPERSUB}{y}{ }{, ,}}{x}}, expr is the first {} and args is the
+--      -- {x}
+--      funcS : S := stringify first rest atomE
+--      bvarS : S := stringify first args
+--      -- count the number of commas
+--      commaS : S := stringify first rest rest rest atomE
+--      commaTest : S := ","
+--      ndiffs : I := 0
+--      while position(commaTest, commaS, 1) > 0 repeat
+--        ndiffs := ndiffs+1
+--        commaTest := commaTest","
+--      res:CharRectangle := newNodes("",_
+--        [tree("&#x02146;"string(ndiffs)""funcS"&#x02146;"),_
+--          formatMonomode(first args,minPrec),tree(""string(ndiffs)"&#x02061;"),_
+--            formatMonomode(first args,minPrec),tree(")")])
+--      res
+      empty()$CharRectangle
+
+    -- build structure such as integral as a table
+    buildPlex3(main : CharRectangle, supsc : CharRectangle, op : CharRectangle, subsc : CharRectangle) : CharRectangle ==
+--      if debug then sayMono "buildPlex"
+--      ssup:CharRectangle := newNode("td id='plex'",supsc)
+--      sop:CharRectangle := newNode("td id='plex'",op)
+--      ssub:CharRectangle := newNode("td id='plex'",subsc)
+--      m:CharRectangle := newNode("td rowspan='3' id='plex'",main)
+--      rows:(List CharRectangle) := [newNodes("tr id='plex'",[ssup,m]),_
+--        newNode("tr id='plex'",sop),newNode("tr id='plex'",ssub)]
+--      newNodes("table border='0' id='plex'",rows)
+      empty()$CharRectangle
+
+    -- build structure such as integral as a table
+    buildPlex2(main : CharRectangle, supsc : CharRectangle, op : CharRectangle) : CharRectangle ==
+--      if debug then sayMono "buildPlex"
+--      ssup:CharRectangle := newNode("td id='plex'",supsc)
+--      sop:CharRectangle := newNode("td id='plex'",op)
+--      m:CharRectangle := newNode("td rowspan='2' id='plex'",main)
+--      rows:(List CharRectangle) := [newNodes("tr id='plex'",[sop,m]),_
+--        newNode("tr id='plex'",ssup)]
+--      newNodes("table border='0' id='plex'",rows)
+      empty()$CharRectangle
+
+    -- format an integral
+    -- args.1 = "NOTHING"
+    -- args.2 = bound variable
+    -- args.3 = body, thing being integrated
+    --
+    -- axiom replaces the bound variable with somthing like
+    -- %A and puts the original variable used
+    -- in the input command as a superscript on the integral sign.
+    formatIntSign(args : L E, opPrec : I) : CharRectangle ==
+      -- the original OutputForm expression looks something like this:
+      -- {{INTSIGN}{NOTHING or lower limit?}
+      -- {bvar or upper limit?}{{*}{integrand}{{CONCAT}{d}{axiom var}}}}
+      -- the args list passed here consists of the rest of this list, i.e.
+      -- starting at the NOTHING or ...
+      if debug then sayMono "formatIntSign: "concat[" args=",_
+        argsToString(args)," prec=",string(opPrec)$S]
+--      (stringify first args) = "NOTHING" =>
+--        buildPlex2(formatMonomode(args.3,opPrec),tree("&int;"),_
+--          formatMonomode(args.2, opPrec)) -- could use &#x0222B; or &int;
+--      buildPlex3(formatMonomode(first args, opPrec), formatMonomode(args.3, opPrec), _
+--        charRectangle("&int;"),formatMonomode(args.2,opPrec))
+      empty()$CharRectangle
+
+    -- plex ops are "SIGMA","SIGMA2","PI","PI2","INTSIGN","INDEFINTEGRAL"
+    -- expects 2 or 3 args
+    formatPlex(op : S, args : L E, prec : I) : CharRectangle ==
+      if debug then sayMono "formatPlex: "concat["op=",op," args=",_
+        argsToString(args)," prec=",string(prec)$S]
+--      checkarg : Boolean := false
+--      hold : S
+--      p : I := position(op, plexOps)
+--      p < 1 => error "unknown plex op"
+--      op = "INTSIGN" => formatIntSign(args,minPrec)
+--      opPrec := plexPrecs.p
+--      n : I := #args
+--      (n ~= 2) and (n ~= 3) => error "wrong number of arguments for plex"
+--      s : CharRectangle :=
+--        op = "SIGMA"   =>
+--          checkarg := true
+--          charRectangle("&#x02211;")
+--        -- Sum
+--        op = "SIGMA2"   =>
+--          checkarg := true
+--          charRectangle("&#x02211;")
+--        -- Sum
+--        op = "PI"      =>
+--          checkarg := true
+--          charRectangle("&#x0220F;")
+--        -- Product
+--        op = "PI2"     =>
+--          checkarg := true
+--          charRectangle("&#x0220F;")
+--        -- Product
+--        op = "INTSIGN" => charRectangle("&#x0222B;")
+--        -- Integral, int
+--        op = "INDEFINTEGRAL" => charRectangle("&#x0222B;")
+--        -- Integral, int
+--        charRectangle("formatPlex: unexpected op:"op)
+      -- if opPrec < prec then perhaps we should parenthesize?
+      -- but we need to be careful we don't get loads of unnecessary
+      -- brackets
+--      if n = 2 then return buildPlex2(formatMonomode(first args, minPrec), _
+--        formatMonomode(args.2, minPrec), s)
+--      buildPlex3(formatMonomode(first args, minPrec), formatMonomode(args.2, minPrec), _
+--        s, formatMonomode(args.3, minPrec))
+      empty()$CharRectangle
+
+    -- an example is: op=ROW arg={{ROW}{1}{2}}
+    formatMatrixRow(op : S, arg : E, prec : I, y : I, h : I)  : L CharRectangle ==
+      if debug then sayMono "formatMatrixRow: "concat["op=",op,_
+        " args=",stringify arg," prec=",string(prec)$S]
+--      ATOM(arg)$Lisp@Boolean => [_
+--        charRectangle("formatMatrixRow does not contain row")]
+--      l : L E := (arg pretend L E)
+--      op : S := stringify first l
+--      args : L E := rest l
+--      --sayMono "formatMatrixRow op="op" args="argsToString(args)
+--      w : I := #args
+--      cells : (List CharRectangle) := empty()
+--      for x in 1..w repeat
+--        --sayMono "formatMatrixRow: x="string(x)$S" width="string(w)$S
+--        attrib:S := "td id='mat'"
+--        if x = 1 then attrib := "td id='matl'"
+--        if x = w then attrib := "td id='matr'"
+--        if y = 1 then attrib := "td id='matt'"
+--        if y = h then attrib := "td id='matb'"
+--        if x = 1 and y = 1 then attrib := "td id='matlt'"
+--        if x = 1 and y = h then attrib := "td id='matlb'"
+--        if x = w and y = 1  then attrib := "td id='matrt'"
+--        if x = w and y = h  then attrib := "td id='matrb'"
+--        cells := append(cells, [newNode(attrib, formatMonomode(args.(x), prec))])
+--      cells
+      [empty()$CharRectangle]
+
+    -- an example is: op=MATRIX args={{ROW}{1}{2}}{{ROW}{3}{4}}
+    formatMatrixContent(op : S, args : L E, prec : I)  : L CharRectangle ==
+      if debug then sayMono "formatMatrixContent: "concat["op=",op,_
+        " args=",argsToString(args)," prec=",string(prec)$S]
+--      y : I := 0
+--      rows:(List CharRectangle) := [newNodes("tr id='mat'",_
+--        formatMatrixRow("ROW", e, prec, y := y + 1, #args)) for e in args]
+--      rows
+      [empty()$CharRectangle]
+
+    formatMatrix(args : L E) : CharRectangle ==
+      -- format for args is [[ROW ...], [ROW ...], [ROW ...]]
+      -- generate string for formatting columns (centered)
+      if debug then sayMono "formatMatrix: "concat["args=",_
+        argsToString(args)]
+--      newNodes("table border='1' id='mat'",_
+--        formatMatrixContent("MATRIX",args,minPrec))
+      empty()$CharRectangle
+
+    -- output arguments in column table
+    buildColumnTable(elements : List CharRectangle) : CharRectangle ==
+--      if debug then sayMono "buildColumnTable"
+--      cells:(List CharRectangle) := [newNode("td id='col'",j) for j in elements]
+--      rows:(List CharRectangle) := [newNode("tr id='col'",i) for i in cells]
+--      newNodes("table border='0' id='col'",rows)
+      empty()$CharRectangle
+
+    -- build superscript structure as either sup tag or
+    -- if it contains anything that won't go into a
+    -- sup tag then build it as a table
+    buildSuperscript(main : CharRectangle, super : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildSuperscript"
+--      notTable?(super) => newNodes("",[main,newNode("sup",super)])
+--      m:CharRectangle := newNode("td rowspan='2' id='sup'",main)
+--      su:CharRectangle := newNode("td id='sup'",super)
+--      e:CharRectangle := newNode("td id='sup'",tree("&nbsp;"))
+--      rows:(List CharRectangle) := [newNodes("tr id='sup'",[m,su]),_
+--        newNode("tr id='sup'",e)]
+--      newNodes("table border='0' id='sup'",rows)
+      empty()$CharRectangle
+
+    -- build subscript structure as either sub tag or
+    -- if it contains anything that won't go into a
+    -- sub tag then build it as a table
+    buildSubscript(main : CharRectangle, subsc : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildSubscript"
+--      notTable?(subsc) => newNodes("",[main,newNode("sub",subsc)])
+--      m:CharRectangle := newNode("td rowspan='2' id='sub'",main)
+--      su:CharRectangle := newNode("td id='sub'",subsc)
+--      e:CharRectangle := newNode("td id='sub'",tree("&nbsp;"))
+--      rows:(List CharRectangle) := [newNodes("tr id='sub'",[m,e]),_
+--        newNode("tr id='sub'",su)]
+--      newNodes("table border='0' id='sub'",rows)
+      empty()$CharRectangle
+
+    formatSub(expr : E, args : L E, opPrec : I) : CharRectangle ==
+      -- format subscript
+      -- this function expects expr to start with SUB
+      -- it expects first args to be the operator or value that
+      -- the subscript is applied to
+      -- and the rest args to be the subscript
+      if debug then sayMono "formatSub: "concat["expr=",_
+        stringify expr," args=",argsToString(args)," prec=",_
+          string(opPrec)$S]
+--      atomE : L E := atomize(expr)
+--      if empty?(atomE) then
+--        if debug then sayMono "formatSub: expr = empty"
+--        return charRectangle("formatSub: expr = empty")
+--      op : S := stringify first atomE
+--      op ~= "SUB" =>
+--        if debug then sayMono "formatSub: expr~=SUB"
+--        charRectangle("formatSub: expr~=SUB")
+--      -- assume args.1 is the expression and args.2 is its subscript
+--      if #args < 2 then
+--        if debug then sayMono concat("formatSub: num args=",_
+--          string(#args)$String)$String
+--        return charRectangle(concat("formatSub: num args=",_
+--          string(#args)$String)$String)
+--      if #args > 2 then
+--        if debug then sayMono concat("formatSub: num args=",_
+--          string(#args)$String)$String
+--        return buildSubscript(formatMonomode(first args, opPrec), _
+--          newNodes("",[formatMonomode(e,opPrec) for e in rest args]))
+--      buildSubscript(formatMonomode(first args, opPrec), _
+--        formatMonomode(args.2, opPrec))
+      empty()$CharRectangle
+
+    formatFunction(op : CharRectangle, args : L E, prec : I) : CharRectangle ==
+      if debug then sayMono "formatFunction: "concat["args=",_
+        argsToString(args)," prec=",string(prec)$S]
+--      newNodes("",[op,tree("("),formatNary(",",args,minPrec),tree(")")])
+      empty()$CharRectangle
+
+    formatNullary(op : S) : CharRectangle ==
+      if debug then sayMono "formatNullary: "concat["op=",op]
+--      op = "NOTHING" => empty()$Tree(S)
+--      charRectangle(op"()")
+      empty()$CharRectangle
+
+    -- implement operation with single argument
+    -- an example is minus '-'
+    -- prec is precidence of operator, used to force brackets where
+    -- more tightly bound operation is next to less tightly bound operation
+    formatUnary(op : S, arg : E, prec : I) : CharRectangle ==
+      if debug then sayMono "formatUnary: "concat["op=",op," arg=",_
+        stringify arg," prec=",string(prec)$S]
+--      p : I := position(op, unaryOps)
+--      p < 1 => error "unknown unary op"
+--      opPrec := unaryPrecs.p
+--      s : CharRectangle := newNodes("",[tree(op),formatMonomode(arg,opPrec)])
+--      opPrec < prec => newNodes("",[tree("("),s,tree(")")])
+--      s
+      empty()$CharRectangle
+
+    -- output division with numerator above the denominator
+    -- implemented as a table
+    buildOver(top : CharRectangle, bottom : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildOver"
+--      topCell:CharRectangle := newNode("td",top)
+--      bottomCell:CharRectangle := newNode("td style='border-top-style:solid'",_
+--        bottom)
+--      rows:(List CharRectangle) := [newNode("tr id='col'",topCell),_
+--        newNode("tr id='col'",bottomCell)]
+--      newNodes("table border='0' id='col'",rows)
+      empty()$CharRectangle
+
+    -- op may be: "|","^","/","OVER","+->"
+    -- note: "+" and "*" are n-ary ops
+    formatBinary(op : S, args : L E, prec : I) : CharRectangle ==
+      if debug then sayMono "formatBinary: "concat["op=",op,_
+        " args=",argsToString(args)," prec=",string(prec)$S]
+      p : I := position(op, binaryOps)
+      p < 1 => error "unknown binary op"
+      opPrec := binaryPrecs.p
+      -- if base op is product or sum need to add parentheses
+      if ATOM(first args)$Lisp@Boolean then
+        opa : S := stringify first args
+      else
+        la : L E := (first args pretend L E)
+        opa : S := stringify first la
+--      if (opa = "SIGMA" or opa = "SIGMA2" or opa = "PI" or opa = "PI2")_
+--        and op = "^" then
+--          s1 : CharRectangle := newNodes("",[tree("("),formatMonomode(first args,_
+--            opPrec),tree(")")])
+--      else
+--        s1 : CharRectangle := formatMonomode(first args, opPrec)
+--      s2 : CharRectangle := formatMonomode(first rest args, opPrec)
+--      op = "|" => newNodes("",[s1,tree(op),s2])
+--      op = "^" => buildSuperscript(s1,s2)
+--      op = "/" => newNodes("",[s1,tree(op),s2])
+--      op = "OVER" => buildOver(s1,s2)
+--      op = "+->" => newNodes("",[s1,tree("|&mdash;&rsaquo;"),s2])
+--      newNodes("",[s1,tree(op),s2])
+      empty()$CharRectangle
+
+    -- build a zag from a table with a right part and a
+    -- upper and lower left part
+    buildZag(top : CharRectangle, lowerLeft : CharRectangle, lowerRight : CharRectangle) : CharRectangle ==
+      if debug then sayMono "buildZag"
+--      cellTop : CharRectangle := _
+--        newNode("td colspan='2' id='zag' style='border-bottom-style:solid'",_
+--         top)
+--      cellLowerLeft:CharRectangle := newNodes("td id='zag'",[lowerLeft,tree("+")])
+--      cellLowerRight:CharRectangle := newNode("td id='zag'",lowerRight)
+--      row1:CharRectangle := newNodes("tr id='zag'",[cellTop])
+--      row2:CharRectangle := newNodes("tr id='zag'",[cellLowerLeft,cellLowerRight])
+--      newNodes("table border='0' id='zag'",[row1,row2])
+      empty()$CharRectangle
+
+    formatZag(args : L E, nestLevel : I)  : CharRectangle ==
+      -- args will be a list of things like this {{ZAG}{1}{7}}, the ZAG
+      -- must be there, the '1' and '7' could conceivably be more complex
+      -- expressions
+      --
+      -- ex 1. continuedFraction(314159/100000)
+      -- {{+}{3}{{ZAG}{1}{7}}{{ZAG}{1}{15}}{{ZAG}{1}{1}}{{ZAG}{1}{25}}
+      -- {{ZAG}{1}{1}}{{ZAG}{1}{7}}{{ZAG}{1}{4}}}
+      -- this is the preconditioned output form
+      -- including "op", the args list would be the rest of this
+      -- i.e op = '+' and args = {{3}{{ZAG}{1}{7}}{{ZAG}{1}{15}}
+      -- {{ZAG}{1}{1}}{{ZAG}{1}{25}}{{ZAG}{1}{1}}{{ZAG}{1}{7}}{{ZAG}{1}{4}}}
+      --
+      -- ex 2. continuedFraction(14159/100000)
+      -- this one doesn't have the leading integer
+      -- {{+}{{ZAG}{1}{7}}{{ZAG}{1}{15}}{{ZAG}{1}{1}}{{ZAG}{1}{25}}
+      -- {{ZAG}{1}{1}}{{ZAG}{1}{7}}{{ZAG}{1}{4}}}
+      --
+      -- ex 3. continuedFraction(3, repeating [1], repeating [3, 6])
+      -- {{+}{3}{{ZAG}{1}{3}}{{ZAG}{1}{6}}{{ZAG}{1}{3}}{{ZAG}{1}{6}}
+      -- {{ZAG}{1}{3}}{{ZAG}{1}{6}}{{ZAG}{1}{3}}{{ZAG}{1}{6}}
+      -- {{ZAG}{1}{3}}{{ZAG}{1}{6}}{...}}
+      --
+      -- In each of these examples the args list consists of the terms
+      -- following the '+' op
+      -- so the first arg could be a "ZAG" or something
+      -- else, but the second arg looks like it has to be "ZAG", so maybe
+      -- test for #args > 1 and args.2 contains "ZAG".
+      -- Note that since the resulting tables are nested we need
+      -- to handle the whole continued fraction at once, i.e. we can't
+      -- just look for, e.g., {{ZAG}{1}{6}}
+      --
+      -- we will assume that the font starts at 16px and reduce it by 4
+      -- <span style='font-size: 16px'>outer zag</span>
+      -- <span style='font-size: 14px'>next zag</span>
+      -- <span style='font-size: 12px'>next zag</span>
+      -- <span style='font-size: 10px'>next zag</span>
+      -- <span style='font-size: 9px'>lowest zag</span>
+      if debug then sayMono "formatZag: "concat["args=",_
+        argsToString(args)]
+--      tmpZag : L E := first args pretend L E
+--      fontAttrib : S :=
+--        nestLevel < 2 => "span style='font-size:16px'"
+--        nestLevel = 2 => "span style='font-size:14px'"
+--        nestLevel = 3 => "span style='font-size:12px'"
+--        nestLevel = 4 => "span style='font-size:10px'"
+--        "span style='font-size:9px'"
+--      -- may want to test that tmpZag contains 'ZAG'
+--      #args > 1 =>
+--        newNode(fontAttrib, buildZag(formatMonomode(first rest tmpZag, minPrec), _
+--          formatMonomode(first rest rest tmpZag, minPrec), _
+--            formatZag(rest args, nestLevel+1)))
+--      (first args = "...":: E)@Boolean => charRectangle("&#x2026;")
+--      op : S := stringify first args
+--      position("ZAG",op,1) > 0 =>
+--        newNode(fontAttrib, buildOver(formatMonomode(first rest tmpZag, minPrec), _
+--          formatMonomode(first rest rest tmpZag, minPrec)))
+--      charRectangle("formatZag: Last argument in ZAG construct unknown operator: "op)
+      empty()$CharRectangle
+
+    -- returns true if this term starts with a minus '-' sign
+    -- this is used so that we can suppress any plus '+' in front
+    -- of the - so we dont get terms like +-
+    neg?(arg : E) : Boolean ==
+      if debug then sayMono "neg?: "concat["arg=",argsToString([arg])]
+--      ATOM(arg)$Lisp@Boolean => false
+--      l : L E := (arg pretend L E)
+--      op : S := stringify first l
+--      op = "-" => true
+      false
+
+    formatNary(op : S, args : L E, prec : I) : CharRectangle ==
+      if debug then sayMono "formatNary: "concat["op=",op," args=",_
+        argsToString(args)," prec=",string(prec)$S]
+      formatNaryNoGroup(op, args, prec)
+
+    -- possible op values are:
+    -- ",",";","*"," ","ROW","+","-"
+    -- an example is content of matrix which gives:
+    -- {{ROW}{1}{2}}{{ROW}{3}{4}}
+    -- or AGGLST which gives op=, args={{1}{2}}
+    --
+    -- need to:
+    -- format ZAG
+    -- check for +-
+    -- add brackets for sigma or pi or root ("SIGMA","SIGMA2","PI","PI2")
+    formatNaryNoGroup(op : S, args : L E, prec : I)  : CharRectangle ==
+      if debug then sayMono "formatNaryNoGroup: "concat["op=",op,_
+        " args=",argsToString(args)," prec=",string(prec)$S]
+      checkargs : Boolean := false
+      null args => empty()$CharRectangle
+      p : I := position(op, naryOps)
+      p < 1 => error "unknown nary op"
+      -- need to test for "ZAG" case and divert it here
+      (#args > 1) and (position("ZAG",stringify first rest args,1) > 0) =>
+        if debug then sayMono "ZAG - not yet handled"
+        formatMonomode(first args,minPrec) -- temp
+--           tmpS : S := stringify first args
+--           position("ZAG",tmpS,1) > 0 => formatZag(args,1)
+--           newNodes("",[formatMonomode(first args,minPrec),tree("+"),_
+--            formatZag(rest args, 1)])
+      -- At least for the ops "*","+","-" we need to test to see if a
+      -- sigma or pi is one of their arguments because we might need
+      -- parentheses as indicated
+      -- by the problem with summation(operator(f)(i), i=1..n)+1 versus
+      -- summation(operator(f)(i)+1, i=1..n) having identical displays as of
+      -- 2007-12-21
+      l := empty()$CharRectangle
+      opPrec := naryPrecs.p
+      -- if checkargs is true check each arg except last one to see if it's
+      -- a sigma or pi and if so add parentheses. Other op's may have to be
+      -- checked for in future
+      count : I := 1
+      tags : (L CharRectangle)
+      if opPrec < prec then tags := [charRectangle("("),formatMonomode(args.1,opPrec)]
+      if opPrec >= prec then tags := [formatMonomode(args.1, opPrec)]
+      for a in rest args repeat
+        if op ~= "+" or not neg?(a) then tags := append(tags,[charRectangle(op)])
+        tags := append(tags, [formatMonomode(a, opPrec)])
+      if opPrec < prec then tags := append(tags,[charRectangle(")")])
+      hconcat(tags)
+
+    -- formatMonomode returns a string for this node in the rectangle
+    -- and calls recursivly to evaluate sub expressions
+    -- expr is a tree structure
+    -- prec is the precision of integers
+    formatMonomode(arg : E, prec : I) : CharRectangle ==
+      if debug then sayMono "formatMonomode: "concat["arg=",_
+        argsToString([arg])," prec=",string(prec)$S]
+      i, len : Integer
+      intSplitLen : Integer := 20
+      ATOM(arg)$Lisp@Boolean =>
+        if debug then sayMono "formatMonomode atom: "concat["expr=",_
+          stringify arg," prec=",string(prec)$S]
+        str := stringify arg
+        (i := position(str, specialStrings)) > 0 =>
+          sayMono "special string i="i
+          charRectangle(specialStringsInHTML.i)
+        sayMono "special string str="str
+        charRectangle(str)
+      l : L E := (arg pretend L E)
+      null l => charRectangle(blank)
+      op : S := stringify first l
+      args : L E := rest l
+      nargs : I := #args
+      -- need to test here in case first l is SUPERSUB case and then
+      -- pass first l and args to formatSuperSub.
+      position("SUPERSUB",op,1) > 0 =>
+        formatSuperSub(first l, args, minPrec)
+      -- now test for SUB
+      position("SUB",op,1) > 0 =>
+        formatSub(first l, args, minPrec)
+      -- special cases
+      -- specialOps are:
+      -- MATRIX, BRACKET, BRACE, CONCATB, VCONCAT
+      -- AGGLST, CONCAT, OVERBAR, ROOT, SUB, TAG
+      -- SUPERSUB, ZAG, AGGSET, SC, PAREN
+      -- SEGMENT, QUOTE, theMap, SLASH
+      member?(op, specialOps) => formatSpecial(op, args, prec)
+      -- specialOps are:
+      -- SIGMA, SIGMA2, PI, PI2, INTSIGN, INDEFINTEGRAL
+      member?(op, plexOps)    => formatPlex(op, args, prec)
+      -- nullary case: function with no aguments
+      0 = nargs => formatNullary op
+      -- unary case: function with one agument such as '-'
+      (1 = nargs) and member?(op, unaryOps) =>
+        formatUnary(op, first args, prec)
+      -- binary case
+      -- binary ops include special processing for | ^ / OVER and +->
+      (2 = nargs) and member?(op, binaryOps) =>
+        formatBinary(op, args, prec)
+      -- nary case: including '+' and '*'
+      member?(op, naryNGOps) => formatNaryNoGroup(op, args, prec)
+      member?(op, naryOps) => formatNary(op, args, prec)
+
+      op1 := formatMonomode(first l, minPrec)
+      formatFunction(op1, args, prec)
+
+
+
+@
+
+\section{License}
+<<license>>=
+--Copyright (c) 2014, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@
+<<*>>=
+<<license>>
+<<package HTMLFORM HTMLFormat>>
+@
+\eject
+\begin{thebibliography}{99}
+\bibitem{3} http : //www.euclideanspace.com/maths/standards/program/output/
+\end{thebibliography}
+\end{document}
