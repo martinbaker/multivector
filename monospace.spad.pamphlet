@@ -53,10 +53,7 @@ the following:
 After this the command line will output (in addition to other formats
 that are enabled).
 
-
-
 \section{Matrix Formatting}
-
 
 There are many other possibilities, for instance we can generate a matrix
 with bars either side to indicate a determinant. All we have to do is
@@ -64,23 +61,16 @@ change the css for the site, page or individual element.
 
 \section{Programmers Guide}
 This package converts from OutputForm, which is a hierarchical tree structure,
-to html which uses tags arranged in a hierarchical tree structure. So the
-package converts from one tree (graph) structure to another.
+to an array of Character.
 
-This conversion is done in two stages using an intermediate Tree String
-structure. This Tree String structure represents HTML where:
-\begin{verbatim}
-leafs represents unstructured text
-string in leafs contains the text
-non-leafs represents xml elements
-string in non-leafs represents xml attributes
-\end{verbatim}
+This is created by traversing OutputForm while building up an array of
+Character which represents a rectangular area of screen.
 
-This is created by traversing OutputForm while building up the Tree String
-structure.
+The second stage is to output this Character rectangle.
 
-The second stage is to convert the Tree Structure to text.
-
+To explain how this works I need to use diagrams, is hard to put diagrams
+in a pamphlet so I have put a fuller description on this web page:
+\url{http://www.euclideanspace.com/maths/standards/program/mycode/output/monospace/}
 
 \subsection{CharRectangle}
 <<domain CRECT CharRectangle>>=
