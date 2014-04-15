@@ -67,14 +67,21 @@ Interpret : Exports == Implementation where
       ++ set them to the correct high level types when I get
       ++ to implementing code that needs them.
 
+    -- check for system commands 
+    -- check for continuation to line
+    -- then interpret.
+    -- intended to replace intLoopReadConsole in
+    -- int-top.boot
     processString(s:String,param:%):Boolean ==
       if s=empty()$String then return true
       if s="" then  return true
       if s="q" then return false
-      if position(s,")",1) = 1 then
-        mathprint(concat(["process command"])$String)$Lisp
+      if position(")",s,1) = 1 then
         c := ncloopCommand(s,1)$Lisp
+        --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
         return true
+      c := intloopProcessString(s, 1)$Lisp
+      --mathprint(concat(["process string",mathObject2String$Lisp c])$String)$Lisp
       true
 
     -- constructor to setup parameters and run interpreter
@@ -110,9 +117,10 @@ Interpret : Exports == Implementation where
       keepGoing:Boolean := true
       lineNum:NNI := 1
       while keepGoing repeat
-        --mathprint("->")$Lisp
+        -- display prompt without carrage returm
         PRINC(concat(["(m",string(lineNum),") -> "])$String)$Lisp
         FORCE_-OUTPUT()$Lisp
+        -- read a line from stdin
         a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp
         s:String := a pretend String
         keepGoing := processString(s,param)
