@@ -1,0 +1,115 @@
+)abbrev domain INTER Interpret
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   This is an experiment to see how much of the FriCAS
+++   interpreter that I can write using SPAD code.
+++   Currently the interpreter is written in 'boot' code. For
+++   example in int-top.boot, server.boot, i-toplev.boot
+++   i-syscmd.boot and many others.
+++
+++   Boot code is poorly documented and loosly typed. There
+++   would be lots of advantages if boot code were removed.
+++
+++   I have made this a domain so that it can hold parameters
+++   which would otherwise be global parameters in boot code.
+++
+++   When the constructor 'spadInterpret' is called it sets up
+++   the parameters and then goes into the main interpreter loop
+++   reading lines and then acting on them.
+++
+Interpret : Exports == Implementation where
+  NNI==> NonNegativeInteger
+
+  Exports == with
+
+    spadInterpret:() -> %
+      ++ constructor to setup parameters and run interpreter
+      ++ inside existing interpreter
+
+  Implementation ==> add
+
+    Rep := Record(_
+      op: Symbol,_
+      Coerce: Symbol,_
+      compErrorMessageStack: Symbol,_
+      freeVars: Symbol,_
+      mapList: Symbol,_
+      compilingMap: Symbol,_
+      compilingLoop: Symbol,_
+      interpOnly: Symbol,_
+      whereCacheList: Symbol,_
+      timeGlobalName: Symbol,_
+      StreamFrame: Symbol,_
+      declaredMode: Symbol,_
+      localVars: Symbol,_
+      analyzingMapList: Symbol,_
+      lastLineInSEQ: Symbol,_
+      instantCoerceCount: Symbol,_
+      instantCanCoerceCount: Symbol,_
+      instantMmCondCount: Symbol,_
+      defaultFortVar:Symbol,_
+      fortVar: Symbol,_
+      defaultFortVar: Symbol,_
+      minivector: Symbol,_
+      minivectorCode: Symbol,_
+      minivectorNames: Symbol,_
+      domPvar: Symbol,_
+      inRetract: Symbol_
+    )
+      ++ parameters (was global parameters)
+
+    processString(s:String,param:%):Boolean ==
+      if s=empty()$String then return true
+      if s="" then  return true
+      if s="q" then return false
+      if position(s,")",1) = 1 then
+        mathprint(concat(["process command"])$String)$Lisp
+        c := ncloopCommand(s,1)$Lisp
+        return true
+      true
+
+    -- constructor to create rectangle
+    spadInterpret():% ==
+      -- setup global parameters 
+      param:% := ['X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X]
+      keepGoing:Boolean := true
+      lineNum:NNI := 1
+      while keepGoing repeat
+        --mathprint("->")$Lisp
+        PRINC(concat(["(m",string(lineNum),") -> "])$String)$Lisp
+        FORCE_-OUTPUT()$Lisp
+        a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp
+        s:String := a pretend String
+        keepGoing := processString(s,param)
+        lineNum := lineNum + 1
+      param
+
+
+@
