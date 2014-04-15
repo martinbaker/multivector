@@ -67,6 +67,23 @@ Interpret : Exports == Implementation where
       ++ set them to the correct high level types when I get
       ++ to implementing code that needs them.
 
+    -- if a line starts with ) this indicates a system command
+    -- so this will be called
+    -- intended to replace ncloopCommand in
+    -- int-top.boot
+    processSystemCommand(s:String,param:%):Boolean ==
+      c := ncloopCommand(s,1$NNI)$Lisp
+      --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
+      true
+
+    -- if a line is not a system command then this will be called
+    -- intended to replace intloopProcessString in
+    -- int-top.boot
+    processMath(s:String,param:%):Boolean ==
+      c := intloopProcessString(s, 1$NNI)$Lisp
+      --mathprint(concat(["process string",mathObject2String$Lisp c])$String)$Lisp
+      true
+
     -- check for system commands 
     -- check for continuation to line
     -- then interpret.
@@ -77,12 +94,8 @@ Interpret : Exports == Implementation where
       if s="" then  return true
       if s="q" then return false
       if position(")",s,1) = 1 then
-        c := ncloopCommand(s,1)$Lisp
-        --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
-        return true
-      c := intloopProcessString(s, 1)$Lisp
-      --mathprint(concat(["process string",mathObject2String$Lisp c])$String)$Lisp
-      true
+        return processSystemCommand(s,param)
+      processMath(s,param)
 
     -- constructor to setup parameters and run interpreter
     -- inside existing interpreter
