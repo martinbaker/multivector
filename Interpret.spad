@@ -19,6 +19,10 @@
 ++   the parameters and then goes into the main interpreter loop
 ++   reading lines and then acting on them.
 ++
+++   To start with the interpreter loop will just call the 
+++   existing lisp functions. The plan is to gradually implement
+++   more of these functions in high level code.
+
 Interpret : Exports == Implementation where
   NNI==> NonNegativeInteger
 
@@ -59,6 +63,9 @@ Interpret : Exports == Implementation where
       inRetract: Symbol_
     )
       ++ parameters (was global parameters)
+      ++ I have just set everthing to Symbol for now but will
+      ++ set them to the correct high level types when I get
+      ++ to implementing code that needs them.
 
     processString(s:String,param:%):Boolean ==
       if s=empty()$String then return true
@@ -70,7 +77,8 @@ Interpret : Exports == Implementation where
         return true
       true
 
-    -- constructor to create rectangle
+    -- constructor to setup parameters and run interpreter
+    -- inside existing interpreter
     spadInterpret():% ==
       -- setup global parameters 
       param:% := ['X,_
