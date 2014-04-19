@@ -22,6 +22,12 @@
 ++   To start with the interpreter loop will just call the 
 ++   existing lisp functions. The plan is to gradually implement
 ++   more of these functions in high level code.
+++
+++   I have put information about running this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++   The original interpreter is undocumented so I'm trying to
+++   bootstrap my understanding by working out what I can here:
+++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
 
 Interpret : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -71,17 +77,27 @@ Interpret : Exports == Implementation where
     -- so this will be called
     -- intended to replace ncloopCommand in
     -- int-top.boot
-    processSystemCommand(s:String,param:%):Boolean ==
-      c := ncloopCommand(s,1$NNI)$Lisp
+    processSystemCommand(s:String,param:%,lineNum:NNI):Boolean ==
+      c := ncloopCommand(s,lineNum)$Lisp
+      --InterpExecuteSpadSystemCommand(s)$Lisp
+      --doSystemCommand(s)$Lisp
       --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
       true
 
     -- if a line is not a system command then this will be called
     -- intended to replace intloopProcessString in
     -- int-top.boot
-    processMath(s:String,param:%):Boolean ==
-      c := intloopProcessString(s, 1$NNI)$Lisp
-      --mathprint(concat(["process string",mathObject2String$Lisp c])$String)$Lisp
+    processMath(s:String,param:%,lineNum:NNI):Boolean ==
+      --c := intloopProcessString(s,lineNum)$Lisp
+      b := incString(s)$Lisp
+      mathprint("token:")$Lisp
+      print(b::OutputForm)
+      c := lineoftoks(b)$Lisp
+      mathprint("lineoftoks:")$Lisp
+      print(c::OutputForm)
+      d := parseFromString(s)$Lisp
+      mathprint("parse:")$Lisp
+      print(d::OutputForm)
       true
 
     -- check for system commands 
@@ -89,13 +105,13 @@ Interpret : Exports == Implementation where
     -- then interpret.
     -- intended to replace intLoopReadConsole in
     -- int-top.boot
-    processString(s:String,param:%):Boolean ==
+    processString(s:String,param:%,lineNum:NNI):Boolean ==
       if s=empty()$String then return true
       if s="" then  return true
       if s="q" then return false
       if position(")",s,1) = 1 then
-        return processSystemCommand(s,param)
-      processMath(s,param)
+        return processSystemCommand(s,param,lineNum)
+      processMath(s,param,lineNum)
 
     -- constructor to setup parameters and run interpreter
     -- inside existing interpreter
@@ -130,13 +146,14 @@ Interpret : Exports == Implementation where
       keepGoing:Boolean := true
       lineNum:NNI := 1
       while keepGoing repeat
-        -- display prompt without carrage returm
+        -- display prompt without carrage return
+        -- I have added m so that I know this interpreter is running
         PRINC(concat(["(m",string(lineNum),") -> "])$String)$Lisp
         FORCE_-OUTPUT()$Lisp
-        -- read a line from stdin
+        -- read a line from stdin to a string
         a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp
         s:String := a pretend String
-        keepGoing := processString(s,param)
+        keepGoing := processString(s,param,lineNum)
         lineNum := lineNum + 1
       param
 
