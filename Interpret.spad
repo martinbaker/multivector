@@ -156,6 +156,157 @@ Interpret : Exports == Implementation where
         keepGoing := processString(s,param,lineNum)
         lineNum := lineNum + 1
       param
+@
 
+)abbrev domain TOKENISE Tokeniser
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   This takes the input string and converts it to a list of tokens.
+++
+++   I have put information about running this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++   The original interpreter is undocumented so I'm trying to
+++   bootstrap my understanding by working out what I can here:
+++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
 
+Tokeniser : Exports == Implementation where
+  NNI==> NonNegativeInteger
+  TOKENTYPE ==> Symbol
+    ++ valid token types are:
+    ++id: Symbol
+    ++key: Symbol
+    ++integer: Symbol
+    ++rinteger: Symbol
+    ++float: Symbol
+    ++string: Symbol
+    ++comment: Symbol
+    ++negcomment: Symbol
+    ++error: Symbol
+    ++spaces: Symbol
+  TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
+  KEYS ==> List Record(a:String,b:String)
+    ++ perhaps this should be hash table?
+    ++ can be optimised later if needed
+
+  Exports == with
+
+    spadTokenise:(s:String) -> %
+      ++ constructor to put string into tokeniser
+
+  Implementation ==> add
+
+    Rep := List TOKEN
+      ++ list of tokens.
+
+    -- constructor to put string into tokeniser
+    spadTokenise(s:String):% ==
+      keys:KEYS := [
+           ["add",      "add"], _
+           ["and",      "and"], _
+           ["break",   "break"], _
+           ["by",        "by"], _
+           ["case",     "case"], _
+           ["catch",  "catch"], _
+           ["default",  "DEFAULT" ],_
+           ["define",  "DEFN" ],_
+           ["do",        "DO"],_
+           ["else",    "else"], _
+           ["exquo",   "exquo"], _
+           ["export","EXPORT" ],_
+           ["finally", "finally"], _
+           ["for",      "for"], _
+           ["free",    "FREE" ],_
+           ["from",    "from"], _
+           ["generate", "generate"], _
+           ["goto",    "goto"], _
+           ["has",      "has"], _
+           ["if",       "if"], _
+           ["import", "import"], _
+           ["in", "in"], _
+           ["inline", "INLINE" ],_
+           ["is", "is"], _
+           ["isnt", "isnt"], _
+           ["iterate", "ITERATE"],_
+           ["local", "local"], _
+           ["macro", "MACRO" ],_
+           ["mod", "MOD" ],_
+           ["not", "not"], _
+           ["or", "or"], _
+           ["pretend", "pretend"], _
+           ["quo", "quo"], _
+           ["rem", "rem"], _
+           ["repeat", "repeat"],_
+           ["return", "return"],_
+           ["rule","RULE" ],_
+           ["then", "then"],_
+           ["try", "try"], _
+           ["until", "until"], _
+           ["where", "where"], _
+           ["while", "while"],_
+           ["with", "with"], _
+           ["yield", "yield"], _
+           ["|","BAR"],_
+           [".","DOT" ],_
+           ["::","COERCE" ],_
+           [":","COLON" ],_
+           [":-","COLONDASH" ],_
+           ["@","AT" ],_
+           ["@@","ATAT" ],_
+           [",","COMMA" ],_
+           [";","SEMICOLON" ],_
+           ["**","POWER" ],_
+           ["*","TIMES" ],_
+           ["+","PLUS" ],_
+           ["-","MINUS" ],_
+           ["<","LT" ],_
+           [">","GT" ],_
+           ["<=","LE" ],_
+           [">=","GE" ],_
+           ["=", "EQUAL"],_
+           ["~=","NOTEQUAL" ],_
+           ["~","~" ],_
+           ["^","CARAT" ],_
+           ["..","SEG" ],_
+           ["#","#" ],_
+           ["#1", "#1" ],_
+           ["&","AMPERSAND" ],_
+           ["$","$" ],_
+           ["/","SLASH" ],_
+           ["\","BACKSLASH" ],_
+           ["//","SLASHSLASH" ],_
+           ["\\","BACKSLASHBACKSLASH" ],_
+           ["/\","SLASHBACKSLASH" ],_
+           ["\/","BACKSLASHSLASH" ],_
+           ["=>","EXIT" ],_
+           [":=","BECOMES" ],_
+           ["==","DEF" ],_
+           ["==>","MDEF" ],_
+           ["->","ARROW" ],_
+           ["<-","LARROW" ],_
+           ["+->","GIVES" ],_
+           ["(","(" ],_
+           [")",")" ],_
+           ["(|","(|" ],_
+           ["|)","|)" ],_
+           ["[","[" ],_
+           ["]","]" ],_
+           ["[__]","[]" ],_
+           ["{","{" ],_
+           ["}","}" ],_
+           ["{__}","{}" ],_
+           ["[|","[|" ],_
+           ["|]","|]" ],_
+           ["[|__|]","[||]" ],_
+           ["{|","{|" ],_
+           ["|}","|}" ],_
+           ["{|__|}","{||}" ],_
+           ["<<","OANGLE" ],_
+           [">>","CANGLE" ],_
+           ["'", "'" ],_
+           ["`", "BACKQUOTE" ]_
+                         ]
+
+      [["spaces"::Symbol,s]]
 @
