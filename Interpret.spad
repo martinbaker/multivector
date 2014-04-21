@@ -165,6 +165,12 @@ Interpret : Exports == Implementation where
 ++ Description:
 ++   This takes the input string and converts it to a list of tokens.
 ++
+++ To do:
+++  * need to be able to split non-alphanumeric symbols
+++  for example a=-3 only works if we put space between = and -
+++  * floats not yet handled correctly
+++  for example 3e-5 would not work correctly
+++
 ++   I have put information about running this code here:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
 ++   The original interpreter is undocumented so I'm trying to
@@ -194,12 +200,18 @@ Tokeniser : Exports == Implementation where
 
     spadTokenise:(s:String) -> %
       ++ constructor to put string into tokeniser
+    getAll:(n: %) -> List TOKEN
+      ++ gets complete list of tokens
     coerce: (n: %) -> OutputForm
       ++ output
   Implementation ==> add
 
     Rep := List TOKEN
       ++ list of tokens.
+
+    -- gets complete list of tokens
+    getAll(n: %):List(TOKEN) ==
+      n pretend List(TOKEN)
 
     makeToken(t:TOKENTYPE,s:String,keys:KEYS):TOKEN ==
       for key in keys repeat
@@ -321,7 +333,7 @@ Tokeniser : Exports == Implementation where
         ttThis:TOKENTYPE := "error"::Symbol
         if c=space() then ttThis := "spaces"::Symbol
         if alphabetic?(c) then ttThis := "id"::Symbol
-        nonAlphaNum:boolean := not (alphanumeric?(c) or c=space())
+        nonAlphaNum:Boolean := not (alphanumeric?(c) or c=space())
         if digit?(c) then ttThis := "integer"::Symbol
         -- ids can have numeric characters but not the first
         if ttCur="id"::Symbol and ttThis = "integer"::Symbol then
@@ -356,4 +368,55 @@ Tokeniser : Exports == Implementation where
           ])
         toks := concat(toks,tok)$List(OutputForm)
       bracket(toks)
+@
+
+)abbrev domain PARSE Parser
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   This takes a list of tokens and converts it to a tree structure
+++   containing untyped values.
+++
+++
+++   I have put information about running this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++   The original interpreter is undocumented so I'm trying to
+++   bootstrap my understanding by working out what I can here:
+++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
+
+Parser : Exports == Implementation where
+  NNI==> NonNegativeInteger
+  TOKENTYPE ==> Symbol
+    ++ valid token types are:
+    ++id: Symbol
+    ++key: Symbol
+    ++integer: Symbol
+    ++rinteger: Symbol
+    ++float: Symbol
+    ++string: Symbol
+    ++comment: Symbol
+    ++negcomment: Symbol
+    ++error: Symbol
+    ++spaces: Symbol
+  TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
+
+  Exports == with
+
+    spadParse:(tl:List TOKEN) -> %
+      ++ constructor to construct tree from token list
+    coerce: (n: %) -> OutputForm
+      ++ output
+  Implementation ==> add
+
+    Rep := Tree String
+      ++ tree structure.
+
+    -- constructor to construct tree from token list
+    spadParse(tl:List TOKEN):% ==
+      res := tree("error")
+      res
+      
+    coerce(n: %):OutputForm ==
+      "hello"::OutputForm
 @
