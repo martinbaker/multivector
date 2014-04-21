@@ -194,11 +194,17 @@ Tokeniser : Exports == Implementation where
 
     spadTokenise:(s:String) -> %
       ++ constructor to put string into tokeniser
-
+    coerce: (n: %) -> OutputForm
+      ++ output
   Implementation ==> add
 
     Rep := List TOKEN
       ++ list of tokens.
+
+    makeToken(t:TOKENTYPE,s:String,keys:KEYS):TOKEN ==
+      for key in keys repeat
+        if s = key.a then return ["key"::Symbol,key.b]
+      [t,s]
 
     -- constructor to put string into tokeniser
     spadTokenise(s:String):% ==
@@ -307,6 +313,47 @@ Tokeniser : Exports == Implementation where
            ["'", "'" ],_
            ["`", "BACKQUOTE" ]_
                          ]
+      res:List(TOKEN) := nil()$List(TOKEN)
+      cl:List Character := entries(s)
+      ttCur:TOKENTYPE := "null"::Symbol
+      startIndex:NNI := 1
+      for c in cl for i in 1..(#cl) repeat
+        ttThis:TOKENTYPE := "error"::Symbol
+        if c=space() then ttThis := "spaces"::Symbol
+        if alphabetic?(c) then ttThis := "id"::Symbol
+        nonAlphaNum:boolean := not (alphanumeric?(c) or c=space())
+        if digit?(c) then ttThis := "integer"::Symbol
+        -- ids can have numeric characters but not the first
+        if ttCur="id"::Symbol and ttThis = "integer"::Symbol then
+          ttThis := "id"::Symbol
+        -- if reading a float don't change it to integer
+        if ttCur="float"::Symbol and ttThis = "integer"::Symbol then
+          ttThis := "float"::Symbol
+        -- float can contain . e or E
+        if ttCur="integer"::Symbol and (_
+          c=char(".") or c=char("e") or c=char("E")) then
+            ttThis := "float"::Symbol        
+            ttCur := "float"::Symbol        
+        if ttCur ~= ttThis then
+          if ttCur ~= "null"::Symbol then
+              subChars:List(Character) := [cl.x for x in (startIndex..(i-1))]
+              sub:String := construct(subChars)
+              res := concat(res,makeToken(ttCur,sub,keys))
+              startIndex := i
+          ttCur := ttThis
+      if ttCur ~= "null"::Symbol then
+        subChars:List(Character) := [cl.x for x in (startIndex..(#cl))]
+        sub:String := construct(subChars)
+        res := concat(res,makeToken(ttCur,sub,keys))$List(TOKEN)
+      res
 
-      [["spaces"::Symbol,s]]
+    coerce(n: %):OutputForm ==
+      toks:List(OutputForm) := nil()$List(OutputForm)
+      for v in n repeat
+        tok:OutputForm := hconcat([(v.tt)::OutputForm,_
+          "="::OutputForm,_
+          (v.tokVal)::OutputForm_
+          ])
+        toks := concat(toks,tok)$List(OutputForm)
+      bracket(toks)
 @
