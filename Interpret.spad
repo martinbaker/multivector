@@ -291,6 +291,8 @@ Parser : Exports == Implementation where
     spadParse1:(tl:Tokeniser,p:NNI) -> %
       ++ only used by spadParse and subnode
       ++ export this because its recursive
+    hasError?:(tr:%,guard:NNI) -> Boolean
+      ++ true if there is an error anywhere in the tree
 --    coerce: (n: %) -> OutputForm
       ++ output
       ++ tree can already be coerced to outputForm so this is not needed
@@ -299,51 +301,83 @@ Parser : Exports == Implementation where
     Rep := Tree TOKEN
       ++ tree structure.
 
-    leftAssociative(t:TOKEN):Boolean ==
-      true
+    isError?(t:TOKEN):Boolean ==
+       t.tt = "error"::Symbol
+
+    -- true if there is an error anywhere in the tree
+    hasError?(tr:%,guard:NNI):Boolean ==
+--      mathprint("hasError? called:")$Lisp
+--      print((tr pretend Tree(TOKEN))::OutputForm)
+      if guard<20 then return true
+      if cyclic?(tr) then return true
+      if leaf?(tr) then
+        v:TOKEN := value(tr)
+        return isError?(v)
+      nds:List % := nodes(tr)
+      for nd in nds repeat
+        if hasError?(nd,guard+1) then return true
+      false
 
     isKey?(t:TOKEN,s:String):Boolean ==
       if t.tt ~= "key"::Symbol then return false
       t.tokVal=s
 
     binary?(t:TOKEN):Boolean ==
-      if isKey?(t,"+") then return true
-      if isKey?(t,"*") then return true
+      if isKey?(t,"PLUS") then return true
+      if isKey?(t,"TIMES") then return true
       false
 
     unary?(t:TOKEN):Boolean ==
-      if isKey?(t,"-") then return true
+      if isKey?(t,"MINUS") then return true
       false
 
     isLeaf?(t:TOKEN):Boolean ==
-      if t.tt ~= "key"::Symbol then return false
-      true
+      if t.tt = "id"::Symbol then return true
+      if t.tt = "integer"::Symbol then return true
+      if t.tt = "rinteger"::Symbol then return true
+      if t.tt = "string"::Symbol then return true
+      if t.tt = "comment"::Symbol then return true
+      if t.tt = "negcomment"::Symbol then return true
+      if t.tt = "error"::Symbol then return true
+      false
 
-    prec(t:TOKEN):NNI ==
-      8
+    leftPrec(t:TOKEN):NNI ==
+      if isKey?(t,"PLUS") then return 4
+      if isKey?(t,"TIMES") then return 8
+      0
+
+    rightPrec(t:TOKEN):NNI ==
+      if isKey?(t,"PLUS") then return 5
+      if isKey?(t,"TIMES") then return 9
+      0
 
     subNode(tl:Tokeniser):% ==
       res:Tree(TOKEN) := tree(["error"::Symbol,"invalid token"])
       n:TOKEN := next(tl)
+--      mathprint("subNode token:")$Lisp
+--      print(bracket([n::OutputForm]))
       if unary?(n) then
         m:TOKEN := consumeNonSpace!(tl)
-        q:NNI := prec(n)
+        q:NNI := leftPrec(n)
         leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
         return tree(n,[leftOperand])$Tree(TOKEN)
       if isKey?(n,"(") then
         m:TOKEN := consumeNonSpace!(tl)
+        mathprint("subNode m=")$Lisp
+        print(bracket([m::OutputForm]))
         leftOperand:Tree(TOKEN) := spadParse1(tl,0) pretend Tree(TOKEN)
         res:= tree(n,[leftOperand])$Tree(TOKEN)
         m2:TOKEN := consumeNonSpace!(tl)
+        mathprint("subNode m2=")$Lisp
+        print(bracket([m2::OutputForm]))
         if not isKey?(m2,")") then
           leftOperand:Tree(TOKEN) := tree(["error"::Symbol,"mismatch brackets"])
           res:= tree(n,[leftOperand])$Tree(TOKEN)
         return res
       if isLeaf?(n) then
         m:TOKEN := consumeNonSpace!(tl)
-        q:NNI := prec(n)
-        leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
-        return tree(n,[leftOperand])$Tree(TOKEN)
+        --q:NNI := leftPrec(n)
+        return tree(n)$Tree(TOKEN)
       consumeNonSpace!(tl)
       res    
 
@@ -351,14 +385,17 @@ Parser : Exports == Implementation where
     spadParse1(tl:Tokeniser,p:NNI):% ==
       res:Tree(TOKEN) := subNode(tl) pretend Tree(TOKEN)
       n:TOKEN := next(tl)
-      while binary?(n) and prec(n) >= p repeat
-        m:TOKEN := consumeNonSpace!(tl)
-        q:NNI := if leftAssociative(n)
-          then prec(n)
-          else prec(n)+1
-        leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
-        res := tree(n,[leftOperand,res])$Tree(TOKEN)
-      consumeNonSpace!(tl)
+--      mathprint("spadParse1 token:")$Lisp
+--      print(bracket([n::OutputForm,leftPrec(n)::OutputForm,p::OutputForm,_
+--        binary?(n)::OutputForm]))
+      while binary?(n) and leftPrec(n) >= p repeat
+        consumeNonSpace!(tl)
+        ql:NNI := leftPrec(n)
+        qr:NNI := rightPrec(n)
+        rightOperand:Tree(TOKEN) := spadParse1(tl,ql) pretend Tree(TOKEN)
+        if hasError?(rightOperand,0) then return tree(n,[copy(res),rightOperand])$Tree(TOKEN)
+        res := tree(n,[copy(res),rightOperand])$Tree(TOKEN)
+        n:= next(tl)
       res
 
     -- constructor to construct tree from token list
