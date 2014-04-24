@@ -1,163 +1,3 @@
-)abbrev domain INTER Interpret
-++ Author: Martin Baker
-++ Date Created: April 2014
-++ Date Last Updated: April 2014
-++ Description:
-++   This is an experiment to see how much of the FriCAS
-++   interpreter that I can write using SPAD code.
-++   Currently the interpreter is written in 'boot' code. For
-++   example in int-top.boot, server.boot, i-toplev.boot
-++   i-syscmd.boot and many others.
-++
-++   Boot code is poorly documented and loosly typed. There
-++   would be lots of advantages if boot code were removed.
-++
-++   I have made this a domain so that it can hold parameters
-++   which would otherwise be global parameters in boot code.
-++
-++   When the constructor 'spadInterpret' is called it sets up
-++   the parameters and then goes into the main interpreter loop
-++   reading lines and then acting on them.
-++
-++   To start with the interpreter loop will just call the 
-++   existing lisp functions. The plan is to gradually implement
-++   more of these functions in high level code.
-++
-++   I have put information about running this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
-++   The original interpreter is undocumented so I'm trying to
-++   bootstrap my understanding by working out what I can here:
-++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
-
-Interpret : Exports == Implementation where
-  NNI==> NonNegativeInteger
-
-  Exports == with
-
-    spadInterpret:() -> %
-      ++ constructor to setup parameters and run interpreter
-      ++ inside existing interpreter
-
-  Implementation ==> add
-
-    Rep := Record(_
-      op: Symbol,_
-      Coerce: Symbol,_
-      compErrorMessageStack: Symbol,_
-      freeVars: Symbol,_
-      mapList: Symbol,_
-      compilingMap: Symbol,_
-      compilingLoop: Symbol,_
-      interpOnly: Symbol,_
-      whereCacheList: Symbol,_
-      timeGlobalName: Symbol,_
-      StreamFrame: Symbol,_
-      declaredMode: Symbol,_
-      localVars: Symbol,_
-      analyzingMapList: Symbol,_
-      lastLineInSEQ: Symbol,_
-      instantCoerceCount: Symbol,_
-      instantCanCoerceCount: Symbol,_
-      instantMmCondCount: Symbol,_
-      defaultFortVar:Symbol,_
-      fortVar: Symbol,_
-      defaultFortVar: Symbol,_
-      minivector: Symbol,_
-      minivectorCode: Symbol,_
-      minivectorNames: Symbol,_
-      domPvar: Symbol,_
-      inRetract: Symbol_
-    )
-      ++ parameters (was global parameters)
-      ++ I have just set everthing to Symbol for now but will
-      ++ set them to the correct high level types when I get
-      ++ to implementing code that needs them.
-
-    -- if a line starts with ) this indicates a system command
-    -- so this will be called
-    -- intended to replace ncloopCommand in
-    -- int-top.boot
-    processSystemCommand(s:String,param:%,lineNum:NNI):Boolean ==
-      c := ncloopCommand(s,lineNum)$Lisp
-      --InterpExecuteSpadSystemCommand(s)$Lisp
-      --doSystemCommand(s)$Lisp
-      --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
-      true
-
-    -- if a line is not a system command then this will be called
-    -- intended to replace intloopProcessString in
-    -- int-top.boot
-    processMath(s:String,param:%,lineNum:NNI):Boolean ==
-      --c := intloopProcessString(s,lineNum)$Lisp
-      b := incString(s)$Lisp
-      mathprint("token:")$Lisp
-      print(b::OutputForm)
-      c := lineoftoks(b)$Lisp
-      mathprint("lineoftoks:")$Lisp
-      print(c::OutputForm)
-      d := parseFromString(s)$Lisp
-      mathprint("parse:")$Lisp
-      print(d::OutputForm)
-      true
-
-    -- check for system commands 
-    -- check for continuation to line
-    -- then interpret.
-    -- intended to replace intLoopReadConsole in
-    -- int-top.boot
-    processString(s:String,param:%,lineNum:NNI):Boolean ==
-      if s=empty()$String then return true
-      if s="" then  return true
-      if s="q" then return false
-      if position(")",s,1) = 1 then
-        return processSystemCommand(s,param,lineNum)
-      processMath(s,param,lineNum)
-
-    -- constructor to setup parameters and run interpreter
-    -- inside existing interpreter
-    spadInterpret():% ==
-      -- setup global parameters 
-      param:% := ['X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X,_
-        'X]
-      keepGoing:Boolean := true
-      lineNum:NNI := 1
-      while keepGoing repeat
-        -- display prompt without carrage return
-        -- I have added m so that I know this interpreter is running
-        PRINC(concat(["(m",string(lineNum),") -> "])$String)$Lisp
-        FORCE_-OUTPUT()$Lisp
-        -- read a line from stdin to a string
-        a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp
-        s:String := a pretend String
-        keepGoing := processString(s,param,lineNum)
-        lineNum := lineNum + 1
-      param
-@
-
 )abbrev domain TOKENISE Tokeniser
 ++ Author: Martin Baker
 ++ Date Created: April 2014
@@ -171,11 +11,10 @@ Interpret : Exports == Implementation where
 ++  * floats not yet handled correctly
 ++  for example 3e-5 would not work correctly
 ++
-++   I have put information about running this code here:
+++   I have put specific information about this tokeniser here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/tokeniser/
+++   I have put more general information about running this code here:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
-++   The original interpreter is undocumented so I'm trying to
-++   bootstrap my understanding by working out what I can here:
-++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
 
 Tokeniser : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -202,17 +41,62 @@ Tokeniser : Exports == Implementation where
       ++ constructor to put string into tokeniser
     getAll:(n: %) -> List TOKEN
       ++ gets complete list of tokens
+    next:(n: %) -> TOKEN
+      ++ gets but not consume next token
+    consume!:(n: %) -> TOKEN
+      ++ consume next token
+    consumeNonSpace!:(n: %) -> TOKEN
+      ++ consume next token stepping over spaces
+    more?:(n: %) -> Boolean
+      ++ true if has more
     coerce: (n: %) -> OutputForm
       ++ output
   Implementation ==> add
 
-    Rep := List TOKEN
-      ++ list of tokens.
+    Rep := Record (TokLst:List TOKEN,Ptr:NNI)
+      ++ list of tokens and pointer to this list.
 
     -- gets complete list of tokens
     getAll(n: %):List(TOKEN) ==
-      n pretend List(TOKEN)
+      (n.TokLst) pretend List(TOKEN)
 
+    -- gets but not consume next token
+    next(n: %):TOKEN ==
+      p := n.Ptr
+      tl := n.TokLst
+      if p > (#tl) then return ["error"::Symbol,"more expected"]
+      ret:TOKEN := tl.p
+
+    -- consume next token
+    consume!(n: %):TOKEN ==
+      p := n.Ptr
+      tl := n.TokLst
+      if p > (#tl) then return ["error"::Symbol,"more expected"]
+      ret:TOKEN := tl.p
+      n.Ptr := p+1
+      ret
+
+    -- consume next token stepping over spaces
+    consumeNonSpace!(n: %):TOKEN ==
+      p := n.Ptr
+      tl := n.TokLst
+      if p > (#tl) then return ["error"::Symbol,"more expected"]
+      ret:TOKEN := tl.p
+      if ret.tt = "error"::Symbol then
+        p := p+1
+        if p > (#tl) then return ["error"::Symbol,"more expected"]
+        ret:TOKEN := tl.p
+      n.Ptr := p+1
+      ret
+
+    -- gets gets and consume next token
+    more?(n: %):Boolean ==
+      p := n.Ptr
+      tl := n.TokLst
+      (p > (#tl))
+
+    -- used by spadTokenise to make a token and check if
+    -- it is a key
     makeToken(t:TOKENTYPE,s:String,keys:KEYS):TOKEN ==
       for key in keys repeat
         if s = key.a then return ["key"::Symbol,key.b]
@@ -357,11 +241,11 @@ Tokeniser : Exports == Implementation where
         subChars:List(Character) := [cl.x for x in (startIndex..(#cl))]
         sub:String := construct(subChars)
         res := concat(res,makeToken(ttCur,sub,keys))$List(TOKEN)
-      res
+      [res,1]
 
     coerce(n: %):OutputForm ==
       toks:List(OutputForm) := nil()$List(OutputForm)
-      for v in n repeat
+      for v in n.TokLst repeat
         tok:OutputForm := hconcat([(v.tt)::OutputForm,_
           "="::OutputForm,_
           (v.tokVal)::OutputForm_
@@ -379,11 +263,10 @@ Tokeniser : Exports == Implementation where
 ++   containing untyped values.
 ++
 ++
-++   I have put information about running this code here:
+++   I have put specific information about this parser here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/parser/
+++   I have put more general information about running this code here:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
-++   The original interpreter is undocumented so I'm trying to
-++   bootstrap my understanding by working out what I can here:
-++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
 
 Parser : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -403,20 +286,266 @@ Parser : Exports == Implementation where
 
   Exports == with
 
-    spadParse:(tl:List TOKEN) -> %
+    spadParse:(tl:Tokeniser) -> %
       ++ constructor to construct tree from token list
-    coerce: (n: %) -> OutputForm
+    spadParse1:(tl:Tokeniser,p:NNI) -> %
+      ++ only used by spadParse and subnode
+      ++ export this because its recursive
+--    coerce: (n: %) -> OutputForm
       ++ output
+      ++ tree can already be coerced to outputForm so this is not needed
   Implementation ==> add
 
-    Rep := Tree String
+    Rep := Tree TOKEN
       ++ tree structure.
 
-    -- constructor to construct tree from token list
-    spadParse(tl:List TOKEN):% ==
-      res := tree("error")
+    leftAssociative(t:TOKEN):Boolean ==
+      true
+
+    isKey?(t:TOKEN,s:String):Boolean ==
+      if t.tt ~= "key"::Symbol then return false
+      t.tokVal=s
+
+    binary?(t:TOKEN):Boolean ==
+      if isKey?(t,"+") then return true
+      if isKey?(t,"*") then return true
+      false
+
+    unary?(t:TOKEN):Boolean ==
+      if isKey?(t,"-") then return true
+      false
+
+    isLeaf?(t:TOKEN):Boolean ==
+      if t.tt ~= "key"::Symbol then return false
+      true
+
+    prec(t:TOKEN):NNI ==
+      8
+
+    subNode(tl:Tokeniser):% ==
+      res:Tree(TOKEN) := tree(["error"::Symbol,"invalid token"])
+      n:TOKEN := next(tl)
+      if unary?(n) then
+        m:TOKEN := consumeNonSpace!(tl)
+        q:NNI := prec(n)
+        leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
+        return tree(n,[leftOperand])$Tree(TOKEN)
+      if isKey?(n,"(") then
+        m:TOKEN := consumeNonSpace!(tl)
+        leftOperand:Tree(TOKEN) := spadParse1(tl,0) pretend Tree(TOKEN)
+        res:= tree(n,[leftOperand])$Tree(TOKEN)
+        m2:TOKEN := consumeNonSpace!(tl)
+        if not isKey?(m2,")") then
+          leftOperand:Tree(TOKEN) := tree(["error"::Symbol,"mismatch brackets"])
+          res:= tree(n,[leftOperand])$Tree(TOKEN)
+        return res
+      if isLeaf?(n) then
+        m:TOKEN := consumeNonSpace!(tl)
+        q:NNI := prec(n)
+        leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
+        return tree(n,[leftOperand])$Tree(TOKEN)
+      consumeNonSpace!(tl)
+      res    
+
+    -- construct tree from token list
+    spadParse1(tl:Tokeniser,p:NNI):% ==
+      res:Tree(TOKEN) := subNode(tl) pretend Tree(TOKEN)
+      n:TOKEN := next(tl)
+      while binary?(n) and prec(n) >= p repeat
+        m:TOKEN := consumeNonSpace!(tl)
+        q:NNI := if leftAssociative(n)
+          then prec(n)
+          else prec(n)+1
+        leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
+        res := tree(n,[leftOperand,res])$Tree(TOKEN)
+      consumeNonSpace!(tl)
       res
-      
-    coerce(n: %):OutputForm ==
-      "hello"::OutputForm
+
+    -- constructor to construct tree from token list
+    spadParse(tl:Tokeniser):% ==
+      spadParse1(tl,0)
+
+-- tree can already be coerced to outputForm so this is not needed
+--    coerce(n: %):OutputForm ==
+--      n::OutputForm
+@
+
+)abbrev domain INTER Interpret
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   This is an experiment to see how much of the FriCAS
+++   interpreter that I can write using SPAD code.
+++   Currently the interpreter is written in 'boot' code. For
+++   example in int-top.boot, server.boot, i-toplev.boot
+++   i-syscmd.boot and many others.
+++
+++   Boot code is poorly documented and loosly typed. There
+++   would be lots of advantages if boot code were removed.
+++
+++   I have made this a domain so that it can hold parameters
+++   which would otherwise be global parameters in boot code.
+++
+++   When the constructor 'spadInterpret' is called it sets up
+++   the parameters and then goes into the main interpreter loop
+++   reading lines and then acting on them.
+++
+++   To start with the interpreter loop will just call the 
+++   existing lisp functions. The plan is to gradually implement
+++   more of these functions in high level code.
+++
+++   I have put information about running this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++   The original interpreter is undocumented so I'm trying to
+++   bootstrap my understanding by working out what I can here:
+++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
+
+Interpret : Exports == Implementation where
+  NNI==> NonNegativeInteger
+  TOKENTYPE ==> Symbol
+    ++ valid token types are:
+    ++id: Symbol
+    ++key: Symbol
+    ++integer: Symbol
+    ++rinteger: Symbol
+    ++float: Symbol
+    ++string: Symbol
+    ++comment: Symbol
+    ++negcomment: Symbol
+    ++error: Symbol
+    ++spaces: Symbol
+  TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
+
+  Exports == with
+
+    spadInterpret:() -> %
+      ++ constructor to setup parameters and run interpreter
+      ++ inside existing interpreter
+
+  Implementation ==> add
+  
+    import Tokeniser
+    import Parser
+
+    Rep := Record(_
+      op: Symbol,_
+      Coerce: Symbol,_
+      compErrorMessageStack: Symbol,_
+      freeVars: Symbol,_
+      mapList: Symbol,_
+      compilingMap: Symbol,_
+      compilingLoop: Symbol,_
+      interpOnly: Symbol,_
+      whereCacheList: Symbol,_
+      timeGlobalName: Symbol,_
+      StreamFrame: Symbol,_
+      declaredMode: Symbol,_
+      localVars: Symbol,_
+      analyzingMapList: Symbol,_
+      lastLineInSEQ: Symbol,_
+      instantCoerceCount: Symbol,_
+      instantCanCoerceCount: Symbol,_
+      instantMmCondCount: Symbol,_
+      defaultFortVar:Symbol,_
+      fortVar: Symbol,_
+      defaultFortVar: Symbol,_
+      minivector: Symbol,_
+      minivectorCode: Symbol,_
+      minivectorNames: Symbol,_
+      domPvar: Symbol,_
+      inRetract: Symbol_
+    )
+      ++ parameters (was global parameters)
+      ++ I have just set everthing to Symbol for now but will
+      ++ set them to the correct high level types when I get
+      ++ to implementing code that needs them.
+
+    -- if a line starts with ) this indicates a system command
+    -- so this will be called
+    -- intended to replace ncloopCommand in
+    -- int-top.boot
+    processSystemCommand(s:String,param:%,lineNum:NNI):Boolean ==
+      c := ncloopCommand(s,lineNum)$Lisp
+      --InterpExecuteSpadSystemCommand(s)$Lisp
+      --doSystemCommand(s)$Lisp
+      --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
+      true
+
+    -- if a line is not a system command then this will be called
+    -- intended to replace intloopProcessString in
+    -- int-top.boot
+    processMath(s:String,param:%,lineNum:NNI):Boolean ==
+      --c := intloopProcessString(s,lineNum)$Lisp
+--      b := incString(s)$Lisp
+--      mathprint("token:")$Lisp
+--      print(b::OutputForm)
+--      c := lineoftoks(b)$Lisp
+--      mathprint("lineoftoks:")$Lisp
+--      print(c::OutputForm)
+--      d := parseFromString(s)$Lisp
+--      mathprint("parse:")$Lisp
+--      print(d::OutputForm)
+      mathprint("tokeniser:")$Lisp
+      print(spadTokenise(s)::OutputForm)
+      mathprint("parser:")$Lisp
+      print((spadParse(spadTokenise(s)) pretend Tree(TOKEN))::OutputForm)
+      true
+
+    -- check for system commands 
+    -- check for continuation to line
+    -- then interpret.
+    -- intended to replace intLoopReadConsole in
+    -- int-top.boot
+    processString(s:String,param:%,lineNum:NNI):Boolean ==
+      if s=empty()$String then return true
+      if s="" then  return true
+      if s="q" then return false
+      if position(")",s,1) = 1 then
+        return processSystemCommand(s,param,lineNum)
+      processMath(s,param,lineNum)
+
+    -- constructor to setup parameters and run interpreter
+    -- inside existing interpreter
+    spadInterpret():% ==
+      -- setup global parameters 
+      param:% := ['X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X,_
+        'X]
+      keepGoing:Boolean := true
+      lineNum:NNI := 1
+      while keepGoing repeat
+        -- display prompt without carrage return
+        -- I have added m so that I know this interpreter is running
+        PRINC(concat(["(m",string(lineNum),") -> "])$String)$Lisp
+        FORCE_-OUTPUT()$Lisp
+        -- read a line from stdin to a string
+        a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp
+        s:String := a pretend String
+        keepGoing := processString(s,param,lineNum)
+        lineNum := lineNum + 1
+      param
 @
