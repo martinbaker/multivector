@@ -434,6 +434,86 @@ Parser : Exports == Implementation where
 --      n::OutputForm
 @
 
+
+)abbrev domain TYPEM TypeMatcher
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   This takes a tree structure containing untyped values and
+++   attempts to add types.
+++
+++
+++   I have put specific information about this type matcher here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
+++   I have put more general information about running this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+
+TypeMatcher : Exports == Implementation where
+  NNI==> NonNegativeInteger
+  TOKENTYPE ==> Symbol
+    ++ valid token types are:
+    ++id: Symbol
+    ++key: Symbol
+    ++integer: Symbol
+    ++rinteger: Symbol
+    ++float: Symbol
+    ++string: Symbol
+    ++comment: Symbol
+    ++negcomment: Symbol
+    ++error: Symbol
+    ++spaces: Symbol
+  TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
+  TYPEDVALUE ==> Record(tt:TOKENTYPE,tokVal:String)
+
+  Exports == with
+
+    spadTypeMatch:(tl:Parser) -> %
+      ++ constructor to construct tree from token list
+    hasError?:(tr:%,guard:NNI) -> Boolean
+      ++ true if there is an error anywhere in the tree
+--    coerce: (n: %) -> OutputForm
+      ++ output
+      ++ tree can already be coerced to outputForm so this is not needed
+  Implementation ==> add
+
+    Rep := Tree TYPEDVALUE
+      ++ tree structure.
+
+    isError?(t:TYPEDVALUE):Boolean ==
+       t.tt = "error"::Symbol
+
+    -- true if there is an error anywhere in the tree
+    hasError?(tr:%,guard:NNI):Boolean ==
+      tr1:Tree(TYPEDVALUE) := tr pretend Tree(TYPEDVALUE)
+--      mathprint("hasError? called:")$Lisp
+--      print(tr1::OutputForm)
+      if guard>20 then return true
+      if cyclic?(tr1)$Tree(TYPEDVALUE) then return true
+      if empty?(tr1)$Tree(TYPEDVALUE) then return false
+      if leaf?(tr1)$Tree(TYPEDVALUE) then
+        v:TYPEDVALUE := value(tr1)$Tree(TYPEDVALUE)
+        return isError?(v)
+      nds:List(Tree(TYPEDVALUE)) := children(tr1)$Tree(TYPEDVALUE)
+      if #nds < 1 then return false
+--      mathprint("hasError? nds:=")$Lisp
+--      print(nds::OutputForm)
+      for nd in nds repeat
+--        mathprint("hasError? nd:=")$Lisp
+--        print(nd::OutputForm)
+        if hasError?(nd,guard+1) then return true
+      false
+
+
+    -- constructor to construct tree from token list
+    spadTypeMatch(tl:Parser):% ==
+      empty()$Tree(TYPEDVALUE)
+
+-- tree can already be coerced to outputForm so this is not needed
+--    coerce(n: %):OutputForm ==
+--      n::OutputForm
+@
+
 )abbrev domain INTER Interpret
 ++ Author: Martin Baker
 ++ Date Created: April 2014
@@ -480,6 +560,7 @@ Interpret : Exports == Implementation where
     ++error: Symbol
     ++spaces: Symbol
   TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
+  TYPEDVALUE ==> Record(tt:TOKENTYPE,tokVal:String)
 
   Exports == with
 
@@ -491,6 +572,7 @@ Interpret : Exports == Implementation where
   
     import Tokeniser
     import Parser
+    import TypeMatcher
 
     Rep := Record(_
       op: Symbol,_
@@ -555,9 +637,14 @@ Interpret : Exports == Implementation where
       print(tokList::OutputForm)
       mathprint("parser:")$Lisp
       parseTree := spadParse(tokList)
-      print((parseTree pretend Tree(TOKEN))::OutputForm)
       if hasError?(parseTree,0) then
         mathprint("has error")$Lisp
+        print((parseTree pretend Tree(TOKEN))::OutputForm)
+        return true
+      print((parseTree pretend Tree(TOKEN))::OutputForm)
+      mathprint("type match:")$Lisp
+      typTree := spadTypeMatch(parseTree)
+      print((typTree pretend Tree(TYPEDVALUE))::OutputForm)
       true
 
     -- check for system commands 
