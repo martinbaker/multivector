@@ -306,15 +306,22 @@ Parser : Exports == Implementation where
 
     -- true if there is an error anywhere in the tree
     hasError?(tr:%,guard:NNI):Boolean ==
+      tr1:Tree(TOKEN) := tr pretend Tree(TOKEN)
 --      mathprint("hasError? called:")$Lisp
---      print((tr pretend Tree(TOKEN))::OutputForm)
-      if guard<20 then return true
-      if cyclic?(tr) then return true
-      if leaf?(tr) then
-        v:TOKEN := value(tr)
+--      print(tr1::OutputForm)
+      if guard>20 then return true
+      if cyclic?(tr1)$Tree(TOKEN) then return true
+      if empty?(tr1)$Tree(TOKEN) then return false
+      if leaf?(tr1)$Tree(TOKEN) then
+        v:TOKEN := value(tr1)$Tree(TOKEN)
         return isError?(v)
-      nds:List % := nodes(tr)
+      nds:List(Tree(TOKEN)) := children(tr1)$Tree(TOKEN)
+      if #nds < 1 then return false
+--      mathprint("hasError? nds:=")$Lisp
+--      print(nds::OutputForm)
       for nd in nds repeat
+--        mathprint("hasError? nd:=")$Lisp
+--        print(nd::OutputForm)
         if hasError?(nd,guard+1) then return true
       false
 
@@ -361,18 +368,24 @@ Parser : Exports == Implementation where
         q:NNI := leftPrec(n)
         leftOperand:Tree(TOKEN) := spadParse1(tl,q) pretend Tree(TOKEN)
         return tree(n,[leftOperand])$Tree(TOKEN)
+      -- bracketed term does not need to be a node, we can
+      -- just save its contents as a branch
       if isKey?(n,"(") then
         m:TOKEN := consumeNonSpace!(tl)
-        mathprint("subNode m=")$Lisp
-        print(bracket([m::OutputForm]))
-        leftOperand:Tree(TOKEN) := spadParse1(tl,0) pretend Tree(TOKEN)
-        res:= tree(n,[leftOperand])$Tree(TOKEN)
+--        mathprint("subNode m=")$Lisp
+--        print(bracket([m::OutputForm]))
+--        leftOperand:Tree(TOKEN) := spadParse1(tl,0) pretend Tree(TOKEN)
+--        res:= tree(n,[leftOperand])$Tree(TOKEN)
+        res:= spadParse1(tl,0) pretend Tree(TOKEN)
+        -- consume opening bracket
         m2:TOKEN := consumeNonSpace!(tl)
-        mathprint("subNode m2=")$Lisp
-        print(bracket([m2::OutputForm]))
+--        mathprint("subNode m2=")$Lisp
+--        print(bracket([m2::OutputForm]))
         if not isKey?(m2,")") then
           leftOperand:Tree(TOKEN) := tree(["error"::Symbol,"mismatch brackets"])
           res:= tree(n,[leftOperand])$Tree(TOKEN)
+        -- consume closing bracket
+        m2:TOKEN := consumeNonSpace!(tl)
         return res
       if isLeaf?(n) then
         m:TOKEN := consumeNonSpace!(tl)
@@ -382,20 +395,34 @@ Parser : Exports == Implementation where
       res    
 
     -- construct tree from token list
+    -- tl is token stream
+    -- p is current precidence
     spadParse1(tl:Tokeniser,p:NNI):% ==
       res:Tree(TOKEN) := subNode(tl) pretend Tree(TOKEN)
       n:TOKEN := next(tl)
---      mathprint("spadParse1 token:")$Lisp
+--      mathprint("spadParse1 start:")$Lisp
 --      print(bracket([n::OutputForm,leftPrec(n)::OutputForm,p::OutputForm,_
 --        binary?(n)::OutputForm]))
+      -- eat any binary ops unless precidence is less
+      -- at lowest level this is always called with p=0
+      -- so leftPrec(n) >= p will always be true at lowest
+      -- level so no binary is ever left dangling
       while binary?(n) and leftPrec(n) >= p repeat
         consumeNonSpace!(tl)
         ql:NNI := leftPrec(n)
         qr:NNI := rightPrec(n)
         rightOperand:Tree(TOKEN) := spadParse1(tl,ql) pretend Tree(TOKEN)
-        if hasError?(rightOperand,0) then return tree(n,[copy(res),rightOperand])$Tree(TOKEN)
+        if hasError?(rightOperand,0) then
+--          mathprint("spadParse1 error:")$Lisp
+--          n:= next(tl)
+--          print(bracket([n::OutputForm,leftPrec(n)::OutputForm,p::OutputForm,_
+--            rightOperand::OutputForm]))
+          return tree(n,[copy(res),rightOperand])$Tree(TOKEN)
         res := tree(n,[copy(res),rightOperand])$Tree(TOKEN)
         n:= next(tl)
+--      mathprint("spadParse1 end:")$Lisp
+--      print(bracket([n::OutputForm,leftPrec(n)::OutputForm,p::OutputForm,_
+--        binary?(n)::OutputForm]))
       res
 
     -- constructor to construct tree from token list
@@ -524,9 +551,13 @@ Interpret : Exports == Implementation where
 --      mathprint("parse:")$Lisp
 --      print(d::OutputForm)
       mathprint("tokeniser:")$Lisp
-      print(spadTokenise(s)::OutputForm)
+      tokList := spadTokenise(s)
+      print(tokList::OutputForm)
       mathprint("parser:")$Lisp
-      print((spadParse(spadTokenise(s)) pretend Tree(TOKEN))::OutputForm)
+      parseTree := spadParse(tokList)
+      print((parseTree pretend Tree(TOKEN))::OutputForm)
+      if hasError?(parseTree,0) then
+        mathprint("has error")$Lisp
       true
 
     -- check for system commands 
