@@ -434,6 +434,110 @@ Parser : Exports == Implementation where
 --      n::OutputForm
 @
 
+)abbrev domain MTYPE MatchableType
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   Used by TypeMatcher to hold type information.
+++   So this is 'lifted', that is, values in this domain represent
+++   types.
+++
+++   I have put specific information about type matcher here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
+++   I have put more general information about running this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+
+MatchableType : Exports == Implementation where
+  NNI==> NonNegativeInteger
+  TOKENTYPE ==> Symbol
+    ++ valid token types are:
+    ++id: Symbol
+    ++key: Symbol
+    ++integer: Symbol
+    ++rinteger: Symbol
+    ++float: Symbol
+    ++string: Symbol
+    ++comment: Symbol
+    ++negcomment: Symbol
+    ++error: Symbol
+    ++spaces: Symbol
+  TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
+  TYPEDVALUE ==> Record(tt:TOKENTYPE,tokVal:String)
+
+--  Exports == ConvertibleTo(Pattern(MatchableType)) with
+  Exports == Join(SetCategory,ConvertibleTo(Pattern(MatchableType)),_
+      PatternMatchable(MatchableType)) with
+
+    mType:(bas:Symbol) -> %
+      ++ constructor to construct integer,float,symbol,string,etc.
+
+    mType:(bas:Symbol,parameters:List %) -> %
+      ++ constructor for compound type
+
+--    convert : % -> Pattern(MatchableType)
+      -- convert comes from ConvertibleTo(Pattern(MatchableType))
+--    coerce: (n: %) -> OutputForm
+      ++ output
+
+  Implementation ==> add
+
+    import Pattern(MatchableType)
+    import PatternMatchable(MatchableType)
+    import PatternMatchResult(MatchableType,PatternMatchable(MatchableType))
+
+    Rep := Record(sym:Symbol,par:List(%))
+      ++ type is one of:
+      ++ Symbol
+      ++ Integer
+      ++ Float
+      ++ String
+      ++ Boolean
+      ++ other domain name
+      ++ Record[%]
+      ++ Union[%]
+      ++ Function[%]
+
+    -- constructor to construct integer,float,symbol,string,etc.
+    mType(bas:Symbol):% ==
+      [bas,empty()$List(%)]
+
+    -- constructor for compound type
+    mType(bas:Symbol,parameters:List %):% ==
+      [bas,parameters]
+
+    -- returns true if they have the same values
+    x = y ==
+      if x.sym ~= y.sym then return false
+      if x.par ~= y.par then return false
+      true
+
+    -- Required to implement category PatternMatchable(MatchableType)
+    -- A set R is PatternMatchable over MatchableType if elements
+    -- of R can be matched to patterns over MatchableType.
+    --
+    -- patternMatch(expr, pat, res) matches the pattern pat to the
+    -- expression expr. res contains the variables of pat which
+    -- are already matched and their matches (necessary for recursion).
+    -- Initially, res is just the result of new
+    -- which is an empty list of matches.
+    patternMatch(expr:%,pat:Pattern(MatchableType),_
+                      res:PatternMatchResult(MatchableType,%)):_
+                      PatternMatchResult(MatchableType,%) ==
+      res
+
+    -- required to implement category ConvertibleTo(Pattern(MatchableType))
+    convert(x : %): Pattern(MatchableType)==
+      ty := "Type"::Symbol
+      ty::Pattern(MatchableType)
+
+    coerce(n: %):OutputForm ==
+      if empty?(n.par) then return n.sym::OutputForm
+      params:List OutputForm := [x::OutputForm for x in n.par]
+      commaparams:OutputForm := commaSeparate(params)$OutputForm
+      hconcat([n.sym::OutputForm,"("::OutputForm,_
+                 commaparams,")"::OutputForm])$OutputForm
+@
 
 )abbrev domain TYPEM TypeMatcher
 ++ Author: Martin Baker
