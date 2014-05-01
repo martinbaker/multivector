@@ -434,21 +434,29 @@ Parser : Exports == Implementation where
 --      n::OutputForm
 @
 
-)abbrev domain MTYPE MatchableType
+)abbrev domain MTYPE MType
 ++ Author: Martin Baker
 ++ Date Created: April 2014
 ++ Date Last Updated: April 2014
 ++ Description:
-++   Used by TypeMatcher to hold type information.
+++   MType stands for 'matchable type'. The intention is to be
+++   able to represent types in a way that is more powerful than
+++   the existing FriCAS types.
 ++   So this is 'lifted', that is, values in this domain represent
 ++   types.
+++   I want to be able to have type variables and to use
+++   type constructors in a more flexible way.
+++   The original reason for writing this is that I needed to
+++   represent types in a SPAD version of the interpreter that I
+++   am working on. In this interpreter it is used by TypeMatcher
+++   to hold type information.
 ++
 ++   I have put specific information about type matcher here:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
 ++   I have put more general information about running this code here:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
 
-MatchableType : Exports == Implementation where
+MType : Exports == Implementation where
   NNI==> NonNegativeInteger
   TOKENTYPE ==> Symbol
     ++ valid token types are:
@@ -465,26 +473,22 @@ MatchableType : Exports == Implementation where
   TOKEN ==> Record(tt:TOKENTYPE,tokVal:String)
   TYPEDVALUE ==> Record(tt:TOKENTYPE,tokVal:String)
 
---  Exports == ConvertibleTo(Pattern(MatchableType)) with
-  Exports == Join(SetCategory,ConvertibleTo(Pattern(MatchableType)),_
-      PatternMatchable(MatchableType)) with
+  Exports == Join(Ring,ConvertibleTo(Pattern(MType)),_
+      PatternMatchable(MType),Comparable) with
 
-    mType:(bas:Symbol) -> %
+    typeConstruct:(bas:Symbol) -> %
       ++ constructor to construct integer,float,symbol,string,etc.
 
-    mType:(bas:Symbol,parameters:List %) -> %
+    typeConstruct:(bas:Symbol,parameters:List %) -> %
       ++ constructor for compound type
 
---    convert : % -> Pattern(MatchableType)
-      -- convert comes from ConvertibleTo(Pattern(MatchableType))
---    coerce: (n: %) -> OutputForm
-      ++ output
+    getBase:(n:%) -> Symbol
 
   Implementation ==> add
 
-    import Pattern(MatchableType)
-    import PatternMatchable(MatchableType)
-    import PatternMatchResult(MatchableType,PatternMatchable(MatchableType))
+    import Pattern(MType)
+    import PatternMatchable(MType)
+    import PatternMatchResult(MType,PatternMatchable(MType))
 
     Rep := Record(sym:Symbol,par:List(%))
       ++ type is one of:
@@ -499,12 +503,14 @@ MatchableType : Exports == Implementation where
       ++ Function[%]
 
     -- constructor to construct integer,float,symbol,string,etc.
-    mType(bas:Symbol):% ==
+    typeConstruct(bas:Symbol):% ==
       [bas,empty()$List(%)]
 
     -- constructor for compound type
-    mType(bas:Symbol,parameters:List %):% ==
+    typeConstruct(bas:Symbol,parameters:List %):% ==
       [bas,parameters]
+      
+    getBase(n:%) == n.sym
 
     -- returns true if they have the same values
     x = y ==
@@ -512,24 +518,43 @@ MatchableType : Exports == Implementation where
       if x.par ~= y.par then return false
       true
 
-    -- Required to implement category PatternMatchable(MatchableType)
-    -- A set R is PatternMatchable over MatchableType if elements
-    -- of R can be matched to patterns over MatchableType.
+    0 == typeConstruct("NONE"::Symbol)
+    1 == typeConstruct("ANY"::Symbol)
+    x + y == typeConstruct("UNION"::Symbol,[x,y])
+    x - y == typeConstruct("ERROR"::Symbol,[x,y])
+    _*(x:Integer,y:%):% == typeConstruct("ERROR"::Symbol,[y])
+    _*(x:PositiveInteger,y:%):% == typeConstruct("ERROR"::Symbol,[y])
+    x * y == typeConstruct("RECORD"::Symbol,[x,y])
+    _-(x:%):% == typeConstruct("ERROR"::Symbol)
+
+    -- Required to implement Comparable which is needed
+    -- to implement Expression(MType)
+    -- This implies that MType has a total order
+    -- but inheritance only gives a partial order.
+    smaller?(x:%,y:%):Boolean ==
+      false
+
+    -- Required to implement category PatternMatchable(MType)
+    -- A set R is PatternMatchable over MType if elements
+    -- of R can be matched to patterns over MType.
     --
     -- patternMatch(expr, pat, res) matches the pattern pat to the
     -- expression expr. res contains the variables of pat which
     -- are already matched and their matches (necessary for recursion).
     -- Initially, res is just the result of new
     -- which is an empty list of matches.
-    patternMatch(expr:%,pat:Pattern(MatchableType),_
-                      res:PatternMatchResult(MatchableType,%)):_
-                      PatternMatchResult(MatchableType,%) ==
+    patternMatch(expr:%,pat:Pattern(MType),_
+                      res:PatternMatchResult(MType,%)):_
+                      PatternMatchResult(MType,%) ==
       res
 
-    -- required to implement category ConvertibleTo(Pattern(MatchableType))
-    convert(x : %): Pattern(MatchableType)==
+    -- required to implement category ConvertibleTo(Pattern(MType))
+    convert(x : %): Pattern(MType)==
       ty := "Type"::Symbol
-      ty::Pattern(MatchableType)
+      ty::Pattern(MType)
+
+    hash(n: %):SingleInteger ==
+      0::SingleInteger
 
     coerce(n: %):OutputForm ==
       if empty?(n.par) then return n.sym::OutputForm
@@ -537,6 +562,86 @@ MatchableType : Exports == Implementation where
       commaparams:OutputForm := commaSeparate(params)$OutputForm
       hconcat([n.sym::OutputForm,"("::OutputForm,_
                  commaparams,")"::OutputForm])$OutputForm
+@
+
+)abbrev domain MEXPR MTypeExpression
+++ Type expressions
+MTypeExpression(R : Comparable) : Exports == Implementation where
+
+  Exports ==> Join(FunctionSpace(R),ConvertibleTo(Pattern(MType)),_
+      PatternMatchable(MType)) with
+
+    coerce:(n: MType) -> %
+
+  Implementation ==> Expression(R) add
+
+    import MType
+    import Pattern(MType)
+    import PatternMatchable(MType)
+    import PatternMatchResult(MType,PatternMatchable(MType))
+    import KernelFunctions2(R, %)
+    
+    -- Required to implement category PatternMatchable(MType)
+    -- A set R is PatternMatchable over MType if elements
+    -- of R can be matched to patterns over MType.
+    --
+    -- patternMatch(expr, pat, res) matches the pattern pat to the
+    -- expression expr. res contains the variables of pat which
+    -- are already matched and their matches (necessary for recursion).
+    -- Initially, res is just the result of new
+    -- which is an empty list of matches.
+    patternMatch(expr:%,pat:Pattern(MType),_
+                      res:PatternMatchResult(MType,%)):_
+                      PatternMatchResult(MType,%) ==
+      res
+
+    -- required to implement category ConvertibleTo(Pattern(MType))
+    convert(x : %): Pattern(MType)==
+      ty := "Type"::Symbol
+      ty::Pattern(MType)
+
+    -- rep is SparseMultivariatePolynomial(R,K)
+    coerce(mt: MType):% ==
+      coerce(getBase(mt))$Expression(MType) pretend %
+
+@
+
+)abbrev package TESTR TestRule
+++ Author: Martin Baker
+++ Date Created: April 2014
+++ Date Last Updated: April 2014
+++ Description:
+++   I can't work out how to do this from the interprester
+++   so I have compiled the test here.
+TestRule() : Target == Implementation where
+  Target ==> with
+    testRule:() -> RewriteRule(MType,MType,MTypeExpression(MType))
+    testExpression:() -> MTypeExpression(MType)
+    testApply:(RewriteRule(MType,MType,MTypeExpression(MType)),_
+         MTypeExpression(MType)) -> MTypeExpression(MType)
+
+  Implementation ==> add
+    import MType
+    import Pattern(MType)
+    import PatternMatchable(MType)
+    import PatternMatchResult(MType,PatternMatchable(MType))
+    import MTypeExpression(MType)
+
+    -- test
+    testRule(): RewriteRule(MType,MType,MTypeExpression(MType))==
+      a1:MType := typeConstruct("Integer"::Symbol)
+      a:=a1::MTypeExpression(MType)
+      b1:MType := typeConstruct("Float"::Symbol)
+      b:=b1::MTypeExpression(MType)
+      rule(a,b)$RewriteRule(MType,MType,MTypeExpression(MType))
+
+    testExpression():MTypeExpression(MType)==
+      a1:MType := typeConstruct("Integer"::Symbol)
+      a1::MTypeExpression(MType)
+
+    testApply(rr:RewriteRule(MType,MType,MTypeExpression(MType)),_
+              ex:MTypeExpression(MType)): MTypeExpression(MType)==
+      applyRules([rr],ex)$ApplyRules(MType,MType,MTypeExpression(MType))
 @
 
 )abbrev domain TYPEM TypeMatcher
