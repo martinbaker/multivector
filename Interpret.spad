@@ -481,7 +481,9 @@ MType : Exports == Implementation where
 
     typeConstruct:(bas:Symbol,parameters:List %) -> %
       ++ constructor for compound type
-
+      
+    zero?:(n:%) -> Boolean
+    one?:(n:%) -> Boolean
     getBase:(n:%) -> Symbol
 
   Implementation ==> add
@@ -512,6 +514,12 @@ MType : Exports == Implementation where
       
     getBase(n:%) == n.sym
 
+    zero?(n:%):Boolean ==
+     n.sym = "NONE"::Symbol
+
+    one?(n:%):Boolean ==
+     n.sym = "ANY"::Symbol
+    
     -- returns true if they have the same values
     x = y ==
       if x.sym ~= y.sym then return false
@@ -546,6 +554,7 @@ MType : Exports == Implementation where
     patternMatch(expr:%,pat:Pattern(MType),_
                       res:PatternMatchResult(MType,%)):_
                       PatternMatchResult(MType,%) ==
+      mathprint("MType patternMatch")$Lisp
       res
 
     -- required to implement category ConvertibleTo(Pattern(MType))
@@ -566,21 +575,44 @@ MType : Exports == Implementation where
 
 )abbrev domain MEXPR MTypeExpression
 ++ Type expressions
-MTypeExpression(R : Comparable) : Exports == Implementation where
+MTypeExpression(R:Comparable) : Exports == Implementation where
+  K   ==> Kernel %
+  MP  ==> SparseMultivariatePolynomial(MType, K)
 
   Exports ==> Join(FunctionSpace(R),ConvertibleTo(Pattern(MType)),_
       PatternMatchable(MType)) with
 
-    coerce:(n: MType) -> %
+    --coerce:(n: MType) -> %
+    coerce:(n: R) -> %
+      ++ or should this be coerce:(n:R) -> %
+    coerce:(sy:Symbol) -> %
+      ++ sy represents variable
+    coerce:(spmp:SparseMultivariatePolynomial(R, K)) -> %
+      ++ R is usually MType
 
-  Implementation ==> Expression(R) add
+  --Implementation ==> Expression(R) add
+  Implementation ==> add
 
     import MType
     import Pattern(MType)
     import PatternMatchable(MType)
     import PatternMatchResult(MType,PatternMatchable(MType))
+    -- KernelFunctions2 required for constantKernel
     import KernelFunctions2(R, %)
     
+    Rep := MP
+    0 == 0$Rep
+    1 == 1$Rep
+    - x : % == -$Rep x
+    n:Integer *x:% == n*$Rep x
+    x:% * y:% == x *$Rep y
+    x:% + y:% == x +$Rep y
+    x:% = y:% == x =$Rep y
+
+    if R is MType then
+      numer(x:%):SparseMultivariatePolynomial(R, K) ==
+        x pretend SparseMultivariatePolynomial(R, K)
+ 
     -- Required to implement category PatternMatchable(MType)
     -- A set R is PatternMatchable over MType if elements
     -- of R can be matched to patterns over MType.
@@ -593,17 +625,77 @@ MTypeExpression(R : Comparable) : Exports == Implementation where
     patternMatch(expr:%,pat:Pattern(MType),_
                       res:PatternMatchResult(MType,%)):_
                       PatternMatchResult(MType,%) ==
+      mathprint("MTypeExpression patternMatch pat=")$Lisp
+      print(pat::OutputForm)
+      mathprint("MTypeExpression patternMatch res=")$Lisp
+      print(res::OutputForm)
       res
 
     -- required to implement category ConvertibleTo(Pattern(MType))
     convert(x : %): Pattern(MType)==
+      mathprint("MTypeExpression convert to pattern")$Lisp
       ty := "Type"::Symbol
       ty::Pattern(MType)
 
-    -- rep is SparseMultivariatePolynomial(R,K)
-    coerce(mt: MType):% ==
-      coerce(getBase(mt))$Expression(MType) pretend %
+    -- coerce SparseMultivariatePolynomial(R, K)
+    -- to % which is SparseMultivariatePolynomial(MType, K)
+    -- R is usually MType so just pretend
+    coerce(spmp:SparseMultivariatePolynomial(R, K)):% ==
+      spmp pretend %
 
+    -- coerce symbol, representing a variable, to
+    -- MTypeExpression(MType)
+    coerce(sy:Symbol):% ==
+      kernel(sy)@K :: %
+
+    -- coerce MType to MTypeExpression(MType)
+    -- rep is of Expression in ring is SparseMultivariatePolynomial(R,K)
+    -- which is Union of MType or variable
+    if R is MType then
+      coerce(constant: R):% ==
+        zero?(constant) => 0$Rep
+        one?(constant) => 1$Rep
+        -- constantKernel defined in KernelFunctions2
+        -- as kernel(constantOperator r, nil(), 1)
+        -- this produces continous random output
+        -- even when coerce to output form turned off
+        --constantKernel(constant)::%
+        --
+        -- If the following is enabled then everthing is
+        -- MType and coerce to OutputForm is not even called
+        -- for this MTypeExpression
+        --coerce(constant)$MP
+        coerce(getBase(constant))$Expression(MType) pretend %
+    else
+      coerce(constant: R):% ==
+        0
+
+    -- output
+    if R is MType then
+      coerce(x : %):OutputForm ==
+        x1:MP := x pretend MP
+        D := SparseUnivariatePolynomial(%)
+        VPoly := Record(v : R, ts : D)
+        --VarSet is an instance of OrderedSet
+        MPREP := Union(single:R,mult:VPoly)
+        x2:MPREP := x1 pretend MPREP
+        --return x1::OutputForm
+        x2 case single => (x2.single)::OutputForm
+        vp:VPoly := x2.mult
+        v1:R := vp.v
+        ts1:D := vp.ts
+        s:String := (mathObject2String$Lisp v1)@String
+        mathprint("MTypeExpression output "s)$Lisp
+        -- the following fails - although v1 is MType
+        -- it really sometimes seems to be an expression?
+        --opf:OutputForm := v1::OutputForm
+        --outputForm(ts1,opf)$D
+        coerce(x1)$MP
+        --"x"::OutputForm
+    else
+      coerce(x : %):OutputForm ==
+        mathprint("MTypeExpression not MType output")$Lisp
+        coerce(x pretend Expression(R))$Expression(R)
 @
 
 )abbrev package TESTR TestRule
