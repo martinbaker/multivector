@@ -451,10 +451,11 @@ Parser : Exports == Implementation where
 ++   am working on. In this interpreter it is used by TypeMatcher
 ++   to hold type information.
 ++
+++   I have put information about representing types and the
+++   design of this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/type/
 ++   I have put specific information about type matcher here:
 ++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
-++   I have put more general information about running this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
 
 MType : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -575,6 +576,11 @@ MType : Exports == Implementation where
 
 )abbrev domain MEXPR MTypeExpression
 ++ Type expressions
+++   I have put information about representing types and the
+++   design of this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/type/
+++   I have put specific information about type matcher here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
 MTypeExpression(R:Comparable) : Exports == Implementation where
   K   ==> Kernel %
   MP  ==> SparseMultivariatePolynomial(MType, K)
@@ -705,6 +711,11 @@ MTypeExpression(R:Comparable) : Exports == Implementation where
 ++ Description:
 ++   I can't work out how to do this from the interprester
 ++   so I have compiled the test here.
+++   I have put information about representing types and the
+++   design of this code here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/type/
+++   I have put specific information about type matcher here:
+++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
 TestRule() : Target == Implementation where
   Target ==> with
     testRule:() -> RewriteRule(MType,MType,MTypeExpression(MType))
