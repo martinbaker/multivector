@@ -611,7 +611,7 @@ Interpret : Exports == Implementation where
     -- intended to replace ncloopCommand in
     -- int-top.boot
     processSystemCommand(s:String,param:%,lineNum:NNI):Boolean ==
-      c := ncloopCommand(s,lineNum)$Lisp
+      ncloopCommand(s,lineNum)$Lisp
       --InterpExecuteSpadSystemCommand(s)$Lisp
       --doSystemCommand(s)$Lisp
       --mathprint(concat(["process command",mathObject2String$Lisp c])$String)$Lisp
@@ -697,8 +697,9 @@ Interpret : Exports == Implementation where
         PRINC(concat(["(m",string(lineNum),") -> "])$String)$Lisp
         FORCE_-OUTPUT()$Lisp
         -- read a line from stdin to a string
-        a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp
-        s:String := a pretend String
+        s := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp :: String
+        --a := read_-line(_*STANDARD_-INPUT_*$Lisp)$Lisp :: Union(String, "failed")
+        --s:String := a::String
         keepGoing := processString(s,param,lineNum)
         lineNum := lineNum + 1
       param
