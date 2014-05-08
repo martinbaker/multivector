@@ -12,9 +12,9 @@
 ++  for example 3e-5 would not work correctly
 ++
 ++   I have put specific information about this tokeniser here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/tokeniser/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/tokeniser/
 ++   I have put more general information about running this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/
 
 Tokeniser : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -264,9 +264,9 @@ Tokeniser : Exports == Implementation where
 ++
 ++
 ++   I have put specific information about this parser here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/parser/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/parser/
 ++   I have put more general information about running this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/
 
 Parser : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -444,9 +444,9 @@ Parser : Exports == Implementation where
 ++
 ++
 ++   I have put specific information about this type matcher here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/typematch/
 ++   I have put more general information about running this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/
 
 TypeMatcher : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -539,10 +539,10 @@ TypeMatcher : Exports == Implementation where
 ++   more of these functions in high level code.
 ++
 ++   I have put information about running this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/
 ++   The original interpreter is undocumented so I'm trying to
 ++   bootstrap my understanding by working out what I can here:
-++ http://www.euclideanspace.com/maths/standards/program/internals/interpreter/
+++ http://www.euclideanspace.com/prog/scratchpad/internals/interpreter/
 
 Interpret : Exports == Implementation where
   NNI==> NonNegativeInteger

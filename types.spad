@@ -17,9 +17,9 @@
 ++
 ++   I have put information about representing types and the
 ++   design of this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/type/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/type/
 ++   I have put specific information about type matcher here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/typematch/
 
 MType : Exports == Implementation where
   NNI==> NonNegativeInteger
@@ -142,9 +142,9 @@ MType : Exports == Implementation where
 ++ Type expressions
 ++   I have put information about representing types and the
 ++   design of this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/type/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/type/
 ++   I have put specific information about type matcher here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/typematch/
 MTypeExpression(R:Comparable) : Exports == Implementation where
   K   ==> Kernel %
   MP  ==> SparseMultivariatePolynomial(MType, K)
@@ -277,9 +277,9 @@ MTypeExpression(R:Comparable) : Exports == Implementation where
 ++   so I have compiled the test here.
 ++   I have put information about representing types and the
 ++   design of this code here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/discrete/type/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/type/
 ++   I have put specific information about type matcher here:
-++ http://www.euclideanspace.com/maths/standards/program/mycode/system/interpreter/typematch/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/system/interpreter/typematch/
 TestRule() : Target == Implementation where
   Target ==> with
     testRule:() -> RewriteRule(MType,MType,MTypeExpression(MType))
