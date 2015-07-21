@@ -1,0 +1,176 @@
+)if false
+\documentclass{article}
+\usepackage{axiom}
+\usepackage{url}
+\begin{document}
+\title{lattice related mathematical structures}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+In this pamphlet are partial order, lattice structures and logic operations based on
+them. Logic operations based on lattice structures
+Finite lattices may be based on a poset (partial order)
+so see 'UserDefinedPartialOrdering' package in setorder.spad
+\end{abstract}
+
+This document is just experimental, I am just trying out various things, don't
+worry about the detail its the big picture that I would like help with.
+
+I am using Steven Vickers book [ref 1] as my reference.
+
+There are a common set of lattice-like structures that occur in various branches
+of mathematics such as orders, logic and sets. I would like to represent these
+structures in FriCAS.
+
+What I have done so far seems to be applicable to finite lattices but a lot of my
+interest in this subject would be infinite structures. Especially structures
+from Topology such as a 'frame' which is a complete lattice with infinite meets.
+I am also interested in structures from computer science such as domain theory.
+
+My strategy so far is to have two sorts of domains:
+\begin{itemize}
+\item posets - here the representation is the whole structure.
+\item lattices - here the representation is an element of the structure.
+\end{itemize}
+
+So for the poset, the representation would be the whole structure, like this:
+\begin{verbatim}
+Rep := Record(set:List S,struct:List List Boolean)
+\end{verbatim}
+
+The lattice is an algebraicizing of this. The lattice constructor would take the poset
+as a parameter.
+)endif
+
+)abbrev domain POSET PartialOrder
+++ Author: Martin Baker
+++ Description: holds a complete set together with a structure to codify
+++   the partial order.
+++ Date Created: July 2015
+++ Date Last Updated: July 2015
+++ Basic Operations: 
+++ Related packages: UserDefinedPartialOrdering in setorder.spad
+++ Related Domains: 
+++ Also See:
+++ AMS Classifications:
+++ Keywords: poset partial order
+++ Examples: power set structure
+++ References:
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: antisymmetry forall(x,y): x<=y and y<=x implies x=y
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+
+PartialOrder(S) : Exports == Impl where
+    S : SetCategory
+    PI ==> PositiveInteger
+    NNI==> NonNegativeInteger
+    SINT==> SingleInteger
+
+    Exports ==> with
+      powerSetStructure : (objs : S) -> %
+        ++ powerSetStructure(set) is a constructor for a PartialOrder
+        ++ where each element is a set (implemented as a list)
+        ++ and with a subset structure.
+        ++ requires S to be a list.
+
+      _>_=:(NNI, NNI) -> Boolean
+
+    Impl ==> add
+        -- This holds a complete set together with a structure to codify
+        -- the partial order. The elements are put in a list so they
+        -- can be enumerated and linked to the structure.
+        -- The structure is a two dimensional array to determine
+        -- is each element is connected to each other element.
+        Rep := Record(set:List S,struct:List List Boolean)
+
+        _>_=(left:NNI,right:NNI) : Boolean ==
+          false
+
+        powerSetStructure(objs : S) : % ==
+          -- S must be list so make this explicit
+          subsets : List S := []
+          [subsets, []]
+
+          -- powerlist in haskell
+          -- powerList :: [a] -> [[a]]
+          -- powerList :: [] = [[]]
+          -- powerList :: (x:xs) = (powerList xs) ++ (map (x:) (powerList xs))
+          
+        --localPowerSets(j : NNI) : List(List(PI)) ==
+        --  l : List List PI := list []
+        --  j = 0 => l
+        --  Sm := localPowerSets((j-1)::NNI)
+        --  Sn : List List PI := []
+        --  for x in Sm repeat Sn := cons(cons(j pretend PI, x), Sn)
+        --  append(Sn, Sm)
+
+        --powerSets(j : NNI) : List List PI == map(reverse, localPowerSets j)
+
+        --Pn : List List PI := powerSets(n)
+
+
+)abbrev category MEETLAT MeetSemilattice
+++ Description: meet semilattice
+++   Implementations include regressive inner, meet product operator
+++   need to check precidence when used as an infix operator
+++ Axiom: commutativity forall(x,y): x/\y=y/\x
+++ Axiom: associativity forall(x,y,z): (x/\y)/\z=y/\(x/\z)
+++ Axiom: unit forall x: x/\true()=x
+++ Axiom: idempotence forall x: x/\x=x
+MeetSemilattice: Category == SetCategory with
+        _/_\: (%, %) -> %
+	++ returns the logical 'meet', e.g. 'and'.
+        true: constant -> %
+	++ returns true.
+
+)abbrev category JOINLAT JoinSemilattice
+++ Description: join semilattice
+++   Implementations include exterior Grassmann product operator
+++   need to check precidence when used as an infix operator
+++ Axiom: commutativity forall(x,y): x\/y=y\/x
+++ Axiom: associativity forall(x,y,z): (x\/y)\/z=y\/(x\/z)
+++ Axiom: unit forall x: x\/false()=x
+++ Axiom: idempotence forall x: x\/x=x
+JoinSemilattice: Category == SetCategory with
+        _\_/: (%, %) -> %
+	++ returns the logical 'join', e.g. 'or'.
+        false: constant -> %
+	++ returns false.
+
+)abbrev category LAT Lattice
+++ Description: lattice
+++ Axiom: absorptionMeetOverJoin forall(x,y): x/\(x\/y)=x
+++ Axiom: absorptionJoinOverMeet forall(x,y): x\/(x/\y)=x
+Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
+
+)abbrev category DISTLAT DistributiveLattice
+++ Description: not every lattice is distributive so treat this
+++              as a different case
+++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
+++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
+DistributiveLattice: Category == Lattice
+
+)abbrev category FRAME Frame
+++ Description: frames are used in topology and are the lattice
+++              associated with the concept of a 'locale'.
+++              see: [1]
+++ A Frame is a Lattice where certain subsets are also Lattices
+++ Axiom: 
+++ Axiom: 
+++ Axiom: 
+Frame: Category == Lattice
+
+)if false
+\eject
+\begin{thebibliography}{99}
+For more details see:
+[1] Topology Via Logic - Steven Vickers ISBN 0 521 57651 2
+[2] J. Lambek, P. J. Scott 1988
+     Introduction to Higher-Order Categorical Logic ISBN : 0521356539
+     This book shows the relationship between mathematical logic and category
+     theory. Although this is not used in the current code, it suggests
+     a promising generalisation.
+\end{thebibliography}
+\end{document}
+)endif
+
