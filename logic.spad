@@ -11,6 +11,8 @@ In this pamphlet are partial order, lattice structures and logic operations base
 them. Logic operations based on lattice structures
 Finite lattices may be based on a poset (partial order)
 so see 'UserDefinedPartialOrdering' package in setorder.spad
+I have put a fuller explanation of this code here:
+http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 \end{abstract}
 
 This document is just experimental, I am just trying out various things, don't
@@ -42,7 +44,7 @@ The lattice is an algebraicizing of this. The lattice constructor would take the
 as a parameter.
 )endif
 
-)abbrev domain POSET PartialOrder
+)abbrev domain POSET Poset
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
@@ -50,7 +52,8 @@ as a parameter.
 ++ Date Last Updated: July 2015
 ++ Basic Operations: 
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
-++ Related Domains: 
+++ Related categories: PartialOrder in catdef.spad
+++ Related Domains: DirectedGraph in graph.spad
 ++ Also See:
 ++ AMS Classifications:
 ++ Keywords: poset partial order
@@ -60,41 +63,93 @@ as a parameter.
 ++ Axiom: antisymmetry forall(x,y): x<=y and y<=x implies x=y
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 
-PartialOrder(S) : Exports == Impl where
+Poset(S) : Exports == Impl where
     S : SetCategory
     PI ==> PositiveInteger
     NNI==> NonNegativeInteger
     SINT==> SingleInteger
 
     Exports ==> with
-      powerSetStructure : (objs : S) -> %
-        ++ powerSetStructure(set) is a constructor for a PartialOrder
-        ++ where each element is a set (implemented as a list)
-        ++ and with a subset structure.
-        ++ requires S to be a list.
+     addObject : (s : %, n : S) -> %
+      ++ addObject!(s, n) adds object with coordinates n to the
+      ++ graph s.
+     addArrow : (s : %, n1 : NNI, n2 : NNI) -> %
+      ++ addArrow!(s, nm, n1, n2) adds an arrow to the graph s, where:
+      ++ n1 is the index of the start object
+      ++ n2 is the index of the end object
+     getVertices : (s : %) -> List S
+      ++ getVertices(s) returns a list of all the vertices (or objects)
+      ++ of the graph s.
+     getVertexIndex :  (%, S) -> NNI
+      ++ getVertexIndex(s, o) gives index of object o.
+     getArrows : (s : %) -> List List Boolean
+      ++ getArrows(s) returns a list of all the arrows (or edges)
 
-      _>_=:(NNI, NNI) -> Boolean
+     powerSetStructure : (objs : S) -> %
+      ++ powerSetStructure(set) is a constructor for a Poset
+      ++ where each element is a set (implemented as a list)
+      ++ and with a subset structure.
+      ++ requires S to be a list.
+
+     _>_=:(s : %,NNI, NNI) -> Boolean
 
     Impl ==> add
-        -- This holds a complete set together with a structure to codify
-        -- the partial order. The elements are put in a list so they
-        -- can be enumerated and linked to the structure.
-        -- The structure is a two dimensional array to determine
-        -- is each element is connected to each other element.
-        Rep := Record(set:List S,struct:List List Boolean)
 
-        _>_=(left:NNI,right:NNI) : Boolean ==
-          false
+      import from PrimitiveArray(NNI)
 
-        powerSetStructure(objs : S) : % ==
-          -- S must be list so make this explicit
-          subsets : List S := []
-          [subsets, []]
+      -- This holds a complete set together with a structure to codify
+      -- the partial order. The elements are put in a list so they
+      -- can be enumerated and linked to the structure.
+      -- The structure is a two dimensional array to determine
+      -- is each element is connected to each other element.
+      Rep := Record(set1:List S,struct1:List List Boolean)
 
-          -- powerlist in haskell
-          -- powerList :: [a] -> [[a]]
-          -- powerList :: [] = [[]]
-          -- powerList :: (x:xs) = (powerList xs) ++ (map (x:) (powerList xs))
+      getLen(mylist:PrimitiveArray NNI):NNI == #mylist
+
+      -- adds an object to this poset
+      addObject(s : %, n : S) : % ==
+        dim : NNI := #(s.set1) + 1
+        obs : List S := concat(s.set1,n)
+        arrows : List List Boolean := []
+        for a in s.struct1 repeat
+          a:List Boolean := concat(a,false)
+          arrows := concat(arrows,a)
+        emptyRow:List Boolean := [false for x in 1..dim]
+        arrows := concat(arrows,emptyRow)
+        [obs,arrows]
+
+      -- adds an arrow to this graph, where:
+      -- s is the graph where the arrow is to be added
+      -- n1 is the index of the start object
+      -- n2 is the index of the end object
+      addArrow(s : %, n1 : NNI, n2 : NNI) : % ==
+        a : List Boolean := qelt(s.struct1,n1)
+        setelt!(a,n2,true)
+        setelt!(s.struct1,n1,a)
+        [s.set1,s.struct1]
+
+      -- returns a list of all the vertices (or objects)
+      getVertices(s : %) : List S ==
+        s.set1
+
+      -- returns a list of all the arrows (or edges)
+      getArrows(s : %) : List List Boolean ==
+        s.struct1
+
+      _>_=(s : %,left:NNI,right:NNI) : Boolean ==
+        a : List Boolean := qelt(s.struct1,left)
+        b : Boolean := qelt(a,right)
+        b
+
+      powerSetStructure(objs : S) : % ==
+        -- S must be list so make this explicit
+        subsets : List S := []
+        [subsets, []]
+
+        -- powerlist in haskell
+        -- powerList :: [a] -> [[a]]
+        -- powerList :: [] = [[]]
+        -- powerList :: (x:xs) = (powerList xs) ++ (map (x:) (powerList xs))
           
         --localPowerSets(j : NNI) : List(List(PI)) ==
         --  l : List List PI := list []
@@ -111,8 +166,7 @@ PartialOrder(S) : Exports == Impl where
 
 )abbrev category MEETLAT MeetSemilattice
 ++ Description: meet semilattice
-++   Implementations include regressive inner, meet product operator
-++   need to check precidence when used as an infix operator
+++   Implementations in set, logic and orders
 ++ Axiom: commutativity forall(x,y): x/\y=y/\x
 ++ Axiom: associativity forall(x,y,z): (x/\y)/\z=y/\(x/\z)
 ++ Axiom: unit forall x: x/\true()=x
@@ -125,7 +179,8 @@ MeetSemilattice: Category == SetCategory with
 
 )abbrev category JOINLAT JoinSemilattice
 ++ Description: join semilattice
-++   Implementations include exterior Grassmann product operator
+++   Different from exterior Grassmann product operator as
+++   that anticommutes.
 ++   need to check precidence when used as an infix operator
 ++ Axiom: commutativity forall(x,y): x\/y=y\/x
 ++ Axiom: associativity forall(x,y,z): (x\/y)\/z=y\/(x\/z)
@@ -145,7 +200,7 @@ Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
 
 )abbrev category DISTLAT DistributiveLattice
 ++ Description: not every lattice is distributive so treat this
-++              as a different case
+++              as a seperate case
 ++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
 DistributiveLattice: Category == Lattice
@@ -170,6 +225,8 @@ For more details see:
      This book shows the relationship between mathematical logic and category
      theory. Although this is not used in the current code, it suggests
      a promising generalisation.
+[3] I have put a fuller explanation of this code here:
+http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 \end{thebibliography}
 \end{document}
 )endif
