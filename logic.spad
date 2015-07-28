@@ -48,6 +48,8 @@ as a parameter.
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: July 2015
 ++ Date Last Updated: July 2015
 ++ Basic Operations: 
@@ -69,14 +71,20 @@ Poset(S) : Exports == Impl where
     NNI==> NonNegativeInteger
     SINT==> SingleInteger
 
-    Exports ==> with
+    Exports ==> Join(CoercibleTo(OutputForm), SetCategory) with
+     poset : (set1:List S,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is suplied
      addObject : (s : %, n : S) -> %
       ++ addObject!(s, n) adds object with coordinates n to the
       ++ graph s.
+      ++ This is done in a non-mutable way, that is, the original
+      ++ poset is not changed instead a new one is constructed.
      addArrow : (s : %, n1 : NNI, n2 : NNI) -> %
       ++ addArrow!(s, nm, n1, n2) adds an arrow to the graph s, where:
       ++ n1 is the index of the start object
       ++ n2 is the index of the end object
+      ++ This is done in a non-mutable way, that is, the original
+      ++ poset is not changed instead a new one is constructed.
      getVertices : (s : %) -> List S
       ++ getVertices(s) returns a list of all the vertices (or objects)
       ++ of the graph s.
@@ -104,7 +112,9 @@ Poset(S) : Exports == Impl where
       -- is each element is connected to each other element.
       Rep := Record(set1:List S,struct1:List List Boolean)
 
-      getLen(mylist:PrimitiveArray NNI):NNI == #mylist
+      -- constructor where the set and structure is suplied
+      poset(set1:List S,struct1:List List Boolean) : % ==
+        [set1,struct1]
 
       -- adds an object to this poset
       addObject(s : %, n : S) : % ==
@@ -163,10 +173,47 @@ Poset(S) : Exports == Impl where
 
         --Pn : List List PI := powerSets(n)
 
+      -- start of SetCategory definitions --
+
+      hash(s : %) : SingleInteger == 0$SingleInteger
+
+      -- return string representation
+      -- I'm not sure how latex(s: %) is intended to be used but
+      -- there is nothing specifically latex here, it just returns a
+      -- string description of the graph.
+      latex(n : %) : String ==
+        -- s holds result that we are constructing
+        s:String := ""
+        s
+
+      -- returns true if x equals y
+      -- this is equality and not isomorphism
+      -- that is it returns true only if exact index values and names are used
+      -- in addition to the structure(arrows) being the same.
+      _=(x : %, y : %) : Boolean ==
+        if getVertices(x) ~= getVertices(y) then return false
+        if getArrows(x) ~= getArrows(y) then return false
+        true
+
+      -- returns true if x is not equal to y
+      _~_=(x : %, y : %) : Boolean == not(x = y)
+
+      -- output
+      coerce(s : %) : OutputForm ==
+        mat:List List OutputForm := empty()$List(List(OutputForm))
+        for a in s.struct1 repeat
+          row:List OutputForm := empty()$List(OutputForm)
+          for b in a repeat
+            c:Symbol := if b then "true"::Symbol else "false"::Symbol
+            row := concat(row,outputForm(c)$OutputForm)$List(OutputForm)
+          mat := concat(mat,row)
+        matrix(mat)
 
 )abbrev category MEETLAT MeetSemilattice
 ++ Description: meet semilattice
 ++   Implementations in set, logic and orders
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x/\y=y/\x
 ++ Axiom: associativity forall(x,y,z): (x/\y)/\z=y/\(x/\z)
 ++ Axiom: unit forall x: x/\true()=x
@@ -182,6 +229,8 @@ MeetSemilattice: Category == SetCategory with
 ++   Different from exterior Grassmann product operator as
 ++   that anticommutes.
 ++   need to check precidence when used as an infix operator
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x\/y=y\/x
 ++ Axiom: associativity forall(x,y,z): (x\/y)\/z=y\/(x\/z)
 ++ Axiom: unit forall x: x\/false()=x
@@ -194,6 +243,8 @@ JoinSemilattice: Category == SetCategory with
 
 )abbrev category LAT Lattice
 ++ Description: lattice
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: absorptionMeetOverJoin forall(x,y): x/\(x\/y)=x
 ++ Axiom: absorptionJoinOverMeet forall(x,y): x\/(x/\y)=x
 Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
@@ -201,6 +252,8 @@ Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
 )abbrev category DISTLAT DistributiveLattice
 ++ Description: not every lattice is distributive so treat this
 ++              as a seperate case
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
 DistributiveLattice: Category == Lattice
@@ -209,7 +262,9 @@ DistributiveLattice: Category == Lattice
 ++ Description: frames are used in topology and are the lattice
 ++              associated with the concept of a 'locale'.
 ++              see: [1]
-++ A Frame is a Lattice where certain subsets are also Lattices
+++   A Frame is a Lattice where certain subsets are also Lattices
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: 
 ++ Axiom: 
 ++ Axiom: 
