@@ -73,7 +73,7 @@ Poset(S) : Exports == Impl where
 
     Exports ==> Join(CoercibleTo(OutputForm), SetCategory) with
      poset : (set1:List S,struct1:List List Boolean) -> %
-      ++ constructor where the set and structure is suplied
+      ++ constructor where the set and structure is supplied
      addObject : (s : %, n : S) -> %
       ++ addObject!(s, n) adds object with coordinates n to the
       ++ graph s.
@@ -100,10 +100,18 @@ Poset(S) : Exports == Impl where
       ++ requires S to be a list.
 
      _>_=:(s : %,NNI, NNI) -> Boolean
+     
+     meet:(s : %,a:NNI,b:NNI) -> List NNI
+      ++ returns a list of all nodes which are greater than both
+      ++ 'a' and 'b'
+
+     glb:(s : %,a:List NNI) -> NNI
+      ++ greatest lower bound
+
+     lub:(s : %,a:List NNI) -> NNI
+      ++ least upper bound
 
     Impl ==> add
-
-      import from PrimitiveArray(NNI)
 
       -- This holds a complete set together with a structure to codify
       -- the partial order. The elements are put in a list so they
@@ -112,7 +120,7 @@ Poset(S) : Exports == Impl where
       -- is each element is connected to each other element.
       Rep := Record(set1:List S,struct1:List List Boolean)
 
-      -- constructor where the set and structure is suplied
+      -- constructor where the set and structure is supplied
       poset(set1:List S,struct1:List List Boolean) : % ==
         [set1,struct1]
 
@@ -150,6 +158,53 @@ Poset(S) : Exports == Impl where
         a : List Boolean := qelt(s.struct1,left)
         b : Boolean := qelt(a,right)
         b
+
+      -- returns a list of all nodes which are greater than both
+      -- 'a' and 'b'
+      meet(s : %,a:NNI,b:NNI): List NNI ==
+        res : List NNI := []
+        flaga : List Boolean := qelt(s.struct1,a)
+        candidatesa: List NNI := []
+        index:NNI := 1
+        for x in flaga repeat
+          if x then candidatesa:= concat(candidatesa,index)
+          index := index +1
+        flagb : List Boolean := qelt(s.struct1,b)
+        candidatesb: List NNI := []
+        index := 1
+        for x in flagb repeat
+          if x then candidatesb:= concat(candidatesb,index)
+          index := index +1
+        res := setIntersection(candidatesa,candidatesb)
+        res
+
+      ++ least upper bound
+      lub(s : %,a:List NNI):NNI ==
+        if empty?(a) then return 0::NNI
+        if #a=1 then return first(a)
+        resultList:List(NNI) := copy(a)
+        nx:NNI := 1
+        ny:NNI := 1
+        for x in a repeat
+          for y in a repeat
+            if _>_=(s,nx,ny) then remove!(ny,resultList)
+            ny := ny+1
+          nx := nx +1
+        first(resultList)
+
+      ++ greatest lower bound
+      glb(s : %,a:List NNI):NNI ==
+        if empty?(a) then return 0::NNI
+        if #a=1 then return first(a)
+        resultList:List(NNI) := copy(a)
+        nx:NNI := 1
+        ny:NNI := 1
+        for x in a repeat
+          for y in a repeat
+            if _>_=(s,nx,ny) then remove!(nx,resultList)
+            ny := ny+1
+          nx := nx +1
+        first(resultList)
 
       powerSetStructure(objs : S) : % ==
         -- S must be list so make this explicit
@@ -268,7 +323,27 @@ DistributiveLattice: Category == Lattice
 ++ Axiom: 
 ++ Axiom: 
 ++ Axiom: 
-Frame: Category == Lattice
+Frame(P:Poset(SetCategory)): Category == Lattice
+
+)abbrev domain FINLAT FiniteLattice
+++ Author: Martin Baker
+++ Description: This is the algebration of poset. A big difference between
+++    this lattice domain and the poset domain is that, in this domain, the
+++    REP holds a single node wheras in poset REP holds the whole poset.
+FiniteLattice(P:Poset(SetCategory)) : Exports == Impl where
+    NNI==> NonNegativeInteger
+    Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
+     finiteLattice : () -> %
+      ++ constructor
+
+    Impl ==> add
+
+      -- 
+      Rep := NNI
+
+      -- constructor where the set and structure is supplied
+      finiteLattice() : % ==
+        0::NNI
 
 )if false
 \eject
