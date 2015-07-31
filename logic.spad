@@ -99,19 +99,35 @@ Poset(S) : Exports == Impl where
       ++ and with a subset structure.
       ++ requires S to be a list.
 
-     _>_=:(s : %,NNI, NNI) -> Boolean
+     implies:(s : %,NNI, NNI) -> Boolean
      
-     meet:(s : %,a:NNI,b:NNI) -> List NNI
-      ++ returns a list of all nodes which are greater than both
-      ++ 'a' and 'b'
+     meet:(s : %,a:NNI,b:NNI) -> NNI
+      ++ returns the meet of 'a' and 'b'
+      ++ In this version of meet nodes are represented as index values.
+      ++ In the general case, not every poset will have a meet in which case
+      ++ 0 will be returned as an error indication.
+     
+     join:(s : %,a:NNI,b:NNI) -> NNI
+      ++ returns the join of 'a' and 'b'
+      ++ In this version of join nodes are represented as index values.
+      ++ In the general case, not every poset will have a join in which case
+      ++ 0 will be returned as an error indication.
 
      glb:(s : %,a:List NNI) -> NNI
-      ++ greatest lower bound
+      ++ 'greatest lower bound' or 'infimum'
+      ++ In this version of glb nodes are represented as index values.
+      ++ Not every subset of a poset will have a glb in which case
+      ++ 0 will be returned as an error indication.
 
      lub:(s : %,a:List NNI) -> NNI
-      ++ least upper bound
+      ++ 'least upper bound' or 'supremum'
+      ++ In this version of lub nodes are represented as index values.
+      ++ Not every subset of a poset will have a lub in which case
+      ++ 0 will be returned as an error indication.
 
     Impl ==> add
+
+      sayMsg ==> sayBrightly$Lisp
 
       -- This holds a complete set together with a structure to codify
       -- the partial order. The elements are put in a list so they
@@ -154,14 +170,16 @@ Poset(S) : Exports == Impl where
       getArrows(s : %) : List List Boolean ==
         s.struct1
 
-      _>_=(s : %,left:NNI,right:NNI) : Boolean ==
+      implies(s : %,left:NNI,right:NNI) : Boolean ==
         a : List Boolean := qelt(s.struct1,left)
         b : Boolean := qelt(a,right)
         b
 
-      -- returns a list of all nodes which are greater than both
-      -- 'a' and 'b'
-      meet(s : %,a:NNI,b:NNI): List NNI ==
+      -- returns the meet of 'a' and 'b'
+      -- In this version of meet nodes are represented as index values.
+      -- In the general case, not every poset will have a meet in which case
+      -- 0 will be returned as an error indication.
+      meet(s : %,a:NNI,b:NNI): NNI ==
         res : List NNI := []
         flaga : List Boolean := qelt(s.struct1,a)
         candidatesa: List NNI := []
@@ -176,34 +194,87 @@ Poset(S) : Exports == Impl where
           if x then candidatesb:= concat(candidatesb,index)
           index := index +1
         res := setIntersection(candidatesa,candidatesb)
-        res
+        glb(s,res)
 
-      ++ least upper bound
-      lub(s : %,a:List NNI):NNI ==
-        if empty?(a) then return 0::NNI
-        if #a=1 then return first(a)
-        resultList:List(NNI) := copy(a)
-        nx:NNI := 1
-        ny:NNI := 1
+      -- local function to display a list
+      listToString(a:List NNI):String ==
+        res :String := "["
         for x in a repeat
-          for y in a repeat
-            if _>_=(s,nx,ny) then remove!(ny,resultList)
-            ny := ny+1
-          nx := nx +1
-        first(resultList)
+          res := concat(res,string(x))
+          res := concat(res,",")
+        concat(res,"]")
 
-      ++ greatest lower bound
+
+      -- returns the join of 'a' and 'b'
+      -- In this version of join nodes are represented as index values.
+      -- In the general case, not every poset will have a join in which case
+      -- 0 will be returned as an error indication.
+      join(s : %,a:NNI,b:NNI): NNI ==
+        res : List NNI := []
+        flaga : List Boolean := qelt(s.struct1,a)
+        candidatesa: List NNI := []
+        index:NNI := 1
+        for x in flaga repeat
+          if x then candidatesa:= concat(candidatesa,index)
+          index := index +1
+        flagb : List Boolean := qelt(s.struct1,b)
+        candidatesb: List NNI := []
+        index := 1
+        for x in flagb repeat
+          if x then candidatesb:= concat(candidatesb,index)
+          index := index +1
+        res := setIntersection(candidatesa,candidatesb)
+        lub(s,res)
+
+      -- local function to display a list
+      listToString(a:List NNI):String ==
+        res :String := "["
+        for x in a repeat
+          res := concat(res,string(x))
+          res := concat(res,",")
+        concat(res,"]")
+
+      -- 'greatest lower bound' or 'infimum'
+      -- In this version of glb nodes are represented as index values.
+      -- Not every subset of a poset will have a glb in which case
+      -- 0 will be returned as an error indication.
       glb(s : %,a:List NNI):NNI ==
         if empty?(a) then return 0::NNI
         if #a=1 then return first(a)
         resultList:List(NNI) := copy(a)
-        nx:NNI := 1
-        ny:NNI := 1
+        --sayMsg concat("lub res=",listToString(resultList))$String
         for x in a repeat
+          --sayMsg concat("glb x=",string(x))$String
           for y in a repeat
-            if _>_=(s,nx,ny) then remove!(nx,resultList)
-            ny := ny+1
-          nx := nx +1
+            --sayMsg concat("glb y=",string(y))$String
+            if implies(s,x,y) then
+              if x ~= y then
+                if entry?(x,resultList) then
+                  --sayMsg concat("glb removing:",string(y))$String
+                  resultList := remove(y,resultList)
+                  --sayMsg concat("glb res=",listToString(resultList))$String
+        if #resultList ~= 1 then return 0::NNI
+        first(resultList)
+
+      -- 'least upper bound' or 'supremum'
+      -- In this version of lub nodes are represented as index values.
+      -- Not every subset of a poset will have a lub in which case
+      -- 0 will be returned as an error indication.
+      lub(s : %,a:List NNI):NNI ==
+        if empty?(a) then return 0::NNI
+        if #a=1 then return first(a)
+        resultList:List(NNI) := copy(a)
+        for x in a repeat
+          sayMsg concat("lub x=",string(x))$String
+          for y in a repeat
+            sayMsg concat("lub y=",string(y))$String
+            if implies(s,x,y) then
+              if x ~= y then
+                if entry?(y,resultList) then
+                  sayMsg concat("lub removing:",string(x))$String
+                  resultList := remove(x,resultList)
+                  sayMsg concat("lub res=",listToString(resultList))$String
+        if  #resultList ~= 1 then return 0::NNI
         first(resultList)
 
       powerSetStructure(objs : S) : % ==
