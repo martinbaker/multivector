@@ -175,6 +175,14 @@ Poset(S) : Exports == Impl where
         b : Boolean := qelt(a,right)
         b
 
+      -- local function to display a list
+      listToString(a:List NNI):String ==
+        res :String := "["
+        for x in a repeat
+          res := concat(res,string(x))
+          res := concat(res,",")
+        concat(res,"]")
+
       -- returns the meet of 'a' and 'b'
       -- In this version of meet nodes are represented as index values.
       -- In the general case, not every poset will have a meet in which case
@@ -196,43 +204,33 @@ Poset(S) : Exports == Impl where
         res := setIntersection(candidatesa,candidatesb)
         glb(s,res)
 
-      -- local function to display a list
-      listToString(a:List NNI):String ==
-        res :String := "["
-        for x in a repeat
-          res := concat(res,string(x))
-          res := concat(res,",")
-        concat(res,"]")
-
-
       -- returns the join of 'a' and 'b'
       -- In this version of join nodes are represented as index values.
       -- In the general case, not every poset will have a join in which case
       -- 0 will be returned as an error indication.
       join(s : %,a:NNI,b:NNI): NNI ==
         res : List NNI := []
-        flaga : List Boolean := qelt(s.struct1,a)
+        flaga : List Boolean := []
+        flagb : List Boolean := []
+        for x in s.struct1 repeat
+          flaga := concat(flaga,qelt(x,a)$List(Boolean))$List(Boolean)
         candidatesa: List NNI := []
         index:NNI := 1
         for x in flaga repeat
           if x then candidatesa:= concat(candidatesa,index)
           index := index +1
-        flagb : List Boolean := qelt(s.struct1,b)
+        for x in s.struct1 repeat
+          flagb := concat(flagb,qelt(x,b)$List(Boolean))$List(Boolean)
         candidatesb: List NNI := []
         index := 1
         for x in flagb repeat
           if x then candidatesb:= concat(candidatesb,index)
           index := index +1
         res := setIntersection(candidatesa,candidatesb)
+        --sayMsg concat("join candidatesa=",listToString(candidatesa))$String
+        --sayMsg concat("join candidatesb=",listToString(candidatesb))$String
+        --sayMsg concat("join res=",listToString(res))$String
         lub(s,res)
-
-      -- local function to display a list
-      listToString(a:List NNI):String ==
-        res :String := "["
-        for x in a repeat
-          res := concat(res,string(x))
-          res := concat(res,",")
-        concat(res,"]")
 
       -- 'greatest lower bound' or 'infimum'
       -- In this version of glb nodes are represented as index values.
@@ -401,10 +399,10 @@ Frame(P:Poset(SetCategory)): Category == Lattice
 ++ Description: This is the algebration of poset. A big difference between
 ++    this lattice domain and the poset domain is that, in this domain, the
 ++    REP holds a single node wheras in poset REP holds the whole poset.
-FiniteLattice(P:Poset(SetCategory)) : Exports == Impl where
+FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
-     finiteLattice : () -> %
+     finiteLattice : (index:NNI) -> %
       ++ constructor
 
     Impl ==> add
@@ -413,8 +411,43 @@ FiniteLattice(P:Poset(SetCategory)) : Exports == Impl where
       Rep := NNI
 
       -- constructor where the set and structure is supplied
-      finiteLattice() : % ==
-        0::NNI
+      finiteLattice(index:NNI) : % ==
+        index
+
+      -- returns the logical 'meet', e.g. 'and'.
+      _/_\(a:%,b:%) : % ==
+        meet(p,a pretend NNI,b pretend NNI)$Poset(S)
+
+      -- returns the logical 'join', e.g. 'or'.
+      _\_/(a:%,b:%) : % ==
+        join(p,a pretend NNI,b pretend NNI)$Poset(S)
+
+      -- start of SetCategory definitions --
+
+      hash(s : %) : SingleInteger == 0$SingleInteger
+
+      -- return string representation
+      -- I'm not sure how latex(s: %) is intended to be used but
+      -- there is nothing specifically latex here, it just returns a
+      -- string description of the graph.
+      latex(n : %) : String ==
+        -- s holds result that we are constructing
+        s:String := ""
+        s
+
+      -- returns true if x equals y
+      -- this is equality and not isomorphism
+      -- that is it returns true only if exact index values and names are used
+      -- in addition to the structure(arrows) being the same.
+      _=(x : %, y : %) : Boolean ==
+        (x pretend NNI)=(y pretend NNI)
+
+      -- returns true if x is not equal to y
+      _~_=(x : %, y : %) : Boolean == not(x = y)
+
+      -- output
+      coerce(s : %) : OutputForm ==
+        outputForm(s pretend Integer)
 
 )if false
 \eject
