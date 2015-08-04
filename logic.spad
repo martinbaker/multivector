@@ -50,8 +50,8 @@ as a parameter.
 ++   the partial order.
 ++   for more documatation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
-++ Date Created: July 2015
-++ Date Last Updated: July 2015
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
 ++ Basic Operations: 
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
@@ -125,6 +125,12 @@ Poset(S) : Exports == Impl where
       ++ Not every subset of a poset will have a lub in which case
       ++ 0 will be returned as an error indication.
 
+     indexToObject:(s : %,index:NNI) -> S
+      ++ returns the object at a given index
+
+     objectToIndex:(s : %,obj:S) -> NNI
+      ++ returns the index of a given object
+
     Impl ==> add
 
       sayMsg ==> sayBrightly$Lisp
@@ -183,11 +189,11 @@ Poset(S) : Exports == Impl where
           res := concat(res,",")
         concat(res,"]")
 
-      -- returns the meet of 'a' and 'b'
-      -- In this version of meet nodes are represented as index values.
-      -- In the general case, not every poset will have a meet in which case
+      -- returns the join of 'a' and 'b'
+      -- In this version of join nodes are represented as index values.
+      -- In the general case, not every poset will have a join in which case
       -- 0 will be returned as an error indication.
-      meet(s : %,a:NNI,b:NNI): NNI ==
+      join(s : %,a:NNI,b:NNI): NNI ==
         res : List NNI := []
         flaga : List Boolean := qelt(s.struct1,a)
         candidatesa: List NNI := []
@@ -204,11 +210,11 @@ Poset(S) : Exports == Impl where
         res := setIntersection(candidatesa,candidatesb)
         glb(s,res)
 
-      -- returns the join of 'a' and 'b'
-      -- In this version of join nodes are represented as index values.
-      -- In the general case, not every poset will have a join in which case
+     -- returns the meet of 'a' and 'b'
+      -- In this version of meet nodes are represented as index values.
+      -- In the general case, not every poset will have a meet in which case
       -- 0 will be returned as an error indication.
-      join(s : %,a:NNI,b:NNI): NNI ==
+      meet(s : %,a:NNI,b:NNI): NNI ==
         res : List NNI := []
         flaga : List Boolean := []
         flagb : List Boolean := []
@@ -263,17 +269,26 @@ Poset(S) : Exports == Impl where
         if #a=1 then return first(a)
         resultList:List(NNI) := copy(a)
         for x in a repeat
-          sayMsg concat("lub x=",string(x))$String
+          --sayMsg concat("lub x=",string(x))$String
           for y in a repeat
-            sayMsg concat("lub y=",string(y))$String
+            --sayMsg concat("lub y=",string(y))$String
             if implies(s,x,y) then
               if x ~= y then
                 if entry?(y,resultList) then
-                  sayMsg concat("lub removing:",string(x))$String
+                  --sayMsg concat("lub removing:",string(x))$String
                   resultList := remove(x,resultList)
-                  sayMsg concat("lub res=",listToString(resultList))$String
+                  --sayMsg concat("lub res=",listToString(resultList))$String
         if  #resultList ~= 1 then return 0::NNI
         first(resultList)
+
+      -- returns the object at a given index
+      indexToObject(s : %,index:NNI):S ==
+        --sayMsg concat("indexToObject",string(index))$String
+        qelt(s.set1,index)
+
+      -- returns the index of a given object
+      objectToIndex(s : %,obj:S):NNI ==
+        position(obj,s.set1)$List(S) pretend NNI
 
       powerSetStructure(objs : S) : % ==
         -- S must be list so make this explicit
@@ -403,16 +418,22 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
      finiteLattice : (index:NNI) -> %
-      ++ constructor
+      ++ construct finite lattice element from index
+     finiteLattice : (obj:S) -> %
+      ++ construct finite lattice element from object
 
     Impl ==> add
 
-      -- 
+      -- representation of element of lattice
       Rep := NNI
 
-      -- constructor where the set and structure is supplied
+      -- construct finite lattice element from index
       finiteLattice(index:NNI) : % ==
         index
+
+      -- construct finite lattice element from object
+      finiteLattice(obj:S) : % ==
+        objectToIndex(p,obj)$Poset(S)
 
       -- returns the logical 'meet', e.g. 'and'.
       _/_\(a:%,b:%) : % ==
@@ -447,7 +468,61 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
 
       -- output
       coerce(s : %) : OutputForm ==
-        outputForm(s pretend Integer)
+        index:NNI := s pretend NNI
+        --if index=0 then return outputForm("error")
+        obj:S := indexToObject(p,index)
+        (obj::OutputForm)$S
+
+
+)abbrev package POWSET Powerset
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Description:
+++  Provides functions to construct powerset
+++  Perhaps it should be called a 'powerlist' but since we do
+++  not expect duplicates or reqire specific ordering it is
+++  essentially the same.
+PI ==> PositiveInteger
+NNI==> NonNegativeInteger
+
+Powerset(S : SetCategory) : with
+  powerset:(List S) -> Poset(List(S))
+
+ == add
+
+  addDimensionToObjects(a:List(List(S)),newObj:S):List(List(S)) ==
+    b:List(List(S)) := nil
+    for x in a repeat
+      x1:List(S) :=concat(x,newObj)
+      b := concat(b,x1)
+    concat(a,b)
+
+  addDimensionToArrows(a:List(List(Boolean))):List(List(Boolean)) ==
+    res:List(List(Boolean)) := [empty()$List(Boolean)]
+    fst:Boolean := true
+    for xrepeat in 1..2 repeat
+      for x in a repeat
+        thisRow:List(Boolean) := empty()$List(Boolean)
+        for yrepeat in 1..2 repeat
+          for y in x repeat
+            topRight:Boolean := (xrepeat = 1) and (yrepeat = 2)
+            thisRow := concat(thisRow,if topRight then false else y)
+        if fst
+          then
+            res := [copy(thisRow)]
+            fst := false
+          else
+            res := concat(res,copy(thisRow))$List(List(Boolean))
+    res
+
+  powerset(objs:List S):Poset(List(S)) ==
+    eles:List(List(S)) := [nil]
+    arrows: List(List(Boolean)):=[[true]]
+    for x in objs repeat
+      eles := addDimensionToObjects(eles,x)
+      arrows := addDimensionToArrows(arrows)
+    poset(eles,arrows)$Poset(List(S))
 
 )if false
 \eject
