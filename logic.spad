@@ -44,6 +44,17 @@ The lattice is an algebraicizing of this. The lattice constructor would take the
 as a parameter.
 )endif
 
+)abbrev category PREORD Preorder
+++ Description: implies operation with reflexivity and transitivity
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+NNI==> NonNegativeInteger
+Preorder: Category == SetCategory with
+    implies:(s : %,NNI, NNI) -> Boolean
+
+
 )abbrev domain POSET Poset
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
@@ -93,6 +104,10 @@ Poset(S) : Exports == Impl where
      getArrows : (s : %) -> List List Boolean
       ++ getArrows(s) returns a list of all the arrows (or edges)
 
+     opposite : (s : %) -> %
+      ++ constucts the opposite in the category theory sense of reversing
+      ++ all the arrows
+
      powerSetStructure : (objs : S) -> %
       ++ powerSetStructure(set) is a constructor for a Poset
       ++ where each element is a set (implemented as a list)
@@ -112,6 +127,12 @@ Poset(S) : Exports == Impl where
       ++ In this version of join nodes are represented as index values.
       ++ In the general case, not every poset will have a join in which case
       ++ 0 will be returned as an error indication.
+
+     meet:(s : %,elements:List(NNI)) -> NNI
+      ++ returns the meet of a subset of lattice given by list of elements
+
+     join:(s : %,elements:List(NNI)) -> NNI
+      ++ returns the join of a subset of lattice given by list of elements
 
      glb:(s : %,a:List NNI) -> NNI
       ++ 'greatest lower bound' or 'infimum'
@@ -210,6 +231,20 @@ Poset(S) : Exports == Impl where
       getArrows(s : %) : List List Boolean ==
         s.struct1
 
+      -- constucts the opposite in the category theory sense of reversing
+      -- all the arrows
+      opposite(s : %) : % ==
+        arr2 : List List Boolean := [nil]
+        for x in s.struct1 repeat
+          row: List Boolean := []
+          for y in x repeat
+            row := concat(row,false)
+          arr2:=concat(arr2,row)
+        for a in 1..#(s.struct1) repeat
+          for b in 1..#(s.struct1) repeat
+            if isArrow?(s.struct1,a,b) then setArrow!(arr2,b,a,true)
+        [s.set1,arr2]
+
       implies(s : %,left:NNI,right:NNI) : Boolean ==
         a : List Boolean := qelt(s.struct1,left)
         b : Boolean := qelt(a,right)
@@ -229,13 +264,17 @@ Poset(S) : Exports == Impl where
       -- 0 will be returned as an error indication.
       join(s : %,a:NNI,b:NNI): NNI ==
         res : List NNI := []
+        -- flag for each element is true if >= from 'a'
         flaga : List Boolean := qelt(s.struct1,a)
+        -- list of all element indexes which are >= from 'a'
         candidatesa: List NNI := []
         index:NNI := 1
         for x in flaga repeat
           if x then candidatesa:= concat(candidatesa,index)
           index := index +1
+        -- flag for each element is true if >= from 'b'
         flagb : List Boolean := qelt(s.struct1,b)
+        -- list of all element indexes which are >= from 'a'
         candidatesb: List NNI := []
         index := 1
         for x in flagb repeat
@@ -250,10 +289,13 @@ Poset(S) : Exports == Impl where
       -- 0 will be returned as an error indication.
       meet(s : %,a:NNI,b:NNI): NNI ==
         res : List NNI := []
+        -- flag for each element is true if >= to 'a'
         flaga : List Boolean := []
+        -- flag for each element is true if >= to 'b'
         flagb : List Boolean := []
         for x in s.struct1 repeat
           flaga := concat(flaga,qelt(x,a)$List(Boolean))$List(Boolean)
+        -- list of all element indexes which are >= than 'a'
         candidatesa: List NNI := []
         index:NNI := 1
         for x in flaga repeat
@@ -261,6 +303,7 @@ Poset(S) : Exports == Impl where
           index := index +1
         for x in s.struct1 repeat
           flagb := concat(flagb,qelt(x,b)$List(Boolean))$List(Boolean)
+        -- list of all element indexes which are >= than 'b'
         candidatesb: List NNI := []
         index := 1
         for x in flagb repeat
@@ -271,6 +314,40 @@ Poset(S) : Exports == Impl where
         --sayMsg concat("join candidatesb=",listToString(candidatesb))$String
         --sayMsg concat("join res=",listToString(res))$String
         lub(s,res)
+
+      -- returns the meet of a subset of lattice given by list of elements
+      meet(s : %,elements:List(NNI)):NNI ==
+        res : List NNI := []
+        for e in elements repeat
+          -- flag for each element is true if >= to 'e'
+          flage : List Boolean := []
+          for x in s.struct1 repeat
+            flage := concat(flage,qelt(x,e)$List(Boolean))$List(Boolean)
+          -- list of all element indexes which are >= than 'e'
+          candidates: List NNI := []
+          index:NNI := 1
+          for x in flage repeat
+            if x then candidates:= concat(candidates,index)
+            index := index +1
+        res := setIntersection(res,candidates)
+        --sayMsg concat("join candidates=",listToString(candidates))$String
+        --sayMsg concat("join res=",listToString(res))$String
+        lub(s,res)
+
+      -- returns the join of a subset of lattice given by list of elements
+      join(s : %,elements:List(NNI)):NNI ==
+        res : List NNI := []
+        for e in elements repeat
+          -- flag for each element is true if >= from 'e'
+          flage : List Boolean := qelt(s.struct1,e)
+          -- list of all element indexes which are >= from 'e'
+          candidates: List NNI := []
+          index:NNI := 1
+          for x in flage repeat
+            if x then candidates:= concat(candidates,index)
+            index := index +1
+          res := setIntersection(res,candidates)
+        glb(s,res)
 
       -- 'greatest lower bound' or 'infimum'
       -- In this version of glb nodes are represented as index values.
@@ -455,7 +532,13 @@ DistributiveLattice: Category == Lattice
 ++ Axiom: 
 ++ Axiom: 
 ++ Axiom: 
-Frame(P:Poset(SetCategory)): Category == Lattice
+Frame(P:Poset(SetCategory)): Category == Lattice with
+      meet:(List %) -> %
+        ++ returns the logical 'meet' of some subset specified
+        ++ by a list of elements.
+      join:(List %) -> %
+        ++ returns the logical 'join' of some subset specified
+        ++ by a list of elements.
 
 )abbrev domain FINLAT FiniteLattice
 ++ Author: Martin Baker
@@ -521,6 +604,38 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
         obj:S := indexToObject(p,index)
         (obj::OutputForm)$S
 
+)abbrev domain FINFRM FiniteFrame
+++ Author: Martin Baker
+++ Description: A Frame is a Lattice where certain subsets are also Lattices
+FiniteFrame(S:SetCategory,p:Poset(S)) : Exports == Impl where
+    NNI==> NonNegativeInteger
+    --Exports ==> Join(Lattice,Frame(Poset(SetCategory)),CoercibleTo(OutputForm), SetCategory) with
+    --Exports ==> Join(Lattice,FiniteLattice(SetCategory,Poset(SetCategory)),CoercibleTo(OutputForm), SetCategory) with
+    -- *** FIX ME can't work out how to inherit from FiniteLattice
+    Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
+     finiteFrame : (index:NNI) -> %
+      ++ construct finite lattice element from index
+     finiteFrame : (obj:S) -> %
+      ++ construct finite lattice element from object
+
+    -- *** FIX ME can't work out how to inherit from FiniteLattice
+    --Impl == FiniteLattice(SetCategory,Poset(SetCategory)) add
+    Impl == add
+
+     -- *** FIX ME representation should really be inherited from FiniteLattice
+     Rep := NNI
+
+     -- returns the logical 'meet' of some subset specified
+     -- by a list of elements.
+     meet(elements:List(%)):% ==
+       e:List(NNI) := [(x pretend NNI) for x in elements]
+       meet(p,e)$Poset(S)
+
+     -- returns the logical 'join' of some subset specified
+     -- by a list of elements.
+     join(elements:List(%)):% ==
+       e:List(NNI) := [(x pretend NNI) for x in elements]
+       join(p,e)$Poset(S)
 
 )abbrev package POWSET Powerset
 ++ Author: Martin Baker
