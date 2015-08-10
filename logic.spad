@@ -1516,6 +1516,88 @@ ILogic() : Exports == Implementation where
   coerce(n : %) : OutputForm ==
     toString(n)::OutputForm
 
+)abbrev domain BITST BitStreamFrame
+++ Author: Martin Baker
+++ Description: An example of a frame taken from Vickers section 3.7
+BitStreamFrame() : Exports == Impl where
+    NNI==> NonNegativeInteger
+    Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
+     starts : (index:List(Boolean)) -> %
+      ++ construct bit stream
+     starts : (str:String) -> %
+      ++ construct bit stream by parsing string containing 0,1 and *
+
+    Impl == add
+
+     -- A single bitstream is coded as 'List Boolean', this is the
+     -- bit sequence starting from the first bit.
+     -- This representaion holds all allowable bitstreams
+     -- or'd together as a list of bitstreams.
+     Rep := List(List(Boolean))
+
+     -- construct bit stream
+     starts(index:List(Boolean)):% ==
+       [index]
+      
+     -- construct bit stream by parsing string containing 0,1 and *
+     starts(str:String):% ==
+       res:List(Boolean) := []
+       cs:List Character := entries(str)
+       for c in cs repeat
+         if c=char("0") then res:=concat(res,false)
+         if c=char("1") then res:=concat(res,true)
+       [res]
+
+     -- returns the logical 'meet', e.g. 'and'.
+     _/_\(a:%,b:%) : % ==
+       res: List(List(Boolean)) := concat(a pretend List(List(Boolean)),b pretend List(List(Boolean)))$List(List(Boolean))
+       res
+
+     -- returns the logical 'join', e.g. 'or'.
+     _\_/(a:%,b:%) : % ==
+       res: List(List(Boolean)) := concat(a pretend List(List(Boolean)),b pretend List(List(Boolean)))$List(List(Boolean))
+       res
+
+     -- start of SetCategory definitions --
+
+     hash(s : %) : SingleInteger == 0$SingleInteger
+
+     -- return string representation
+     -- I'm not sure how latex(s: %) is intended to be used but
+     -- there is nothing specifically latex here, it just returns a
+     -- string description of the graph.
+     latex(n : %) : String ==
+       -- s holds result that we are constructing
+       s:String := ""
+       s
+
+     -- returns true if x equals y
+     -- this is equality and not isomorphism
+     -- that is it returns true only if exact index values and names are used
+     -- in addition to the structure(arrows) being the same.
+     _=(x : %, y : %) : Boolean ==
+       if #x ~= #y then return false
+       len:NNI := #x
+       for i in 1..len repeat
+         if x.i ~= y.i then return false
+       true
+
+     -- returns true if x is not equal to y
+     _~_=(x : %, y : %) : Boolean == not(x = y)
+
+     -- output
+     coerce(s : %) : OutputForm ==
+       cs:List OutputForm := []
+       for row in s repeat
+         r:List OutputForm := ["starts:"::OutputForm]
+         for x in row repeat
+           ro:OutputForm := "0"::OutputForm
+           if x then ro := "1"::OutputForm
+           r:= concat(r,ro)
+           --r:= concat(r," "::OutputForm)
+         c:OutputForm := hconcat(r)
+         cs:= concat(cs,c)
+       vconcat(cs)
 
 --Copyright (c) 2015, Martin J Baker.
 --All rights reserved.
