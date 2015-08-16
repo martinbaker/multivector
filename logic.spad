@@ -81,8 +81,11 @@ Poset(S) : Exports == Impl where
     PI ==> PositiveInteger
     NNI==> NonNegativeInteger
     SINT==> SingleInteger
+    OBJT ==> Record(value : S, posX : NNI, posY : NNI)
+    ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
 
-    Exports ==> Join(CoercibleTo(OutputForm), SetCategory) with
+    Exports ==> FiniteGraph(S) with
      poset : (set1:List S,struct1:List List Boolean) -> %
       ++ constructor where the set and structure is supplied
      addObject : (s : %, n : S) -> %
@@ -99,8 +102,6 @@ Poset(S) : Exports == Impl where
      getVertices : (s : %) -> List S
       ++ getVertices(s) returns a list of all the vertices (or objects)
       ++ of the graph s.
-     getVertexIndex :  (%, S) -> NNI
-      ++ getVertexIndex(s, o) gives index of object o.
      getArrows : (s : %) -> List List Boolean
       ++ getArrows(s) returns a list of all the arrows (or edges)
 
@@ -213,6 +214,7 @@ Poset(S) : Exports == Impl where
         arrows := concat(arrows,emptyRow)
         [obs,arrows]
 
+      -- FIXME - make this non-mutable
       -- adds an arrow to this graph, where:
       -- s is the graph where the arrow is to be added
       -- n1 is the index of the start object
@@ -230,6 +232,306 @@ Poset(S) : Exports == Impl where
       -- returns a list of all the arrows (or edges)
       getArrows(s : %) : List List Boolean ==
         s.struct1
+
+      -- start of FiniteGraph implementation
+
+      -- addObject!(s, n) adds object n to the graph s.
+      -- mutable version of addObject.
+      addObject!(s : %, n : S):% ==
+        dim : NNI := #(s.set1) + 1
+        obs : List S := concat(s.set1,n)
+        arrows : List List Boolean := []
+        for a in s.struct1 repeat
+          a:List Boolean := concat(a,false)
+          arrows := concat(arrows,a)
+        emptyRow:List Boolean := [false for x in 1..dim]
+        arrows := concat(arrows,emptyRow)
+        s.set1 := obs
+        s.struct1 := arrows
+        s
+
+      -- addObject!(s, n) adds object with coordinates n to the
+      -- graph s.
+      addObject!(s : %, n : OBJT):% ==
+        ob:S := n.value
+        addObject!(s,ob)
+
+      -- addArrow!(s, nm, n1, n2) adds an arrow to the graph s, where:
+      -- nm is the name of the arrow
+      -- n1 is the index of the start object
+      -- n2 is the index of the end object
+      addArrow!(s : %, name : String, n1 : NNI, n2 : NNI):% ==
+        a : List Boolean := qelt(s.struct1,n1)
+        setelt!(a,n2,true)
+        setelt!(s.struct1,n1,a)
+        [s.set1,s.struct1]
+
+      -- addArrow!(s, nm, n1, n2, mp) adds an arrow to the graph s, where:
+      -- nm is the name of the arrow
+      -- n1 is the index of the start object
+      -- n2 is the index of the end object
+      -- mp is a map represented by this arrow
+      addArrow!(s : %, name : String, n1 : NNI, n2 : NNI, mp : List NNI):% ==
+        addArrow!(s,name,n1,n2)
+
+      -- getVertices(s) returns a list of all the vertices (or objects)
+      -- of the graph s.
+      getVertices(s : %):List(OBJT) ==
+        [[x,0::NNI,0::NNI] for x in s.set1]
+
+      -- getArrows(s) returns a list of all the arrows (or edges)
+      getArrows(s : %):List(ARROW) ==
+        res:List(ARROW) := nil()
+        dim:NNI := #s.struct1
+        for x in 1..dim for row in s.struct1 repeat
+          for y in 1..dim for val in row repeat
+            if val then
+              arr:ARROW := ["x", 0::NNI,x pretend NNI,y pretend NNI,0::Integer,0::Integer,nil()$List(NNI)]
+              res := concat(res,arr)
+        res
+
+      -- flatten(n) takes a second order graph, we don't really need
+      -- this here so return an empty poset.
+      flatten(n : DirectedGraph(%)):% ==
+        [[],[nil()$List(Boolean)]]
+   
+      -- initial constructs a graph without vertices or edges
+      initial():% ==
+        [[],[nil()$List(Boolean)]]
+
+      -- terminal(a) constructs a graph over a with a single vertex
+      -- and a single loop
+      terminal(a : S):% ==
+        [[a],[[true]]]
+
+      -- cycleOpen(objs, arrowName) constructs a graph with vertices
+      -- (from objs) connected in a cycle but with one gap. The last
+      -- vertex in the sequence loops back to itself so all vertices
+      -- have one outgoing arrow.
+      -- arrowName is a prefix for all arrow names, this will be
+      -- followed by a number starting at 1 and incremented for each
+      -- arrow
+      cycleOpen(objs : List S, arrowName : String):% ==
+        [[],[nil()$List(Boolean)]]
+
+      -- cycleClosed: (objs: List S, arrowName: String) constructs a graph
+      -- with vertices (from objs) connected in a cycle.
+      -- arrowName is a prefix for all arrow names, this will be
+      -- followed by a number starting at 1 and incremented for each
+      -- arrow
+      cycleClosed(objs : List S, arrowName : String):% ==
+        [[],[nil()$List(Boolean)]]
+
+      -- unit(objs, arrowName) constructs a graph with vertices
+      -- (from objs) and arrows from each object to itself.
+      -- arrowName is a prefix for all arrow names, this will be
+      -- followed by a number starting at 1 and incremented for each
+      -- arrow
+      unit(objs : List(S), arrowName : String):% ==
+        dim:NNI := #objs
+        arrs:List(List(Boolean)) := [nil()$List(Boolean)]
+        for x in 1..dim repeat
+          row:List Boolean := nil()
+          for y in 1..dim repeat
+            val:Boolean := (x=y)
+            row := concat(row,val)
+          arrs := concat(arrs,row)
+        [objs,arrs]
+
+      -- kgraph(objs, arrowName)
+      -- constructs a graph with vertices (from objs) and fully
+      -- connected arrows, that is, each object has an arrow to
+      -- every other object except itself.
+      -- arrowName is a prefix for all arrow names, this will be
+      -- followed by a number starting at 1 and incremented for each
+      -- arrow
+      kgraph(objs : List S, arrowName : String):% ==
+        [[],[[false]]]
+
+      -- isDirectSuccessor?(s, a, b) is
+      -- true if 'b' is a direct successor of 'a'
+      -- that is, if there is a direct arrow from 'a' to 'b'
+      isDirectSuccessor?(s : %, a : NNI, b : NNI):Boolean ==
+        false
+
+      -- isGreaterThan?((s, a, b) is
+      -- true if we can get from vertex 'a' to 'b' through a
+      -- sequence of arrows but we can't go in the opposite
+      -- direction from 'b' to 'a'
+      isGreaterThan?(s : %, a : NNI, b : NNI):Boolean ==
+        false
+   
+      -- max(s) returns index of the vertex which can be reached
+      -- from all other vertices. Gives 0 if no such node exists
+      -- or if it is not unique, if there is a loop for instance.
+      max(s : %) : NNI ==
+        0::NNI
+   
+      -- max(s, sub) returns index of the vertex which
+      -- can be reached from a given subset of the vertices. Gives
+      -- 0 if no such node exists or if it is not unique, if there
+      -- is a loop for instance.
+      max(s : %, sub : List NNI):NNI ==
+        0::NNI
+    
+      -- min(s) returns index of the vertex which can reach to all
+      -- other vertices. Gives 0 if no such node exists or if it is
+      -- not unique, if there is a loop for instance.
+      min(s : %) : NNI ==
+        0::NNI
+  
+      -- min(s, sub) returns index of the vertex which can reach
+      -- to a given subset of the vertices. Gives 0 if no such node
+      -- exists or if it is not unique, if there is a loop for instance.
+      min(s : %, sub : List NNI):NNI ==
+        0::NNI
+   
+      -- isFixPoint?(s, a) is
+      -- true if 'a' has an arrow to itself
+      isFixPoint?(s : %, a : NNI):Boolean ==
+        false
+   
+      -- arrowName(s, a, b) retrieves
+      -- the name of arrow a->b
+      -- if it does not exist then return "?"
+      arrowName(s : %, a : NNI, b : NNI):String ==
+        "?"
+   
+      -- getArrowIndex(s, a, b) retrieves
+      -- arrow index of the arrow form a to b
+      getArrowIndex(s : %, a : NNI, b : NNI):NNI ==
+        0::NNI
+
+      -- inDegree(s, a) gives the number of arrows leading in to node
+      -- 'a' in graph 's'
+      inDegree(s : %, a : NNI):NNI ==
+        0::NNI
+   
+      -- outDegree(s, a) gives
+      -- the number of arrows leading out of node 'a' in graph 's'
+      outDegree(s : %, a : NNI):NNI ==
+        0::NNI
+   
+      -- nodeFromNode(s, a) gives list
+      -- of all nodes with a direct arrow leading
+      -- in to node 'a' in graph 's'
+      nodeFromNode(s : %, a : NNI):List NNI ==
+        [0::NNI]
+   
+      -- nodeToNode(s, a) gives list of all nodes with a direct arrow leading
+      -- out of node 'a' in graph 's'
+      nodeToNode(s : %, a : NNI):List NNI ==
+        [0::NNI]
+
+      -- arrowsFromNode(s, a) gives list of all arrows leading to a given node
+      arrowsFromNode(s : %, a : NNI):List NNI ==
+        [0::NNI]
+
+      -- arrowsToNode(s, a) gives list of all arrows leading from a given node
+      arrowsToNode(s : %, a : NNI):List NNI ==
+        [0::NNI]
+   
+      -- nodeFromArrow(s, a) returns index of all nodes with a direct
+      -- arrow leading in to arrow 'a' in graph 's'
+      nodeFromArrow(s : %, a : NNI):List NNI ==
+        [0::NNI]
+   
+      -- nodeToArrow(s, a) returns index of all nodes with a direct
+      -- arrow leading out of arrow 'a' in graph 's'
+      nodeToArrow(s : %, a : NNI):List NNI ==
+        [0::NNI]
+
+      -- index of all arrows leading to a given arrow
+      arrowsFromArrow(s : %, a : NNI):List NNI ==
+        [0::NNI]
+
+      -- arrowsToArrow: (s: %, a: NNI) returns index of all arrows leading from
+      -- a given arrow
+      arrowsToArrow(s : %, a : NNI):List NNI ==
+        [0::NNI]
+
+      -- routeNodes(s, a, b) gives the shortest route between
+      -- nodes 'a' and 'b' as a sequence of node indexes.
+      -- [a] if  'a' = 'b'
+      -- [] if it is not possible to go from 'a' to 'b'
+      routeNodes(s : %, a : NNI, b : NNI):List NNI ==
+        [0::NNI]
+
+      -- routeArrows(s, a, b) gives
+      -- the shortest route between nodes 'a' and 'b' as a
+      -- sequence of arrow indexes.
+      -- [] if  'a' = 'b'
+      -- [0] if it is not possible to go from 'a' to 'b'
+      routeArrows(s : %, a : NNI, b : NNI):List NNI ==
+        [0::NNI]
+   
+      -- distance(s, a, b) gives the shortest distance between
+      -- nodes 'a' and 'b' as a
+      -- number of hops.
+      -- 0 if  'a' = 'b',
+      -- -1 if it is not possible to go from 'a' to 'b'
+      distance(s : %, a : NNI, b : NNI):Integer ==
+        0::Integer
+
+      -- sum : disjoint union of nodes with arrows from appropriate
+      -- input
+      "+"(a:%,b:%):% ==
+        a
+   
+      -- merge(a, b) returns sum : union (not necessarily disjoint) of
+      -- nodes with arrows merged in from appropriate input, if arrow
+      -- exists from both inputs then it will be duplicated.
+      merge(a:%,b:%):% ==
+        a
+
+      -- isDirected? is true iff % is domain consisting of directed
+      -- graphs, false for undirected graphs.
+      isDirected?():Boolean ==
+        true
+
+      -- createWidth(x) can be used by domains which extend graph
+      -- to help in creating coordinates for objects in a graph
+      createWidth(x : NNI):NNI ==
+        0::NNI
+
+      -- createX(x, n) can be used by domains which extend graph to
+      -- help in creating the x coordinate for objects in a graph
+      createX(x : NNI, n : NNI):NNI ==
+        0::NNI
+
+      -- createY(x, n) can be used by domains which extend graph to
+      -- help in creating the y coordinate for objects in a graph
+      createY(x : NNI, n : NNI):NNI ==
+        0::NNI
+
+      -- looseEquals(x, y) is true if x 'equals' y
+      -- this is a looser version of equality test but is not as
+      -- general as isomorphism.
+      -- it only requires the same number of vertices but does not
+      -- require the objects themselves being equal.
+      -- the arrows must be the same, that is it may return false
+      -- if the order of vertices is changed so this is not
+      -- isomorphism test.
+      -- I would like to enhance this code into a true isomorphism test
+      looseEquals(x : %, y : %):Boolean ==
+        false
+
+      -- map(s, m, newOb, offsetX, offsetY) creates a new graph by
+      -- mapping from this one
+      -- newOb should contain the new list of vertices.
+      -- m should contain a NNI value for each vertex, this is the
+      -- new index into newOb. It is allowed that newOb may contain
+      -- less objects than s (for surjective mapping) or
+      -- more objects than s (for injective mapping)
+      map(s : %, m : List NNI, newOb : List S, offsetX : Integer, offsetY : Integer):% ==
+        s
+
+      -- mapContra(s, m, newOb, offsetX, offsetY) is similar to map
+      -- function but reverses the directions of the arrows
+      mapContra(s : %, m : List NNI, newOb : List S, offsetX : Integer, offsetY : Integer):% ==
+        s
+
+      -- end of FiniteGraph implementation
 
       -- constucts the opposite in the category theory sense of reversing
       -- all the arrows
