@@ -637,23 +637,39 @@ FiniteFrame(S:SetCategory,p:Poset(S)) : Exports == Impl where
        e:List(NNI) := [(x pretend NNI) for x in elements]
        join(p,e)$Poset(S)
 
-)abbrev package POWSET Powerset
+)abbrev package POSETF PosetFactory
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
 ++ Description:
-++  Provides functions to construct powerset
+++  Provides functions to construct various small posets 
+++  including powerset.
 ++  Perhaps it should be called a 'powerlist' but since we do
 ++  not expect duplicates or reqire specific ordering it is
 ++  essentially the same.
 PI ==> PositiveInteger
 NNI==> NonNegativeInteger
 
-Powerset(S : SetCategory) : with
+PosetFactory(S : SetCategory) : with
   powerset:(List S) -> Poset(List(S))
+    ++ generate a poset representing all possible subsets of a
+    ++ given set with their subset relationships.
+  completelyOrderedSet:(objs:List(S)) -> Poset(S)
+    ++ generates a completely ordered set
+  posetN5:(objs:List(S)) -> Poset(S)
+    ++ generates a poset corresponding to an N5 lattice
+  posetM5:(objs:List(S)) -> Poset(S)
+    ++ generates a poset corresponding to an M5 lattice
+  posetO6:(objs:List(S)) -> Poset(S)
+    ++ generates a poset corresponding to an O6 lattice
+  posetP6:(objs:List(S)) -> Poset(S)
+    ++ generates a poset corresponding to an P6 lattice
+  posetL7:(objs:List(S)) -> Poset(S)
+    ++ generates a poset corresponding to an L7 lattice
 
  == add
 
+  -- local function used by powerset
   addDimensionToObjects(a:List(List(S)),newObj:S):List(List(S)) ==
     b:List(List(S)) := nil
     for x in a repeat
@@ -661,6 +677,7 @@ Powerset(S : SetCategory) : with
       b := concat(b,x1)
     concat(a,b)
 
+  -- local function used by powerset
   addDimensionToArrows(a:List(List(Boolean))):List(List(Boolean)) ==
     res:List(List(Boolean)) := [empty()$List(Boolean)]
     fst:Boolean := true
@@ -679,6 +696,8 @@ Powerset(S : SetCategory) : with
             res := concat(res,copy(thisRow))$List(List(Boolean))
     res
 
+  -- generate a poset representing all possible subsets of a
+  -- given set with their subset relationships.
   powerset(objs:List S):Poset(List(S)) ==
     eles:List(List(S)) := [nil]
     arrows: List(List(Boolean)):=[[true]]
@@ -686,6 +705,67 @@ Powerset(S : SetCategory) : with
       eles := addDimensionToObjects(eles,x)
       arrows := addDimensionToArrows(arrows)
     poset(eles,arrows)$Poset(List(S))
+
+  -- generates a completely ordered set
+  completelyOrderedSet(objs:List(S)):Poset(S) ==
+    dim:NNI := #objs
+    arrows:List(List(Boolean)) := [nil]
+    for x in 1..dim repeat
+      row:List Boolean := nil
+      for y in 1..dim repeat
+        g:Boolean := if x >= y then true else false
+        row := concat(row,g)
+      arrows := concat(arrows,row)
+    poset(objs,arrows)$Poset(S)
+    
+  -- generates a poset corresponding to an N5 lattice
+  posetN5(objs:List(S)):Poset(S) ==
+    poset(objs,[[true,true,true,true,true],
+    [false,true,false,false,true],
+    [false,false,true,true,true],
+    [false,false,false,true,true],
+    [false,false,false,false,true]
+    ])$Poset(S)
+
+  -- generates a poset corresponding to an M5 lattice
+  posetM5(objs:List(S)):Poset(S) ==
+    poset(objs,[[true,true,true,true,true],
+    [false,true,false,false,true],
+    [false,false,true,false,true],
+    [false,false,false,true,true],
+    [false,false,false,false,true]
+    ])$Poset(S)
+
+  -- generates a poset corresponding to an O6 lattice
+  posetO6(objs:List(S)):Poset(S) ==
+    poset(objs,[[true,true,true,true,true,true],
+    [false,true,true,false,false,true],
+    [false,false,true,false,false,true],
+    [false,false,false,true,true,true],
+    [false,false,false,false,true,true],
+    [false,false,false,false,false,true]
+    ])$Poset(S)
+
+  -- generates a poset corresponding to an P6 lattice
+  posetP6(objs:List(S)):Poset(S) ==
+    poset(objs,[[true,true,true,true,true,true],
+    [false,true,true,false,true,true],
+    [false,false,true,false,false,true],
+    [false,false,true,true,true,true],
+    [false,false,false,false,true,true],
+    [false,false,false,false,false,true]
+    ])$Poset(S)
+
+  -- generates a poset corresponding to an L7 lattice
+  posetL7(objs:List(S)):Poset(S) ==
+    poset(objs,[[true,true,true,true,true,true,true],
+    [false,true,false,true,true,false,true],
+    [false,false,true,false,true,true,true],
+    [false,false,false,true,false,false,true],
+    [false,false,false,false,true,false,true],
+    [false,false,false,false,false,true,true],
+    [false,false,false,false,false,false,true]
+    ])$Poset(S)
 
 )if false
 \section{Intuitionistic Logic}
