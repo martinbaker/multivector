@@ -206,7 +206,7 @@ Poset(S) : Exports == Impl where
       addObject(s : %, n : S) : % ==
         dim : NNI := #(s.set1) + 1
         obs : List S := concat(s.set1,n)
-        arrows : List List Boolean := []
+        arrows : List(List(Boolean)) := [nil()$List(Boolean)]
         for a in s.struct1 repeat
           a:List Boolean := concat(a,false)
           arrows := concat(arrows,a)
@@ -240,10 +240,12 @@ Poset(S) : Exports == Impl where
       addObject!(s : %, n : S):% ==
         dim : NNI := #(s.set1) + 1
         obs : List S := concat(s.set1,n)
-        arrows : List List Boolean := []
+        arrows : List(List(Boolean)) := nil()$List(List(Boolean))
         for a in s.struct1 repeat
           a:List Boolean := concat(a,false)
-          arrows := concat(arrows,a)
+          if empty?(arrows)
+            then arrows := [a]
+            else arrows := concat(arrows,a)
         emptyRow:List Boolean := [false for x in 1..dim]
         arrows := concat(arrows,emptyRow)
         s.set1 := obs
@@ -766,31 +768,70 @@ Poset(S) : Exports == Impl where
 
       -- output
       coerce(s : %) : OutputForm ==
+        dim:NNI := #(s.set1)
+        if empty?(s.struct1) then return bracket(empty()$OutputForm)
         mat:List List OutputForm := empty()$List(List(OutputForm))
         for a in s.struct1 repeat
           row:List OutputForm := empty()$List(OutputForm)
-          for b in a repeat
-            c:Symbol := if b then "true"::Symbol else "false"::Symbol
-            row := concat(row,outputForm(c)$OutputForm)$List(OutputForm)
+          if empty?(a)
+            then
+              row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
+            else
+              for b in a repeat
+                c:Symbol := if b then "true"::Symbol else "false"::Symbol
+                row := concat(row,outputForm(c)$OutputForm)$List(OutputForm)
+          if #row ~= dim then return outputForm("wrong number of cols")
           mat := concat(mat,row)
+        if #mat ~= dim then return outputForm("wrong number of rows")
         matrix(mat)
 
 )abbrev category MEETLAT MeetSemilattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Meet
+++ Related Constructors: BoundedMeetSemilattice
+++  use BoundedMeetSemilattice if the semilattice has a 'top' which will be
+++  the case for all finite meet semilattices since we can do a meet of all values
+++ Keywords: Meet
 ++ Description: meet semilattice
 ++   Implementations in set, logic and orders
 ++   for more documatation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x/\y=y/\x
 ++ Axiom: associativity forall(x,y,z): (x/\y)/\z=y/\(x/\z)
-++ Axiom: unit forall x: x/\true()=x
 ++ Axiom: idempotence forall x: x/\x=x
 MeetSemilattice: Category == SetCategory with
       _/_\: (%, %) -> %
         ++ returns the logical 'meet', e.g. 'and'.
-      true: constant -> %
-        ++ returns true.
+
+)abbrev category BMEET BoundedMeetSemilattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Meet
+++ Related Constructors: MeetSemilattice
+++  use BoundedMeetSemilattice if the semilattice has a 'top' which will be
+++  the case for all finite meet semilattice since we can do a meet of all values
+++ Keywords: Meet Top
+++ Description: meet semilattice with top
+++   Implementations in set, logic and orders
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: unit forall x: x/\ T=x
+BoundedMeetSemilattice: Category == MeetSemilattice with
+      T: constant -> %
+        ++ Top (true in logic).
 
 )abbrev category JOINLAT JoinSemilattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Join
+++ Related Constructors: BoundedJoinSemilattice
+++  use BoundedJoinSemilattice if the semilattice has a 'bottom' which will be
+++  the case for all finite join semilattices since we can do a join of all values
+++ Keywords: Join
 ++ Description: join semilattice
 ++   Different from exterior Grassmann product operator as
 ++   that anticommutes.
@@ -799,15 +840,40 @@ MeetSemilattice: Category == SetCategory with
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x\/y=y\/x
 ++ Axiom: associativity forall(x,y,z): (x\/y)\/z=y\/(x\/z)
-++ Axiom: unit forall x: x\/false()=x
 ++ Axiom: idempotence forall x: x\/x=x
 JoinSemilattice: Category == SetCategory with
       _\_/: (%, %) -> %
         ++ returns the logical 'join', e.g. 'or'.
-      false: constant -> %
-        ++ returns false.
+
+)abbrev category BJOIN BoundedJoinSemilattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Join
+++ Related Constructors: JoinSemilattice
+++  use BoundedJoinSemilattice if the semilattice has a 'bottom' which will be
+++  the case for all finite join semilattices since we can do a join of all values
+++ Keywords: Join Bottom
+++ Description: join semilattice with bottom
+++   Different from exterior Grassmann product operator as
+++   that anticommutes.
+++   need to check precidence when used as an infix operator
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: unit forall x: x \/ _|_=x
+BoundedJoinSemilattice: Category == JoinSemilattice with
+      "__|__": constant -> %
+        ++ bottom (false in logic).
 
 )abbrev category LAT Lattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Meet Join
+++ Related Constructors: BoundedLattice
+++  use BoundedLattice if the lattice has a top and 'bottom' which will be
+++  the case for all finite lattices since we can do a meet and join of all values
+++ Keywords: Meet Top Join Bottom
 ++ Description: lattice
 ++   for more documatation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
@@ -815,7 +881,31 @@ JoinSemilattice: Category == SetCategory with
 ++ Axiom: absorptionJoinOverMeet forall(x,y): x\/(x/\y)=x
 Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
 
+)abbrev category BLAT BoundedLattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Meet Join
+++ Related Constructors: Lattice
+++  use BoundedLattice if the lattice has a top and 'bottom' which will be
+++  the case for all finite lattices since we can do a meet and join of all values
+++ Keywords: Meet Top Join Bottom
+++ Description: lattice with top and bottom
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: absorptionMeetOverJoin forall(x,y): x/\(x\/y)=x
+++ Axiom: absorptionJoinOverMeet forall(x,y): x\/(x/\y)=x
+BoundedLattice: Category == Join(BoundedMeetSemilattice,BoundedJoinSemilattice)
+
 )abbrev category DISTLAT DistributiveLattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Meet Join
+++ Related Constructors: BoundedDistributiveLattice
+++  use BoundedDistributiveLattice if the lattice has a top and 'bottom' which will be
+++  the case for all finite lattices since we can do a meet and join of all values
+++ Keywords: Meet Top Join Bottom
 ++ Description: not every lattice is distributive so treat this
 ++              as a seperate case
 ++   for more documatation see:
@@ -824,6 +914,23 @@ Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
 DistributiveLattice: Category == Lattice
 
+)abbrev category BDISTL BoundedDistributiveLattice
+++ Author: Martin Baker
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: Meet Join
+++ Related Constructors: DistributiveLattice
+++  use BoundedDistributiveLattice if the lattice has a top and 'bottom' which will be
+++  the case for all finite lattices since we can do a meet and join of all values
+++ Keywords: Meet Top Join Bottom
+++ Description: not every lattice is distributive so treat this
+++              as a seperate case
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
+++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
+BoundedDistributiveLattice: Category == BoundedLattice
+
 )abbrev category FRAME Frame
 ++ Description: frames are used in topology and are the lattice
 ++              associated with the concept of a 'locale'.
@@ -831,9 +938,9 @@ DistributiveLattice: Category == Lattice
 ++   A Frame is a Lattice where certain subsets are also Lattices
 ++   for more documatation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
-++ Axiom: 
-++ Axiom: 
-++ Axiom: 
+++ Axiom: every subset has a join 
+++ Axiom: every finite subset has a meet
+++ Axiom: binary meets distribute over joins
 Frame(P:Poset(SetCategory)): Category == Lattice with
       meet:(List %) -> %
         ++ returns the logical 'meet' of some subset specified
