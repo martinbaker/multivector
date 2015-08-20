@@ -313,7 +313,7 @@ Poset(S) : Exports == Impl where
    
       -- initial constructs a graph without vertices or edges
       initial():% ==
-        [[],[nil()$List(Boolean)]]
+        [[],nil()$List(List(Boolean))]
 
       -- terminal(a) constructs a graph over a with a single vertex
       -- and a single loop
@@ -368,14 +368,16 @@ Poset(S) : Exports == Impl where
       -- true if 'b' is a direct successor of 'a'
       -- that is, if there is a direct arrow from 'a' to 'b'
       isDirectSuccessor?(s : %, a : NNI, b : NNI):Boolean ==
-        false
+        row : List Boolean := qelt(s.struct1,a)
+        qelt(row,b)
 
       -- isGreaterThan?((s, a, b) is
       -- true if we can get from vertex 'a' to 'b' through a
       -- sequence of arrows but we can't go in the opposite
       -- direction from 'b' to 'a'
       isGreaterThan?(s : %, a : NNI, b : NNI):Boolean ==
-        false
+        row : List Boolean := qelt(s.struct1,a)
+        qelt(row,b)
    
       -- max(s) returns index of the vertex which can be reached
       -- from all other vertices. Gives 0 if no such node exists
