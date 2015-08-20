@@ -206,10 +206,18 @@ Poset(S) : Exports == Impl where
       addObject(s : %, n : S) : % ==
         dim : NNI := #(s.set1) + 1
         obs : List S := concat(s.set1,n)
-        arrows : List(List(Boolean)) := [nil()$List(Boolean)]
+        arrows : List(List(Boolean)) := nil()$List(List(Boolean))
         for a in s.struct1 repeat
-          a:List Boolean := concat(a,false)
-          arrows := concat(arrows,a)
+          width:NNI := #a
+          padding:Union(NNI,"failed") := subtractIfCan(dim,width)
+          if padding ~= "failed" then
+            diff:NNI := padding::NNI
+            --sayMsg concat("addObject diff=",string(diff))$String
+            for x in 1..diff repeat
+              a := concat(a,false)
+          if empty?(arrows)
+            then arrows := [a]
+            else arrows := concat(arrows,a)
         emptyRow:List Boolean := [false for x in 1..dim]
         arrows := concat(arrows,emptyRow)
         [obs,arrows]
@@ -242,7 +250,13 @@ Poset(S) : Exports == Impl where
         obs : List S := concat(s.set1,n)
         arrows : List(List(Boolean)) := nil()$List(List(Boolean))
         for a in s.struct1 repeat
-          a:List Boolean := concat(a,false)
+          width:NNI := #a
+          padding:Union(NNI,"failed") := subtractIfCan(dim,width)
+          if padding ~= "failed" then
+            diff:NNI := padding::NNI
+            --sayMsg concat("addObject! diff=",string(diff))$String
+            for x in 1..diff repeat
+              a := concat(a,false)
           if empty?(arrows)
             then arrows := [a]
             else arrows := concat(arrows,a)
@@ -929,7 +943,7 @@ DistributiveLattice: Category == Lattice
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
-BoundedDistributiveLattice: Category == BoundedLattice
+BoundedDistributiveLattice: Category == Join(BoundedLattice,DistributiveLattice)
 
 )abbrev category FRAME Frame
 ++ Description: frames are used in topology and are the lattice
@@ -941,13 +955,33 @@ BoundedDistributiveLattice: Category == BoundedLattice
 ++ Axiom: every subset has a join 
 ++ Axiom: every finite subset has a meet
 ++ Axiom: binary meets distribute over joins
-Frame(P:Poset(SetCategory)): Category == Lattice with
+Frame(P:Poset(SetCategory)): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
       meet:(List %) -> %
         ++ returns the logical 'meet' of some subset specified
         ++ by a list of elements.
       join:(List %) -> %
         ++ returns the logical 'join' of some subset specified
         ++ by a list of elements.
+
+)abbrev category LOGIC Logic
+++ Note: transferred from boolean.spad
+++ Author:
+++ Date Created:
+++ Change History:
+++ Basic Operations: ~, /\, \/
+++ Related Constructors:
+++ Keywords: boolean
+++ Description:
+++ 'Logic' adds 'not' operation to lattices,
+++ Imlements De Morgan's laws.
+++ Axiom: DeMorgan1 forall(x,y): ~(x/\y)=~x\/~y
+++ Axiom: DeMorgan2 forall(x,y): ~(x\/y)=~x/\~y
+Logic : Category == BoundedDistributiveLattice with
+       _~:        % -> %
+        ++ ~(x) returns the logical complement of x.
+  add
+    -- default define 'join' in terms of 'meet' (Is that a good idea?)
+    _\_/(x : %, y : %) == _~( _/_\(_~(x), _~(y)))
 
 )abbrev domain FINLAT FiniteLattice
 ++ Author: Martin Baker
