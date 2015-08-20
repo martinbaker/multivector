@@ -383,31 +383,44 @@ Poset(S) : Exports == Impl where
       -- from all other vertices. Gives 0 if no such node exists
       -- or if it is not unique, if there is a loop for instance.
       max(s : %) : NNI ==
+        arr:List(NNI) := nil()
+        index:NNI := 1::NNI
         0::NNI
+        for x in s.struct1 repeat
+          arr := concat(arr,index)
+          index := index+1
+        meet(s,arr)
    
       -- max(s, sub) returns index of the vertex which
       -- can be reached from a given subset of the vertices. Gives
       -- 0 if no such node exists or if it is not unique, if there
       -- is a loop for instance.
       max(s : %, sub : List NNI):NNI ==
-        0::NNI
+        meet(s,sub)
     
       -- min(s) returns index of the vertex which can reach to all
       -- other vertices. Gives 0 if no such node exists or if it is
       -- not unique, if there is a loop for instance.
       min(s : %) : NNI ==
+        arr:List(NNI) := nil()
+        index:NNI := 1::NNI
         0::NNI
+        for x in s.struct1 repeat
+          arr := concat(arr,index)
+          index := index+1
+        join(s,arr)
   
       -- min(s, sub) returns index of the vertex which can reach
       -- to a given subset of the vertices. Gives 0 if no such node
       -- exists or if it is not unique, if there is a loop for instance.
       min(s : %, sub : List NNI):NNI ==
-        0::NNI
+        join(s,sub)
    
       -- isFixPoint?(s, a) is
       -- true if 'a' has an arrow to itself
+      -- should always be true due to reflexivity law
       isFixPoint?(s : %, a : NNI):Boolean ==
-        false
+        true
    
       -- arrowName(s, a, b) retrieves
       -- the name of arrow a->b
