@@ -2150,6 +2150,16 @@ LatticeMeetOfJoins() : Exports == Implementation where
     ++ construct false (contradiction): a logical constant.
   variable:(v:String) -> %
     ++ construct a variable
+  latticeMeetOfJoins:(e:ELEMENT) -> %
+    ++ construct a lattice with one element
+  emptyLattice:() -> %
+    ++ construct an empty lattice
+  empty?:(n:%) -> Boolean
+    ++ true if empty
+  meet : (ln : List %) -> %
+    ++ meet of set of elements
+  join : (ln : List %) -> %
+    ++ join of set of elements
   redux : (n : %) -> %
     ++ attempt to simplify theory
     ++ apply recursively to subnodes
@@ -2231,6 +2241,16 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- construct a variable
   variable(v:String):% == [[[[v]]]]
 
+  -- construct a lattice with one element
+  latticeMeetOfJoins(e:ELEMENT):% ==
+    [[e]]
+
+  emptyLattice() == nil()$List(List(ELEMENT))
+
+  -- true if empty
+  empty?(n:%):Boolean ==
+    empty?(n)$Rep
+
   -- /\ returns the logical 'meet', e.g. 'and'.
   --
   -- simplification rules:
@@ -2243,8 +2263,9 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- T /\ x -> x
   --
   _/_\(a : %, b : %) ==
+    if empty?(a) then return b
+    if empty?(b) then return a
     concat(a pretend Rep,b pretend Rep)$List(List(ELEMENT))
-
 
   -- \/ returns the logical 'join', e.g. 'or'.
   --
@@ -2256,6 +2277,8 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- _|_ \/ x -> x
   --
   _\_/(a : %, b : %) ==
+    if empty?(a) then return b
+    if empty?(b) then return a
     r:List(List(ELEMENT)):=[]
     for innera in a repeat
       for innerb in b repeat
@@ -2263,6 +2286,18 @@ LatticeMeetOfJoins() : Exports == Implementation where
         termRight:List(ELEMENT) := innerb
         term:=concat(termLeft,termRight)$List(ELEMENT)
         r:=concat(r,term)$List(List(ELEMENT))
+    r
+
+  meet(ln : List %):% ==
+    r:% := emptyLattice()
+    for ele in ln repeat
+      r := _/_\(r,ele)
+    r
+
+  join(ln : List %):% ==
+    r:% := emptyLattice()
+    for ele in ln repeat
+      r := _\_/(r,ele)
     r
 
   -- attempt to simplify theory
@@ -2426,6 +2461,16 @@ LatticeJoinOfMeets() : Exports == Implementation where
     ++ construct false (contradiction): a logical constant.
   variable:(v:String) -> %
     ++ construct a variable
+  latticeJoinOfMeets:(e:ELEMENT) -> %
+    ++ construct a lattice with one element
+  emptyLattice:() -> %
+    ++ construct an empty lattice
+  empty?:(n:%) -> Boolean
+    ++ true if empty
+  meet : (ln : List %) -> %
+    ++ meet of set of elements
+  join : (ln : List %) -> %
+    ++ join of set of elements
   redux : (n : %) -> %
     ++ attempt to simplify theory
     ++ apply recursively to subnodes
@@ -2479,6 +2524,8 @@ LatticeJoinOfMeets() : Exports == Implementation where
     ++ in brackets
   coerce : (n : %) -> OutputForm
     ++ output
+  coerce:(n : %) -> LatticeMeetOfJoins
+    ++ convert lattice from join-of-meets to meet-of-joins
 
  Implementation == add
 
@@ -2504,8 +2551,18 @@ LatticeJoinOfMeets() : Exports == Implementation where
   logicT() == [[[["T"::Symbol]]]]
   logicF() == [[[["F"::Symbol]]]]
 
+  emptyLattice() == nil()$List(List(ELEMENT))
+
   -- construct a variable
   variable(v:String):% == [[[[v]]]]
+
+  -- construct a lattice with one element
+  latticeJoinOfMeets(e:ELEMENT):% ==
+    [[e]]
+
+  -- true if empty
+  empty?(n:%):Boolean ==
+    empty?(n)$Rep
 
   -- /\ returns the logical 'meet', e.g. 'and'.
   --
@@ -2519,6 +2576,8 @@ LatticeJoinOfMeets() : Exports == Implementation where
   -- T /\ x -> x
   --
   _/_\(a : %, b : %) ==
+    if empty?(a) then return b
+    if empty?(b) then return a
     r:List(List(ELEMENT)):=[]
     for innera in a repeat
       for innerb in b repeat
@@ -2539,7 +2598,21 @@ LatticeJoinOfMeets() : Exports == Implementation where
   -- _|_ \/ x -> x
   --
   _\_/(a : %, b : %) ==
+    if empty?(a) then return b
+    if empty?(b) then return a
     concat(a pretend Rep,b pretend Rep)$List(List(ELEMENT))
+
+  meet(ln : List %):% ==
+    r:% := emptyLattice()
+    for ele in ln repeat
+      r := _/_\(r,ele)
+    r
+
+  join(ln : List %):% ==
+    r:% := emptyLattice()
+    for ele in ln repeat
+      r := _\_/(r,ele)
+    r
 
   -- attempt to simplify theory
   -- apply recursively to subnodes
@@ -2672,6 +2745,19 @@ LatticeJoinOfMeets() : Exports == Implementation where
         if innern ~= #outer then r := hconcat(r::OutputForm,"_/_\"::OutputForm)
       if outern ~= #n then r := hconcat(r::OutputForm,")_\_/("::OutputForm)
     hconcat(r,")"::OutputForm)::OutputForm
+
+  -- convert lattice from join-of-meets to meet-of-joins
+  coerce(n : %) : LatticeMeetOfJoins ==
+    r:LatticeMeetOfJoins := emptyLattice()
+    for outer in n for outern in 1..#n repeat
+      term:LatticeMeetOfJoins := emptyLattice()
+      for inner in outer for innern in 1..#outer repeat
+        ele:LatticeMeetOfJoins := latticeMeetOfJoins(inner)
+        term := _/_\(term,ele)
+        print (ele::OutputForm)
+        print (term::OutputForm)
+      r:= _\_/(r,term)
+    r
 
 )if false
 \section{Example Structures}
