@@ -2161,10 +2161,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
   join : (ln : List %) -> %
     ++ join of set of elements
   redux : (n : %) -> %
-    ++ attempt to simplify theory
-    ++ apply recursively to subnodes
-    ++ normally this should not be necessary since logic values are
-    ++ interpreted when constructed
+    ++ attempt to simplify terms
   factor : (n : %) -> List %
     ++ splits n into a list of factors which must be true for the
     ++ whole to be true.
@@ -2265,7 +2262,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
   _/_\(a : %, b : %) ==
     if empty?(a) then return b
     if empty?(b) then return a
-    concat(a pretend Rep,b pretend Rep)$List(List(ELEMENT))
+    redux(concat(a pretend Rep,b pretend Rep)$List(List(ELEMENT)))
 
   -- \/ returns the logical 'join', e.g. 'or'.
   --
@@ -2286,7 +2283,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
         termRight:List(ELEMENT) := innerb
         term:=concat(termLeft,termRight)$List(ELEMENT)
         r:=concat(r,term)$List(List(ELEMENT))
-    r
+    redux(r)
 
   meet(ln : List %):% ==
     r:% := emptyLattice()
@@ -2300,17 +2297,36 @@ LatticeMeetOfJoins() : Exports == Implementation where
       r := _\_/(r,ele)
     r
 
-  -- attempt to simplify theory
-  -- apply recursively to subnodes
-  -- normally this should not be necessary since logic values are
-  -- interpreted when constructed
+  -- local function used by removeDuplicatesInTerm which is used by
+  -- redux to remove duplicates.
+  -- Returns true if elements are equal.
+  equalElements(a:ELEMENT,b:ELEMENT) :Boolean ==
+    if (a case var) and (a case var) then
+       return (a.var.str) = (b.var.str)
+    if (a case const)  and (b case const) then
+       return (a.const.val) = (b.const.val)
+    false
+
+  -- local function used by redux to remove duplicates, that is
+  -- apply idempotence. We cannot use the removeDuplicates in List
+  -- because ELEMENT does not have ATFINAG or BASTYPE.
+  removeDuplicatesInTerm(n : List(ELEMENT)) : List(ELEMENT) ==
+    r:List(ELEMENT) := nil()$List(ELEMENT)
+    for e1 in n for ne1 in 1..#n repeat
+      match:Boolean := false
+      for e2 in n for ne2 in 1..#n repeat
+        if e1=e2 and ne1<ne2 then match := true
+      if not match then r:=concat(r,e1)
+    r
+
+  -- Attempt to simplify terms
   --
   -- simplification rules:
   -- ~T -> F
   -- ~(~T) -> T
   -- ~x /\ x -> F
   -- x /\ ~x -> F
-  -- x /\ x -> x
+  -- x /\ x -> x (idempotence)
   -- F /\ x -> F
   -- x /\ F -> F
   -- x /\ T -> x
@@ -2322,7 +2338,13 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- _|_ \/ x -> x
   --
   redux(n : %) : % ==
-    n
+    r:List(List(ELEMENT)) := nil()$List(List(ELEMENT))
+    for outer in n for outern in 1..#n repeat
+      -- apply idempotence
+      newinnerList:List(ELEMENT) := removeDuplicatesInTerm(outer)
+      r:=concat(r,newinnerList)$List(List(ELEMENT))
+    --print hconcat([("redux"::OutputForm),(n::OutputForm),(","::OutputForm),((r pretend %)::OutputForm)])$OutputForm
+    r
 
   -- splits n into a list of factors which must be true for the
   -- whole to be true.
@@ -2472,10 +2494,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
   join : (ln : List %) -> %
     ++ join of set of elements
   redux : (n : %) -> %
-    ++ attempt to simplify theory
-    ++ apply recursively to subnodes
-    ++ normally this should not be necessary since logic values are
-    ++ interpreted when constructed
+    ++ attempt to simplify terms
   factor : (n : %) -> List %
     ++ splits n into a list of factors which must be true for the
     ++ whole to be true.
@@ -2526,6 +2545,8 @@ LatticeJoinOfMeets() : Exports == Implementation where
     ++ output
   coerce:(n : %) -> LatticeMeetOfJoins
     ++ convert lattice from join-of-meets to meet-of-joins
+  coerce:(n : LatticeMeetOfJoins) -> %
+    ++ convert lattice from meet-of-joins to join-of-meets
 
  Implementation == add
 
@@ -2585,7 +2606,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
         termRight:List(ELEMENT) := innerb
         term:=concat(termLeft,termRight)$List(ELEMENT)
         r:=concat(r,term)$List(List(ELEMENT))
-    r
+    redux(r)
 
 
   -- \/ returns the logical 'join', e.g. 'or'.
@@ -2600,7 +2621,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
   _\_/(a : %, b : %) ==
     if empty?(a) then return b
     if empty?(b) then return a
-    concat(a pretend Rep,b pretend Rep)$List(List(ELEMENT))
+    redux(concat(a pretend Rep,b pretend Rep)$List(List(ELEMENT)))
 
   meet(ln : List %):% ==
     r:% := emptyLattice()
@@ -2614,17 +2635,36 @@ LatticeJoinOfMeets() : Exports == Implementation where
       r := _\_/(r,ele)
     r
 
-  -- attempt to simplify theory
-  -- apply recursively to subnodes
-  -- normally this should not be necessary since logic values are
-  -- interpreted when constructed
+  -- local function used by removeDuplicatesInTerm which is used by
+  -- redux to remove duplicates.
+  -- Returns true if elements are equal.
+  equalElements(a:ELEMENT,b:ELEMENT) :Boolean ==
+    if (a case var) and (a case var) then
+       return (a.var.str) = (b.var.str)
+    if (a case const)  and (b case const) then
+       return (a.const.val) = (b.const.val)
+    false
+
+  -- local function used by redux to remove duplicates, that is
+  -- apply idempotence. We cannot use the removeDuplicates in List
+  -- because ELEMENT does not have ATFINAG or BASTYPE.
+  removeDuplicatesInTerm(n : List(ELEMENT)) : List(ELEMENT) ==
+    r:List(ELEMENT) := nil()$List(ELEMENT)
+    for e1 in n for ne1 in 1..#n repeat
+      match:Boolean := false
+      for e2 in n for ne2 in 1..#n repeat
+        if e1=e2 and ne1<ne2 then match := true
+      if not match then r:=concat(r,e1)
+    r
+
+  -- Attempt to simplify terms
   --
   -- simplification rules:
   -- ~T -> F
   -- ~(~T) -> T
   -- ~x /\ x -> F
   -- x /\ ~x -> F
-  -- x /\ x -> x
+  -- x /\ x -> x (idempotence)
   -- F /\ x -> F
   -- x /\ F -> F
   -- x /\ T -> x
@@ -2636,7 +2676,13 @@ LatticeJoinOfMeets() : Exports == Implementation where
   -- _|_ \/ x -> x
   --
   redux(n : %) : % ==
-    n
+    r:List(List(ELEMENT)) := nil()$List(List(ELEMENT))
+    for outer in n for outern in 1..#n repeat
+      -- apply idempotence
+      newinnerList:List(ELEMENT) := removeDuplicatesInTerm(outer)
+      r:=concat(r,newinnerList)$List(List(ELEMENT))
+    --print hconcat([("redux"::OutputForm),(n::OutputForm),(","::OutputForm),((r pretend %)::OutputForm)])$OutputForm
+    r
 
   -- splits n into a list of factors which must be true for the
   -- whole to be true.
@@ -2754,9 +2800,21 @@ LatticeJoinOfMeets() : Exports == Implementation where
       for inner in outer for innern in 1..#outer repeat
         ele:LatticeMeetOfJoins := latticeMeetOfJoins(inner)
         term := _/_\(term,ele)
-        print (ele::OutputForm)
-        print (term::OutputForm)
+        --print hconcat([("coerce:"::OutputForm),(ele::OutputForm),(term::OutputForm)])
       r:= _\_/(r,term)
+    r
+
+  -- convert lattice from meet-of-joins to join-of-meets
+  coerce(n1 : LatticeMeetOfJoins):% ==
+    r:% := emptyLattice()
+    n:List(List(ELEMENT)) := n1 pretend List(List(ELEMENT))
+    for outer in n for outern in 1..#n repeat
+      term:% := emptyLattice()
+      for inner in outer for innern in 1..#outer repeat
+        ele:% := latticeJoinOfMeets(inner)
+        term := _\_/(term,ele)
+        --print hconcat([("coerce:"::OutputForm),(ele::OutputForm),(term::OutputForm)])
+      r:= _/_\(r,term)
     r
 
 )if false
