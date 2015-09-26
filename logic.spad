@@ -2319,30 +2319,52 @@ LatticeMeetOfJoins() : Exports == Implementation where
       if not match then r:=concat(r,e1)
     r
 
+  -- local function used by redux to remove duplicate lists.
+  -- Returns true if lists are equal, that is contain the same elements
+  -- (independant of order).
+  equalTerms(a:List(ELEMENT),b:List(ELEMENT)) :Boolean ==
+    if #a ~= #b then return false
+    for a1 in a repeat
+      found:Boolean := false
+      for b1 in b repeat
+        if equalElements(a1,b1) then found:= true
+      if not found then return false
+    true
+
+  -- local function used by redux to apply absorbtion.
+  -- Returns true if a is a sub-term of b.
+  subTerm(a:List(ELEMENT),b:List(ELEMENT)) :Boolean ==
+    if #a >= #b then return false
+    for a1 in a repeat
+      found:Boolean := false
+      for b1 in b repeat
+        if equalElements(a1,b1) then found:= true
+      if not found then return false
+    true
+
   -- Attempt to simplify terms
   --
   -- simplification rules:
-  -- ~T -> F
-  -- ~(~T) -> T
-  -- ~x /\ x -> F
-  -- x /\ ~x -> F
-  -- x /\ x -> x (idempotence)
-  -- F /\ x -> F
-  -- x /\ F -> F
-  -- x /\ T -> x
-  -- T /\ x -> x
-  -- T \/ x -> T
-  -- x \/ T -> T
-  -- x \/ x -> x
-  -- x \/ _|_ -> x
-  -- _|_ \/ x -> x
+  -- idempotenceMeet for all x: x /\ x -> x ()
+  -- idempotenceJoin for all x: x \/ x -> x
+  -- absorptionMeetOverJoin for all(x,y): x/\(x\/y)=x
+  -- absorptionJoinOverMeet for all(x,y): x\/(x/\y)=x
+  --
+  -- TODO add rules for top and bottom
   --
   redux(n : %) : % ==
     r:List(List(ELEMENT)) := nil()$List(List(ELEMENT))
     for outer in n for outern in 1..#n repeat
-      -- apply idempotence
+      -- check for idempotence
       newinnerList:List(ELEMENT) := removeDuplicatesInTerm(outer)
-      r:=concat(r,newinnerList)$List(List(ELEMENT))
+      match:Boolean := false
+      for inner in n for innern in 1..#n repeat
+        if equalTerms(inner,outer) and innern<outern then match := true      
+      -- check for absorption
+      isSubTerm:Boolean := false
+      for inner in n repeat
+        if subTerm(inner,outer) then isSubTerm := true
+      if (not match) and (not isSubTerm) then r:=concat(r,newinnerList)$List(List(ELEMENT))
     --print hconcat([("redux"::OutputForm),(n::OutputForm),(","::OutputForm),((r pretend %)::OutputForm)])$OutputForm
     r
 
@@ -2657,30 +2679,52 @@ LatticeJoinOfMeets() : Exports == Implementation where
       if not match then r:=concat(r,e1)
     r
 
+  -- local function used by redux to remove duplicate lists.
+  -- Returns true if lists are equal, that is contain the same elements
+  -- (independant of order).
+  equalTerms(a:List(ELEMENT),b:List(ELEMENT)) :Boolean ==
+    if #a ~= #b then return false
+    for a1 in a repeat
+      found:Boolean := false
+      for b1 in b repeat
+        if equalElements(a1,b1) then found:= true
+      if not found then return false
+    true
+
+  -- local function used by redux to apply absorbtion.
+  -- Returns true if a is a sub-term of b.
+  subTerm(a:List(ELEMENT),b:List(ELEMENT)) :Boolean ==
+    if #a >= #b then return false
+    for a1 in a repeat
+      found:Boolean := false
+      for b1 in b repeat
+        if equalElements(a1,b1) then found:= true
+      if not found then return false
+    true
+
   -- Attempt to simplify terms
   --
   -- simplification rules:
-  -- ~T -> F
-  -- ~(~T) -> T
-  -- ~x /\ x -> F
-  -- x /\ ~x -> F
-  -- x /\ x -> x (idempotence)
-  -- F /\ x -> F
-  -- x /\ F -> F
-  -- x /\ T -> x
-  -- T /\ x -> x
-  -- T \/ x -> T
-  -- x \/ T -> T
-  -- x \/ x -> x
-  -- x \/ _|_ -> x
-  -- _|_ \/ x -> x
+  -- idempotenceMeet for all x: x /\ x -> x ()
+  -- idempotenceJoin for all x: x \/ x -> x
+  -- absorptionMeetOverJoin for all(x,y): x/\(x\/y)=x
+  -- absorptionJoinOverMeet for all(x,y): x\/(x/\y)=x
+  --
+  -- TODO add rules for top and bottom
   --
   redux(n : %) : % ==
     r:List(List(ELEMENT)) := nil()$List(List(ELEMENT))
     for outer in n for outern in 1..#n repeat
-      -- apply idempotence
+      -- check for idempotence
       newinnerList:List(ELEMENT) := removeDuplicatesInTerm(outer)
-      r:=concat(r,newinnerList)$List(List(ELEMENT))
+      match:Boolean := false
+      for inner in n for innern in 1..#n repeat
+        if equalTerms(inner,outer) and innern<outern then match := true
+      -- check for absorption
+      isSubTerm:Boolean := false
+      for inner in n repeat
+        if subTerm(inner,outer) then isSubTerm := true
+      if (not match) and (not isSubTerm) then r:=concat(r,newinnerList)$List(List(ELEMENT))
     --print hconcat([("redux"::OutputForm),(n::OutputForm),(","::OutputForm),((r pretend %)::OutputForm)])$OutputForm
     r
 
