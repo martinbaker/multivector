@@ -2354,9 +2354,12 @@ LatticeMeetOfJoins() : Exports == Implementation where
   --
   redux(n : %) : % ==
     r:List(List(ELEMENT)) := nil()$List(List(ELEMENT))
+    -- 'modified' set to true if this call of redux has made a reduction
+    modified:Boolean := false
     for outer in n for outern in 1..#n repeat
       -- check for idempotence
       newinnerList:List(ELEMENT) := removeDuplicatesInTerm(outer)
+      if not equalTerms(newinnerList,outer) then modified := true
       match:Boolean := false
       for inner in n for innern in 1..#n repeat
         if equalTerms(inner,outer) and innern<outern then match := true      
@@ -2364,9 +2367,15 @@ LatticeMeetOfJoins() : Exports == Implementation where
       isSubTerm:Boolean := false
       for inner in n repeat
         if subTerm(inner,outer) then isSubTerm := true
-      if (not match) and (not isSubTerm) then r:=concat(r,newinnerList)$List(List(ELEMENT))
-    --print hconcat([("redux"::OutputForm),(n::OutputForm),(","::OutputForm),((r pretend %)::OutputForm)])$OutputForm
-    r
+      if (not match) and (not isSubTerm)
+        then r:=concat(r,newinnerList)$List(List(ELEMENT))
+        else modified := true
+--    print hconcat([("LatticeMeetOfJoins.redux"::OutputForm),(n::OutputForm),_
+--       (","::OutputForm),((r pretend %)::OutputForm),_
+--       (" mod="::OutputForm),(modified::OutputForm)_
+--       ])$OutputForm
+    -- apply until no more changes
+    if modified then redux(r) else r
 
   -- splits n into a list of factors which must be true for the
   -- whole to be true.
@@ -2714,9 +2723,12 @@ LatticeJoinOfMeets() : Exports == Implementation where
   --
   redux(n : %) : % ==
     r:List(List(ELEMENT)) := nil()$List(List(ELEMENT))
+    -- 'modified' set to true if this call of redux has made a reduction
+    modified:Boolean := false
     for outer in n for outern in 1..#n repeat
       -- check for idempotence
       newinnerList:List(ELEMENT) := removeDuplicatesInTerm(outer)
+      if not equalTerms(newinnerList,outer) then modified := true
       match:Boolean := false
       for inner in n for innern in 1..#n repeat
         if equalTerms(inner,outer) and innern<outern then match := true
@@ -2724,9 +2736,15 @@ LatticeJoinOfMeets() : Exports == Implementation where
       isSubTerm:Boolean := false
       for inner in n repeat
         if subTerm(inner,outer) then isSubTerm := true
-      if (not match) and (not isSubTerm) then r:=concat(r,newinnerList)$List(List(ELEMENT))
-    --print hconcat([("redux"::OutputForm),(n::OutputForm),(","::OutputForm),((r pretend %)::OutputForm)])$OutputForm
-    r
+      if (not match) and (not isSubTerm)
+        then r:=concat(r,newinnerList)$List(List(ELEMENT))
+        else modified := true
+--    print hconcat([("LatticeJoinOfMeets.redux"::OutputForm),(n::OutputForm),_
+--       (","::OutputForm),((r pretend %)::OutputForm),_
+--       (" mod="::OutputForm),(modified::OutputForm)_
+--       ])$OutputForm
+    -- apply until no more changes
+    if modified then redux(r) else r
 
   -- splits n into a list of factors which must be true for the
   -- whole to be true.
