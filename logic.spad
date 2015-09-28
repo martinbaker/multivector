@@ -616,7 +616,7 @@ Poset(S) : Exports == Impl where
         res := setIntersection(candidatesa,candidatesb)
         glb(s,res)
 
-     -- returns the meet of 'a' and 'b'
+      -- returns the meet of 'a' and 'b'
       -- In this version of meet nodes are represented as index values.
       -- In the general case, not every poset will have a meet in which case
       -- 0 will be returned as an error indication.
@@ -1061,6 +1061,68 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
         --if index=0 then return outputForm("error")
         obj:S := indexToObject(p,index)
         (obj::OutputForm)$S
+
+)abbrev domain SETLAT SubsetLattice
+++ Author: Martin Baker
+++ Description: Implementation of subset logic.
+++    implements pseudo complement
+++    subset of powerset
+++    related to 'containment order'
+++    REP holds a single node and complete set (representing 'top')
+SubsetLattice(S:SetCategory,top:list(S)) : Exports == Impl where
+    NNI==> NonNegativeInteger
+    Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
+     subsetLattice : (obj:List(S)) -> %
+      ++ construct subset lattice element
+
+    Impl ==> add
+
+      -- representation of element of lattice
+      -- This list represents some subset of: top:list(S)
+      Rep := List(S)
+
+      -- construct subset lattice element
+      subsetLattice(obj:List(S)) : % ==
+        obj
+
+      -- returns the logical 'meet', e.g. 'and'.
+      _/_\(a:%,b:%) : % ==
+        setUnion(a pretend List(S),b pretend List(S))$List(S)
+
+      -- returns the logical 'join', e.g. 'or'.
+      _\_/(a:%,b:%) : % ==
+        setIntersection(a pretend List(S),b pretend List(S))$List(S)
+
+      -- start of SetCategory definitions --
+
+      hash(s : %) : SingleInteger == 0$SingleInteger
+
+      -- return string representation
+      -- I'm not sure how latex(s: %) is intended to be used but
+      -- there is nothing specifically latex here, it just returns a
+      -- string description of the graph.
+      latex(n : %) : String ==
+        -- s holds result that we are constructing
+        s:String := ""
+        s
+
+      -- returns true if x equals y
+      -- this is equality and not isomorphism
+      -- that is it returns true only if exact index values and names are used
+      -- in addition to the structure(arrows) being the same.
+      _=(x : %, y : %) : Boolean ==
+        (x pretend NNI)=(y pretend NNI)
+
+      -- returns true if x is not equal to y
+      _~_=(x : %, y : %) : Boolean == not(x = y)
+
+      -- output
+      coerce(s : %) : OutputForm ==
+        inp := s pretend List(S)
+        oup:List(OutputForm) := []
+        for x in inp repeat
+          oup := concat(oup,x::OutputForm)
+        bracket(oup)
 
 )abbrev domain FINFRM FiniteFrame
 ++ Author: Martin Baker
