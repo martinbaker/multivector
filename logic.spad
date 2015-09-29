@@ -45,11 +45,14 @@ as a parameter.
 )endif
 
 )abbrev category PREORD Preorder
+++ Author: Martin Baker
 ++ Description: implies operation with reflexivity and transitivity
 ++   for more documatation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
 NNI==> NonNegativeInteger
 Preorder: Category == SetCategory with
     implies:(s : %,NNI, NNI) -> Boolean
@@ -961,6 +964,7 @@ DistributiveLattice: Category == Lattice
 BoundedDistributiveLattice: Category == Join(BoundedLattice,DistributiveLattice)
 
 )abbrev category FRAME Frame
+++ Author: Martin Baker
 ++ Description: frames are used in topology and are the lattice
 ++              associated with the concept of a 'locale'.
 ++              see: [1]
@@ -970,6 +974,8 @@ BoundedDistributiveLattice: Category == Join(BoundedLattice,DistributiveLattice)
 ++ Axiom: every subset has a join 
 ++ Axiom: every finite subset has a meet
 ++ Axiom: binary meets distribute over joins
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
 Frame(P:Poset(SetCategory)): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
       meet:(List %) -> %
         ++ returns the logical 'meet' of some subset specified
@@ -1003,6 +1009,8 @@ Logic : Category == BoundedDistributiveLattice with
 ++ Description: This is the algebration of poset. A big difference between
 ++    this lattice domain and the poset domain is that, in this domain, the
 ++    REP holds a single node wheras in poset REP holds the whole poset.
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
 FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
@@ -1062,6 +1070,50 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
         obj:S := indexToObject(p,index)
         (obj::OutputForm)$S
 
+)if false
+\section{Subset Lattice}
+This lattice domain implements a subset structure (powerset).
+The poset equivalent would be a 'containment order'.
+
+One reason for implementing this domain is to investigate the
+(pseudo)complement.
+
+Here is an test session to show how it works:
+\begin{verbatim}
+-- first setup some variables
+SL := SubsetLattice(NNI,[1,2,3])
+
+   (1)  SubsetLattice(NonNegativeInteger,[1,2,3])
+                                                             Type: Type
+a := subsetLattice([1])$SL
+
+   (2)  [1]
+                         Type: SubsetLattice(NonNegativeInteger,[1,2,3])
+b := subsetLattice([2])$SL
+
+   (3)  [2]
+                         Type: SubsetLattice(NonNegativeInteger,[1,2,3])
+-- test meet and join
+a/\b
+
+   (4)  [1,2]
+                         Type: SubsetLattice(NonNegativeInteger,[1,2,3])
+a\/b
+
+   (5)  []
+                         Type: SubsetLattice(NonNegativeInteger,[1,2,3])
+-- test complement
+complement(a)
+
+   (6)  [2,3]
+                         Type: SubsetLattice(NonNegativeInteger,[1,2,3])
+complement(a)\/complement(b)
+
+   (7)  [3]
+                         Type: SubsetLattice(NonNegativeInteger,[1,2,3])
+\end{verbatim}
+)endif
+
 )abbrev domain SETLAT SubsetLattice
 ++ Author: Martin Baker
 ++ Description: Implementation of subset logic.
@@ -1069,11 +1121,17 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
 ++    subset of powerset
 ++    related to 'containment order'
 ++    REP holds a single node and complete set (representing 'top')
-SubsetLattice(S:SetCategory,top:list(S)) : Exports == Impl where
+++ Date Created: Oct 2015
+++ Date Last Updated: Oct 2015
+SubsetLattice(S:SetCategory,top:List(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
      subsetLattice : (obj:List(S)) -> %
       ++ construct subset lattice element
+     complement:(a:%) -> %
+      ++ pseudo complement
+     complement:(a:%,pseudoTop:List(S)) -> %
+      ++ pseudo complement
 
     Impl ==> add
 
@@ -1093,6 +1151,24 @@ SubsetLattice(S:SetCategory,top:list(S)) : Exports == Impl where
       _\_/(a:%,b:%) : % ==
         setIntersection(a pretend List(S),b pretend List(S))$List(S)
 
+      complement(a:%):% ==
+        r:List(S) := []
+        for b in top repeat
+          contains:Boolean := false
+          for c in (a pretend List(S)) repeat
+            if b=c then contains := true
+          if not contains then r:=concat(r,b)
+        r
+      
+      complement(a:%,pseudoTop:List(S)):% ==
+        r:List(S) := []
+        for b in pseudoTop repeat
+          contains:Boolean := false
+          for c in (a pretend List(S)) repeat
+            if b=c then contains := true
+          if not contains then r:=concat(r,b)
+        r
+      
       -- start of SetCategory definitions --
 
       hash(s : %) : SingleInteger == 0$SingleInteger
@@ -1127,22 +1203,24 @@ SubsetLattice(S:SetCategory,top:list(S)) : Exports == Impl where
 )abbrev domain FINFRM FiniteFrame
 ++ Author: Martin Baker
 ++ Description: A Frame is a Lattice where certain subsets are also Lattices
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
 FiniteFrame(S:SetCategory,p:Poset(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     --Exports ==> Join(Lattice,Frame(Poset(SetCategory)),CoercibleTo(OutputForm), SetCategory) with
     --Exports ==> Join(Lattice,FiniteLattice(SetCategory,Poset(SetCategory)),CoercibleTo(OutputForm), SetCategory) with
-    -- *** FIX ME can't work out how to inherit from FiniteLattice
+    -- *** TODO can't work out how to inherit from FiniteLattice
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
      finiteFrame : (index:NNI) -> %
       ++ construct finite lattice element from index
      finiteFrame : (obj:S) -> %
       ++ construct finite lattice element from object
 
-    -- *** FIX ME can't work out how to inherit from FiniteLattice
+    -- *** TODO can't work out how to inherit from FiniteLattice
     --Impl == FiniteLattice(SetCategory,Poset(SetCategory)) add
     Impl == add
 
-     -- *** FIX ME representation should really be inherited from FiniteLattice
+     -- *** TODO representation should really be inherited from FiniteLattice
      Rep := NNI
 
      -- returns the logical 'meet' of some subset specified
@@ -1512,7 +1590,7 @@ so we get the required deduction 'b'
 ++ Description: ILogic is an algebra with
 ++ true, false and other 'unproven' values
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/intuitionistic/index.htm
 
 ILogic() : Exports == Implementation where
 
@@ -2118,17 +2196,20 @@ ILogic() : Exports == Implementation where
     toString(n)::OutputForm
 
 )if false
-\section{Infinite (unbounded) Littices}
-\subsection{Distributive Littices}
+\section{Infinite (unbounded) Lattices}
+\subsection{Distributive Lattices}
+Not every lattice is distributive but those that are have some interesting
+properties which can be investigated by using these domains.
+
 If the lattice is distributive then we can take advantage of this and make
 the representation more efficient by representing it as either:
 
-meet of joins
+meet-of-joins
 \begin{verbatim}
 (a\/b\/...) /\ (c\/d\/...) /\ ...
 \end{verbatim}
 
-join of meets
+join-of-meets
 \begin{verbatim}
 (a/\b/\...) \/ (c/\d/\...) \/ ...
 \end{verbatim}
@@ -2141,59 +2222,124 @@ Rep := List List Union(_
          )
 \end{verbatim}
 
-Here is an example session to show how it works:
+For a finite lattice then:
+if meet is distributive over join,
+then join is also distributive over meet.
+and
+if join is also distributive over meet,
+then meet is distributive over join.
+
+We can therefore always convert between join-of-meets and meet-of-joins
+by 'multipling' out the terms and applying the idempotence + absorption
+axioms.
+
+We therefore only need one of these domains to represent a distributive
+lattice structure. However I have provided both to allow conversions
+between the two types to be provided.
+
+I look at this like a polynomial for lattices and these conversions are
+like solving a polynomial.
+
+Here is an test session to show how it works:
 \begin{verbatim}
-(1) -> MOJ := LatticeMeetOfJoins
+-- first setup some variables
+MOJ := LatticeMeetOfJoins
 
    (1)  LatticeMeetOfJoins
-                                                             Type: Type
+                                                              Type: Type
 a := variable("a")$MOJ
 
    (2)  ("a")
-                                               Type: LatticeMeetOfJoins
+                                                Type: LatticeMeetOfJoins
 b := variable("b")$MOJ
 
    (3)  ("b")
-                                               Type: LatticeMeetOfJoins
+                                                Type: LatticeMeetOfJoins
 c := variable("c")$MOJ
 
    (4)  ("c")
-                                               Type: LatticeMeetOfJoins
+                                                Type: LatticeMeetOfJoins
 d := variable("d")$MOJ
 
    (5)  ("d")
-                                               Type: LatticeMeetOfJoins
+                                                Type: LatticeMeetOfJoins
+-- test 'and'
 land := a /\ b
 
    (6)  ("a")/\("b")
-                                               Type: LatticeMeetOfJoins
+                                                Type: LatticeMeetOfJoins
+-- opposite
+landOp := land::LatticeJoinOfMeets
+
+   (7)  ("a"/\"b")
+                                                Type: LatticeJoinOfMeets
+-- test or
 lor := a \/ b
 
-   (7)  ("a"\/"b")
-                                               Type: LatticeMeetOfJoins
+   (8)  ("a"\/"b")
+                                                Type: LatticeMeetOfJoins
+-- opposite
+lorOp := lor::LatticeJoinOfMeets
+
+   (9)  ("a")\/("b")
+                                                Type: LatticeJoinOfMeets
+-- test idempotence (should return 'a')
+a /\ a
+
+   (10)  ("a")
+                                                Type: LatticeMeetOfJoins
+a \/ a
+
+   (11)  ("a")
+                                                Type: LatticeMeetOfJoins
+-- test absorption (should return 'a')
+a/\(a\/b)
+
+   (12)  ("a")
+                                                Type: LatticeMeetOfJoins
+a\/(a/\b)
+
+   (13)  ("a")
+                                                Type: LatticeMeetOfJoins
+-- test composite contructions
 landor := land \/ c
 
-   (8)  ("a"\/"c")/\("b"\/"c")
-                                               Type: LatticeMeetOfJoins
+   (14)  ("a"\/"c")/\("b"\/"c")
+                                                Type: LatticeMeetOfJoins
+landorOp := landor::LatticeJoinOfMeets
+
+   (15)  ("a"/\"b")\/("c")
+                                                Type: LatticeJoinOfMeets
+landorOpOp := landorOp::LatticeMeetOfJoins
+
+   (16)  ("a"\/"c")/\("b"\/"c")
+                                                Type: LatticeMeetOfJoins
 landorand := landor /\ d
 
-   (9)  ("a"\/"c")/\("b"\/"c")/\("d")
-                                               Type: LatticeMeetOfJoins
+   (17)  ("a"\/"c")/\("b"\/"c")/\("d")
+                                                Type: LatticeMeetOfJoins
+landorandOp := landorand::LatticeJoinOfMeets
 
-\end{verbatim}
+   (18)  ("a"/\"b"/\"d")\/("c"/\"d")
+                                                Type: LatticeJoinOfMeets
+landorandOpOp := landorandOp::LatticeMeetOfJoins
+
+   (19)  ("a"\/"c")/\("b"\/"c")/\("d")
+                                                Type: LatticeMeetOfJoins
+(20) -> \end{verbatim}
 )endif
 
 )abbrev domain LATMOFJ LatticeMeetOfJoins
 ++ Author: Martin Baker
 ++ Date Created: Sept 2015
-++ Date Last Updated: Sept 2015
+++ Date Last Updated: Oct 2015
 ++ Basic Operations:
 ++ Related Constructors: LatticeJoinOfMeets is complementry domain
 ++ Keywords: Logic Lattice Meet Join
 ++ Description: Infinite Lattice which is distributive.
 ++   Representation held as meet of joins.
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 
 LatticeMeetOfJoins() : Exports == Implementation where
 
@@ -2313,13 +2459,10 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- /\ returns the logical 'meet', e.g. 'and'.
   --
   -- simplification rules:
-  -- ~x /\ x -> F
-  -- x /\ ~x -> F
-  -- x /\ x -> x
-  -- F /\ x -> F
-  -- x /\ F -> F
-  -- x /\ T -> x
-  -- T /\ x -> x
+  -- idempotenceMeet for all x: x /\ x -> x ()
+  -- idempotenceJoin for all x: x \/ x -> x
+  -- absorptionMeetOverJoin for all(x,y): x/\(x\/y)=x
+  -- absorptionJoinOverMeet for all(x,y): x\/(x/\y)=x
   --
   _/_\(a : %, b : %) ==
     if empty?(a) then return b
@@ -2329,11 +2472,10 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- \/ returns the logical 'join', e.g. 'or'.
   --
   -- simplification rules:
-  -- T \/ x -> T
-  -- x \/ T -> T
-  -- x \/ x -> x
-  -- x \/ _|_ -> x
-  -- _|_ \/ x -> x
+  -- idempotenceMeet for all x: x /\ x -> x ()
+  -- idempotenceJoin for all x: x \/ x -> x
+  -- absorptionMeetOverJoin for all(x,y): x/\(x\/y)=x
+  -- absorptionJoinOverMeet for all(x,y): x\/(x/\y)=x
   --
   _\_/(a : %, b : %) ==
     if empty?(a) then return b
@@ -2550,14 +2692,14 @@ LatticeMeetOfJoins() : Exports == Implementation where
 )abbrev domain LATJOFM LatticeJoinOfMeets
 ++ Author: Martin Baker
 ++ Date Created: Sept 2015
-++ Date Last Updated: Sept 2015
+++ Date Last Updated: Oct 2015
 ++ Basic Operations:
 ++ Related Constructors: LatticeMeetOfJoins is complementry domain
 ++ Keywords: Logic Lattice Meet Join
 ++ Description: Infinite Lattice which is distributive.
 ++   Representation held as join of meets.
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 
 LatticeJoinOfMeets() : Exports == Implementation where
 
@@ -2681,13 +2823,10 @@ LatticeJoinOfMeets() : Exports == Implementation where
   -- /\ returns the logical 'meet', e.g. 'and'.
   --
   -- simplification rules:
-  -- ~x /\ x -> F
-  -- x /\ ~x -> F
-  -- x /\ x -> x
-  -- F /\ x -> F
-  -- x /\ F -> F
-  -- x /\ T -> x
-  -- T /\ x -> x
+  -- idempotenceMeet for all x: x /\ x -> x ()
+  -- idempotenceJoin for all x: x \/ x -> x
+  -- absorptionMeetOverJoin for all(x,y): x/\(x\/y)=x
+  -- absorptionJoinOverMeet for all(x,y): x\/(x/\y)=x
   --
   _/_\(a : %, b : %) ==
     if empty?(a) then return b
@@ -2705,11 +2844,10 @@ LatticeJoinOfMeets() : Exports == Implementation where
   -- \/ returns the logical 'join', e.g. 'or'.
   --
   -- simplification rules:
-  -- T \/ x -> T
-  -- x \/ T -> T
-  -- x \/ x -> x
-  -- x \/ _|_ -> x
-  -- _|_ \/ x -> x
+  -- idempotenceMeet for all x: x /\ x -> x ()
+  -- idempotenceJoin for all x: x \/ x -> x
+  -- absorptionMeetOverJoin for all(x,y): x/\(x\/y)=x
+  -- absorptionJoinOverMeet for all(x,y): x\/(x/\y)=x
   --
   _\_/(a : %, b : %) ==
     if empty?(a) then return b
@@ -2948,6 +3086,8 @@ LatticeJoinOfMeets() : Exports == Implementation where
 )abbrev domain BITST BitStreamFrame
 ++ Author: Martin Baker
 ++ Description: An example of a frame taken from Vickers section 3.7
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
 BitStreamFrame() : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
@@ -2979,12 +3119,14 @@ BitStreamFrame() : Exports == Impl where
 
      -- returns the logical 'meet', e.g. 'and'.
      _/_\(a:%,b:%) : % ==
-       res: List(List(Boolean)) := concat(a pretend List(List(Boolean)),b pretend List(List(Boolean)))$List(List(Boolean))
+       res: List(List(Boolean)) := _
+         concat(a pretend List(List(Boolean)),b pretend List(List(Boolean)))$List(List(Boolean))
        res
 
      -- returns the logical 'join', e.g. 'or'.
      _\_/(a:%,b:%) : % ==
-       res: List(List(Boolean)) := concat(a pretend List(List(Boolean)),b pretend List(List(Boolean)))$List(List(Boolean))
+       res: List(List(Boolean)) := _
+         concat(a pretend List(List(Boolean)),b pretend List(List(Boolean)))$List(List(Boolean))
        res
 
      -- start of SetCategory definitions --
