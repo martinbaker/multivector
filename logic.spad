@@ -15,15 +15,13 @@ I have put a fuller explanation of this code here:
 http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 \end{abstract}
 
-This document is just experimental, I am just trying out various things, don't
-worry about the detail its the big picture that I would like help with.
-
-I am using Steven Vickers book [ref 1] as my reference.
+I am using Steven Vickers book [ref 1] as a reference.
 
 There are a common set of lattice-like structures that occur in various branches
 of mathematics such as orders, logic and sets. I would like to represent these
 structures in FriCAS.
 
+\section{Introduction}
 What I have done so far seems to be applicable to finite lattices but a lot of my
 interest in this subject would be infinite structures. Especially structures
 from Topology such as a 'frame' which is a complete lattice with infinite meets.
@@ -42,6 +40,7 @@ Rep := Record(set:List S,struct:List List Boolean)
 
 The lattice is an algebraicizing of this. The lattice constructor would take the poset
 as a parameter.
+\section{Poset Code}
 )endif
 
 )abbrev category PREORD Preorder
@@ -109,7 +108,7 @@ Poset(S) : Exports == Impl where
       ++ getArrows(s) returns a list of all the arrows (or edges)
 
      opposite : (s : %) -> %
-      ++ constucts the opposite in the category theory sense of reversing
+      ++ constructs the opposite in the category theory sense of reversing
       ++ all the arrows
 
      powerSetStructure : (objs : S) -> %
@@ -163,7 +162,7 @@ Poset(S) : Exports == Impl where
 
      completeTransitivity:(s:%) -> %
       ++ Transitivity requires forall(x,y,z): x<=y and y<=z implies x<=z
-      ++ This function inforces this by making sure that the composition
+      ++ This function enforces this by making sure that the composition
       ++ of any two arrows is also an arrow.
 
      isAntisymmetric?:(s:%) -> Boolean
@@ -225,7 +224,7 @@ Poset(S) : Exports == Impl where
         arrows := concat(arrows,emptyRow)
         [obs,arrows]
 
-      -- FIXME - make this non-mutable
+      -- TODO - make this non-mutable
       -- adds an arrow to this graph, where:
       -- s is the graph where the arrow is to be added
       -- n1 is the index of the start object
@@ -963,27 +962,6 @@ DistributiveLattice: Category == Lattice
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
 BoundedDistributiveLattice: Category == Join(BoundedLattice,DistributiveLattice)
 
-)abbrev category FRAME Frame
-++ Author: Martin Baker
-++ Description: frames are used in topology and are the lattice
-++              associated with the concept of a 'locale'.
-++              see: [1]
-++   A Frame is a Lattice where certain subsets are also Lattices
-++   for more documatation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
-++ Axiom: every subset has a join 
-++ Axiom: every finite subset has a meet
-++ Axiom: binary meets distribute over joins
-++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
-Frame(P:Poset(SetCategory)): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
-      meet:(List %) -> %
-        ++ returns the logical 'meet' of some subset specified
-        ++ by a list of elements.
-      join:(List %) -> %
-        ++ returns the logical 'join' of some subset specified
-        ++ by a list of elements.
-
 )abbrev category LOGIC Logic
 ++ Note: transferred from boolean.spad
 ++ Author:
@@ -1199,6 +1177,99 @@ SubsetLattice(S:SetCategory,top:List(S)) : Exports == Impl where
         for x in inp repeat
           oup := concat(oup,x::OutputForm)
         bracket(oup)
+
+)if false
+\section{Frames}
+Logic for semi-decidable propositions
+
+Some properties may possibly be provable but not disprovable (or visa versa) such
+properties are known as semi-decidable.
+
+We can interpret semi-decidable properties in topology as open sets. See [1]
+and [5].
+
+So, for example, imagine that we can measure the value of 'x' to any arbitrary level of
+accuracy but there will always be some error. If x is not equal to 2 then we can prove
+it, but if x is exactly 2 then we can never prove it.
+
+"This allows us to ignore points and do pointless or localic topology"[1]
+
+According to [1], terminology around concepts like 'frame' is not fixed amongst
+different authors. Steven Vickers [1] definition (which follows Johnstone) is:
+\begin{itemize}
+\item 1) every subset has a join
+\item 2) every finite subset has a meet
+\item 3) binary meets distribute over joins 
+\end{itemize}
+
+\subsection{Arbitrary vs. Finite Conjunction and Disjunctions}
+
+This structure makes a distinction between arbitrary and finite conjunction/disjunctions.
+This is related to the convergence of a sequence (Hausdorff Umgebungsaxiome).
+
+For example: a sequence of ever-smaller open intervals around zero: (-1,1), (-1/2,1/2), (-1/3,1/3), ...
+
+For unions:
+If we take any union of any of these open sets we will get an open set (any
+point in that union will have a little neighbourhood around it).
+
+For intersections:
+\begin{itemize}
+\item If we take a finite number of the sets and take their intersection, then we'll still
+get an open set.
+\item If we take the infinite intersection we don't necessarily get an open set, in the
+example above the only point that is in all the intervals is 0.
+0 on its own isn't an open set, because 0 doesn't have a little neighbourhood around it.
+\end{itemize}
+
+\subsection{Algebra of Frames}
+Translating this into lattice algebra:
+If A and B are semi-decidable then:
+\begin{itemize}
+\item Conjunction A/\B: if A and B are semi-decidable, then A/\B is semi-decidable (you can
+test A/\B by testing A and B separately and stopping if and when both the tests for A and B stop).
+\item Conjunction arbitrary arity /\(Ai): infinite conjunction are not semi-decidable. Note: that
+even given that we can arbitrarily many tests at the same time, it still doesn’t follow that
+arbitrary conjunctions of semi-decidable propositions are semi-decidable: if the first one terminates
+after 1 minute, the second after 2, etc., we’ll never be able to stop the test of the conjunction
+even though all tests terminate eventually.
+\item Disjunction A\/B: if A and B are semi-decidable, then A\/B is semi-decidable
+\item Disjunction arbitrary arity \/(Ai): is semi-decidable.given Ai, we can test \/(Ai) by running
+all the tests in parallel and stopping when any of them stop. 
+\item Implication: A->B isn’t necessarily semi-decidable for the same reason
+that ¬A isn’t, but we still want to reason about the case where A implies B. Therefore, we
+allow A->B with the meaning that A implies B, but only at the 'top level' (you can’t nest
+this connective).
+\item top is semi-decidable.
+\item bottom  is semi-decidable.
+\item Not: this algebra does not have 'not'/'complement' if A is semi-decidable, it’s not necessarily
+the case that ¬A is.
+\end{itemize}
+See [5]
+
+\subsection{Code}
+)endif
+
+)abbrev category FRAME Frame
+++ Author: Martin Baker
+++ Description: frames are used in topology and are the lattice
+++              associated with the concept of a 'locale'.
+++              see: [1]
+++   A Frame is a Lattice where certain subsets are also Lattices
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: every subset has a join 
+++ Axiom: every finite subset has a meet
+++ Axiom: binary meets distribute over joins
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+Frame(P:Poset(SetCategory)): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
+      meet:(List %) -> %
+        ++ returns the logical 'meet' of some subset specified
+        ++ by a list of elements.
+      join:(List %) -> %
+        ++ returns the logical 'join' of some subset specified
+        ++ by a list of elements.
 
 )abbrev domain FINFRM FiniteFrame
 ++ Author: Martin Baker
@@ -1627,7 +1698,7 @@ ILogic() : Exports == Implementation where
   deductions : (ln : List %) -> List %
     ++ assumes ln contains a list of factors which must be true for
     ++ the whole to be true (such as the list produced by factor).
-    ++ From this deductions attemps to produce a list of other
+    ++ From this deductions attempts to produce a list of other
     ++ proposition that must also be true by using modus ponens.
     ++ This is used to determine the returned type when converting
     ++ ILogic to types by using the Curry-Howard isomorphism.
@@ -1673,7 +1744,7 @@ ILogic() : Exports == Implementation where
     ++ externally but it is here to allow it to call parseIL
     ++ that is to allow circular calls
   toString : (n : %) -> String
-    ++ creates a string representaion of this term and its sub-terms
+    ++ creates a string representation of this term and its sub-terms
   toStringUnwrapped : (n : %) -> String
     ++ similar to 'toString' but does not put outer compound terms
     ++ in brackets
@@ -1883,7 +1954,7 @@ ILogic() : Exports == Implementation where
 
   -- assumes ln contains a list of factors which must be true for
   -- the whole to be true (such as the list produced by factor).
-  -- From this deductions attemps to produce a list of other
+  -- From this deductions attempts to produce a list of other
   -- proposition that must also be true by using modus ponens.
   -- This is used to determine the returned type when converting
   -- ILogic to types by using the Curry-Howard isomorphism.
@@ -2230,7 +2301,7 @@ if join is also distributive over meet,
 then meet is distributive over join.
 
 We can therefore always convert between join-of-meets and meet-of-joins
-by 'multipling' out the terms and applying the idempotence + absorption
+by 'multiplying' out the terms and applying the idempotence + absorption
 axioms.
 
 We therefore only need one of these domains to represent a distributive
@@ -2412,7 +2483,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
     ++   "C"::Symbol = compound
     ++ Constructs lambda term and bind any variables with the name provided
   toString : (n : %) -> String
-    ++ creates a string representaion of this term and its sub-terms
+    ++ creates a string representation of this term and its sub-terms
   toStringUnwrapped : (n : %) -> String
     ++ similar to 'toString' but does not put outer compound terms
     ++ in brackets
@@ -2584,7 +2655,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
   -- splits n into a list of factors which must be true for the
   -- whole to be true.
   -- This assumes that the top level is already a set of factors
-  -- seperated by /\ otherwise the result will just be a list with
+  -- separated by /\ otherwise the result will just be a list with
   -- one entry: 'n'.
   -- This is used when converting ILogic to types by using the
   -- Curry-Howard isomorphism.
@@ -2600,7 +2671,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
 
   -- assumes ln contains a list of factors which must be true for
   -- the whole to be true (such as the list produced by factor).
-  -- From this deductions attemps to produce a list of other
+  -- From this deductions attempts to produce a list of other
   -- proposition that must also be true by using modus ponens.
   -- This is used to determine the returned type when converting
   -- ILogic to types by using the Curry-Howard isomorphism.
@@ -2734,14 +2805,14 @@ LatticeJoinOfMeets() : Exports == Implementation where
     ++ splits n into a list of factors which must be true for the
     ++ whole to be true.
     ++ This assumes that the top level is already a set of factors
-    ++ seperated by /\ otherwise the result will just be a list with
+    ++ separated by /\ otherwise the result will just be a list with
     ++ one entry: 'n'.
     ++ This is used when converting ILogic to types by using the
     ++ Curry-Howard isomorphism.
   deductions : (ln : List %) -> List %
     ++ assumes ln contains a list of factors which must be true for
     ++ the whole to be true (such as the list produced by factor).
-    ++ From this deductions attemps to produce a list of other
+    ++ From this deductions attempts to produce a list of other
     ++ proposition that must also be true by using modus ponens.
     ++ This is used to determine the returned type when converting
     ++ ILogic to types by using the Curry-Howard isomorphism.
@@ -2772,7 +2843,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
     ++   "C"::Symbol = compound
     ++ Constructs lambda term and bind any variables with the name provided
   toString : (n : %) -> String
-    ++ creates a string representaion of this term and its sub-terms
+    ++ creates a string representation of this term and its sub-terms
   toStringUnwrapped : (n : %) -> String
     ++ similar to 'toString' but does not put outer compound terms
     ++ in brackets
@@ -2965,7 +3036,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
 
   -- assumes ln contains a list of factors which must be true for
   -- the whole to be true (such as the list produced by factor).
-  -- From this deductions attemps to produce a list of other
+  -- From this deductions attempts to produce a list of other
   -- proposition that must also be true by using modus ponens.
   -- This is used to determine the returned type when converting
   -- ILogic to types by using the Curry-Howard isomorphism.
@@ -3201,7 +3272,6 @@ BitStreamFrame() : Exports == Impl where
 --NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 --SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 )if false
 \eject
 \begin{thebibliography}{99}
@@ -3214,6 +3284,10 @@ For more details see:
      a promising generalisation.
 [3] I have put a fuller explanation of this code here:
 http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+[4] Waldeks initial comments
+https://groups.google.com/forum/?hl=en#!topic/fricas-devel/Cy-RHn_g6RY
+[5] Blog about semi-decidable logic
+http://xorshammer.com/2011/07/09/a-logical-interpretation-of-some-bits-of-topology/
 \end{thebibliography}
 \end{document}
 )endif
