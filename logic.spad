@@ -1222,6 +1222,12 @@ example above the only point that is in all the intervals is 0.
 0 on its own isn't an open set, because 0 doesn't have a little neighbourhood around it.
 \end{itemize}
 
+In this FriCAS domain we want to model arbitrary conjunctions and disjunctions so that we
+can see this asymmetry between the properties of conjunctions and disjunctions. Obviously
+a computer program can't have an infinite number of parameters so we need to model it
+another way. The intention is to model infinite series as a way to represent an infinite
+structure in a finite computer.
+
 \subsection{Algebra of Frames}
 Translating this into lattice algebra:
 If A and B are semi-decidable then:
@@ -1240,10 +1246,10 @@ all the tests in parallel and stopping when any of them stop.
 that ¬A isn’t, but we still want to reason about the case where A implies B. Therefore, we
 allow A->B with the meaning that A implies B, but only at the 'top level' (you can’t nest
 this connective).
-\item top is semi-decidable.
-\item bottom  is semi-decidable.
-\item Not: this algebra does not have 'not'/'complement' if A is semi-decidable, it’s not necessarily
-the case that ¬A is.
+\item Top is semi-decidable.
+\item Bottom  is semi-decidable.
+\item Not: this algebra does not have 'not'/'complement' because if A is semi-decidable, it’s
+not necessarily the case that ¬A is.
 \end{itemize}
 See [5]
 
