@@ -3158,6 +3158,18 @@ LatticeJoinOfMeets() : Exports == Implementation where
 
 )if false
 \section{Example Structures}
+\subsection{BitStreamFrame}
+BitStreams are potentially infinite in length. The elements of this domain are finite
+sequences that have not yet been completed. So we can think of these elements as
+approximations to the actual bitstream.
+
+These BitStream representations are semidecidable, we can determine if two representations of
+streams are not equal but we cannot determine if they are equal. So if two streams are not unequal
+it does not follow that they are equal.
+
+We cannot determine if they are equal because, however many terms of two streams that start with 
+the same values  we have, they might be still be extended with different values. We can never check
+the complete bitstream because we cannot hold an infinite structure in a finite computer.
 )endif
 
 )abbrev domain BITST BitStreamFrame
@@ -3177,7 +3189,7 @@ BitStreamFrame() : Exports == Impl where
 
      -- A single bitstream is coded as 'List Boolean', this is the
      -- bit sequence starting from the first bit.
-     -- This representaion holds all allowable bitstreams
+     -- This representation holds all allowable bitstreams
      -- or'd together as a list of bitstreams.
      Rep := List(List(Boolean))
 
