@@ -56,8 +56,7 @@ NNI==> NonNegativeInteger
 Preorder: Category == SetCategory with
     implies:(s : %,NNI, NNI) -> Boolean
 
-
-)abbrev domain POSET Poset
+)abbrev category POSET Poset
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
@@ -77,35 +76,31 @@ Preorder: Category == SetCategory with
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: antisymmetry forall(x,y): x<=y and y<=x iff x=y
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
-
-Poset(S) : Exports == Impl where
-    S : SetCategory
-    PI ==> PositiveInteger
-    NNI==> NonNegativeInteger
-    SINT==> SingleInteger
-    OBJT ==> Record(value : S, posX : NNI, posY : NNI)
-    ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+Poset(S) : Category == Definition where 
+ S : SetCategory
+ PI ==> PositiveInteger
+ NNI==> NonNegativeInteger
+ SINT==> SingleInteger
+ OBJT ==> Record(value : S, posX : NNI, posY : NNI)
+ ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
            toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
 
-    Exports ==> FiniteGraph(S) with
-     poset : (set1:List S,struct1:List List Boolean) -> %
+ Definition ==> FiniteGraph(S) with
+   -- TODO check: not sure if it is valid/useful to inherit from FiniteGraph as it
+   -- has different representation.
+
+     finitePoset : (set1:List S,struct1:List List Boolean) -> %
       ++ constructor where the set and structure is supplied
-     addObject : (s : %, n : S) -> %
-      ++ addObject!(s, n) adds object with coordinates n to the
-      ++ graph s.
-      ++ This is done in a non-mutable way, that is, the original
-      ++ poset is not changed instead a new one is constructed.
-     addArrow : (s : %, n1 : NNI, n2 : NNI) -> %
-      ++ addArrow!(s, nm, n1, n2) adds an arrow to the graph s, where:
-      ++ n1 is the index of the start object
-      ++ n2 is the index of the end object
-      ++ This is done in a non-mutable way, that is, the original
-      ++ poset is not changed instead a new one is constructed.
-     getVertices : (s : %) -> List S
-      ++ getVertices(s) returns a list of all the vertices (or objects)
+      ++ NOTE: does it make sense to include contructor in category?
+      ++ because all implementing domains will have to use the same constructor.
+      
+     getVert : (s : %) -> List S
+      ++ getVert(s) returns a list of all the vertices (or objects)
       ++ of the graph s.
-     getArrows : (s : %) -> List List Boolean
-      ++ getArrows(s) returns a list of all the arrows (or edges)
+      ++ Note: different from getVertices(s) which is inherited from FiniteGraph(S)
+     getArr : (s : %) -> List List Boolean
+      ++ getArr(s) returns a list of all the arrows (or edges)
+      ++ Note: different from getArrows(s) which is inherited from FiniteGraph(S)
 
      opposite : (s : %) -> %
       ++ constructs the opposite in the category theory sense of reversing
@@ -148,6 +143,12 @@ Poset(S) : Exports == Impl where
       ++ In this version of lub nodes are represented as index values.
       ++ Not every subset of a poset will have a lub in which case
       ++ 0 will be returned as an error indication.
+      
+     upperSet:(s:%) -> %
+      ++ a subset U with the property that, if x is in U and x<=y, then y is in U
+
+     lowerSet:(s:%) -> %
+      ++ a subset U with the property that, if x is in U and x>=y, then y is in U
 
      indexToObject:(s : %,index:NNI) -> S
       ++ returns the object at a given index
@@ -169,9 +170,269 @@ Poset(S) : Exports == Impl where
       ++ Antisymmetric requires forall(x,y): x<=y and y<=x iff x=y
       ++ Returns true if this is the case for every element.
 
-    Impl ==> add
+     isChain?:(s:%) -> Boolean
+      ++ is a subset of a partially ordered set such that any two elements
+      ++ in the subset are comparable
 
-      sayMsg ==> sayBrightly$Lisp
+     isAntiChain?:(s:%) -> Boolean
+      ++ is a subset of a partially ordered set such that any two elements
+      ++ in the subset are incomparable
+
+  add
+
+      -- local function to test a single value in the arrow matrix
+      isArrow?(arr:List(List(Boolean)),a:NNI,b:NNI):Boolean ==
+        row:NNI := 1
+        for x in arr repeat
+          if row=a then
+            val:Boolean := qelt(x,b)
+            return val
+          row=row+1
+        false
+
+      -- local function to set a single value in the arrow matrix
+      setArrow!(arr:List(List(Boolean)),a:NNI,b:NNI,c:Boolean):Void ==
+        row:NNI := 1
+        for x in arr repeat
+          if row=a then
+            setelt!(x,b,c)
+            return void
+          row=row+1
+        void
+
+      -- constucts the opposite in the category theory sense of reversing
+      -- all the arrows
+      opposite(s : %) : % ==
+        arr2 : List List Boolean := [nil]
+        for x in getArr(s) repeat
+          row: List Boolean := []
+          for y in x repeat
+            row := concat(row,false)
+          arr2:=concat(arr2,row)
+        for a in 1..#(getArr(s)) repeat
+          for b in 1..#(getArr(s)) repeat
+            if isArrow?(getArr(s),a,b) then setArrow!(arr2,b,a,true)
+        finitePoset(getVert(s),arr2)
+
+      implies(s : %,left:NNI,right:NNI) : Boolean ==
+        a : List Boolean := qelt(getArr(s),left)
+        b : Boolean := qelt(a,right)
+        b
+
+      -- returns the meet of a subset of lattice given by list of elements
+      meet(s : %,elements:List(NNI)):NNI ==
+        res : List NNI := []
+        for e in elements repeat
+          -- flag for each element is true if >= to 'e'
+          flage : List Boolean := []
+          for x in getArr(s) repeat
+            flage := concat(flage,qelt(x,e)$List(Boolean))$List(Boolean)
+          -- list of all element indexes which are >= than 'e'
+          candidates: List NNI := []
+          index:NNI := 1
+          for x in flage repeat
+            if x then candidates:= concat(candidates,index)
+            index := index +1
+        res := setIntersection(res,candidates)
+        --sayMsg concat("join candidates=",listToString(candidates))$String
+        --sayMsg concat("join res=",listToString(res))$String
+        lub(s,res)
+
+      -- returns the join of a subset of lattice given by list of elements
+      join(s : %,elements:List(NNI)):NNI ==
+        res : List NNI := []
+        for e in elements repeat
+          -- flag for each element is true if >= from 'e'
+          flage : List Boolean := qelt(getArr(s),e)
+          -- list of all element indexes which are >= from 'e'
+          candidates: List NNI := []
+          index:NNI := 1
+          for x in flage repeat
+            if x then candidates:= concat(candidates,index)
+            index := index +1
+          res := setIntersection(res,candidates)
+        glb(s,res)
+
+      -- 'greatest lower bound' or 'infimum'
+      -- In this version of glb nodes are represented as index values.
+      -- Not every subset of a poset will have a glb in which case
+      -- 0 will be returned as an error indication.
+      glb(s : %,a:List NNI):NNI ==
+        if empty?(a) then return 0::NNI
+        if #a=1 then return first(a)
+        resultList:List(NNI) := copy(a)
+        --sayMsg concat("lub res=",listToString(resultList))$String
+        for x in a repeat
+          --sayMsg concat("glb x=",string(x))$String
+          for y in a repeat
+            --sayMsg concat("glb y=",string(y))$String
+            if implies(s,x,y) then
+              if x ~= y then
+                if entry?(x,resultList) then
+                  --sayMsg concat("glb removing:",string(y))$String
+                  resultList := remove(y,resultList)
+                  --sayMsg concat("glb res=",listToString(resultList))$String
+        if #resultList ~= 1 then return 0::NNI
+        first(resultList)
+
+      -- 'least upper bound' or 'supremum'
+      -- In this version of lub nodes are represented as index values.
+      -- Not every subset of a poset will have a lub in which case
+      -- 0 will be returned as an error indication.
+      lub(s : %,a:List NNI):NNI ==
+        if empty?(a) then return 0::NNI
+        if #a=1 then return first(a)
+        resultList:List(NNI) := copy(a)
+        for x in a repeat
+          --sayMsg concat("lub x=",string(x))$String
+          for y in a repeat
+            --sayMsg concat("lub y=",string(y))$String
+            if implies(s,x,y) then
+              if x ~= y then
+                if entry?(y,resultList) then
+                  --sayMsg concat("lub removing:",string(x))$String
+                  resultList := remove(x,resultList)
+                  --sayMsg concat("lub res=",listToString(resultList))$String
+        if  #resultList ~= 1 then return 0::NNI
+        first(resultList)
+
+      -- returns the object at a given index
+      indexToObject(s : %,index:NNI):S ==
+        --sayMsg concat("indexToObject",string(index))$String
+        qelt(getVert(s),index)
+
+      -- returns the index of a given object
+      objectToIndex(s : %,obj:S):NNI ==
+        position(obj,getVert(s))$List(S) pretend NNI
+
+      -- Reflexivity requires forall(x): x<=x
+      -- This function inforces this by making sure that every element has
+      -- arrow to itself. That is, the leading diagonal is true.
+      completeReflexivity(s:%):% ==
+        set2:List S := getVert(s)
+        struct2:List(List(Boolean)) := copy(getArr(s))
+        for a in 1..(#set2) repeat
+          setArrow!(struct2,a,a,true)
+        finitePoset(set2,struct2)
+
+      -- Transitivity requires forall(x,y,z): x<=y and y<=z implies x<=z
+      -- This function inforces this by making sure that the composition
+      -- of any two arrows is also an arrow.
+      completeTransitivity(s:%):% ==
+        set2:List S := getVert(s)
+        dim:NNI := #set2
+        struct2:List(List(Boolean)) := copy(getArr(s))
+        for a in 1..dim repeat
+          for b in 1..dim repeat
+            for c in 1..dim repeat
+              if isArrow?(struct2,a,b) and isArrow?(struct2,b,c) then
+                if not isArrow?(struct2,a,c) then
+                  setArrow!(struct2,a,c,true)
+        finitePoset(set2,struct2)
+
+      -- Antisymmetric requires forall(x,y): x<=y and y<=x iff x=y
+      -- Returns true if this is the case for every element.
+      isAntisymmetric?(s:%):Boolean ==
+        dim:NNI := #(getVert(s))
+        struct2:List(List(Boolean)) := copy(getArr(s))
+        for a in 1..dim repeat
+          for b in 1..dim repeat
+            if isArrow?(struct2,a,b) and isArrow?(struct2,b,a) then
+              if a ~= b then return false
+        true
+
+      -- start of SetCategory definitions --
+
+      hash(s : %) : SingleInteger == 0$SingleInteger
+
+      -- return string representation
+      -- I'm not sure how latex(s: %) is intended to be used but
+      -- there is nothing specifically latex here, it just returns a
+      -- string description of the graph.
+      latex(n : %) : String ==
+        -- s holds result that we are constructing
+        s:String := ""
+        s
+
+      -- returns true if x equals y
+      -- this is equality and not isomorphism
+      -- that is it returns true only if exact index values and names are used
+      -- in addition to the structure(arrows) being the same.
+      _=(x : %, y : %) : Boolean ==
+        if getVert(x) ~= getVert(y) then return false
+        if getArr(x) ~= getArr(y) then return false
+        true
+
+      -- returns true if x is not equal to y
+      _~_=(x : %, y : %) : Boolean == not(x = y)
+
+      -- output
+      coerce(s : %) : OutputForm ==
+        dim:NNI := #(getVert(s))
+        if empty?(getArr(s)) then return bracket(empty()$OutputForm)
+        mat:List List OutputForm := empty()$List(List(OutputForm))
+        for a in getArr(s) repeat
+          row:List OutputForm := empty()$List(OutputForm)
+          if empty?(a)$List(Boolean)
+            then
+              row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
+            else
+              for b in a repeat
+                c:Symbol := if b then "true"::Symbol else "false"::Symbol
+                row := concat(row,outputForm(c)$OutputForm)$List(OutputForm)
+          if #row ~= dim then return outputForm("wrong number of cols")
+          mat := concat(mat,row)
+        if #mat ~= dim then return outputForm("wrong number of rows")
+        matrix(mat)
+
+
+)abbrev domain FPOSET FinitePoset
+++ Author: Martin Baker
+++ Description: holds a complete set together with a structure to codify
+++   the partial order.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: 
+++ Related packages: UserDefinedPartialOrdering in setorder.spad
+++ Related categories: PartialOrder in catdef.spad
+++ Related Domains: DirectedGraph in graph.spad
+++ Also See:
+++ AMS Classifications:
+++ Keywords: poset partial order
+++ Examples: power set structure
+++ References:
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: antisymmetry forall(x,y): x<=y and y<=x iff x=y
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+
+FinitePoset(S) : Exports == Impl where
+    S : SetCategory
+    PI ==> PositiveInteger
+    NNI==> NonNegativeInteger
+    SINT==> SingleInteger
+    OBJT ==> Record(value : S, posX : NNI, posY : NNI)
+    ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+
+    Exports ==> Poset(S) with
+     finitePoset : (set1:List S,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is supplied
+     addObject : (s : %, n : S) -> %
+      ++ addObject!(s, n) adds object with coordinates n to the
+      ++ graph s.
+      ++ This is done in a non-mutable way, that is, the original
+      ++ poset is not changed instead a new one is constructed.
+     addArrow : (s : %, n1 : NNI, n2 : NNI) -> %
+      ++ addArrow!(s, nm, n1, n2) adds an arrow to the graph s, where:
+      ++ n1 is the index of the start object
+      ++ n2 is the index of the end object
+      ++ This is done in a non-mutable way, that is, the original
+      ++ poset is not changed instead a new one is constructed.
+
+
+    Impl ==> add
 
       -- This holds a complete set together with a structure to codify
       -- the partial order. The elements are put in a list so they
@@ -181,7 +442,7 @@ Poset(S) : Exports == Impl where
       Rep := Record(set1:List S,struct1:List List Boolean)
 
       -- constructor where the set and structure is supplied
-      poset(set1:List S,struct1:List List Boolean) : % ==
+      finitePoset(set1:List S,struct1:List List Boolean) : % ==
         [set1,struct1]
 
       -- local function to set a single value in the arrow matrix
@@ -236,11 +497,11 @@ Poset(S) : Exports == Impl where
         [s.set1,s.struct1]
 
       -- returns a list of all the vertices (or objects)
-      getVertices(s : %) : List S ==
+      getVert(s : %) : List S ==
         s.set1
 
       -- returns a list of all the arrows (or edges)
-      getArrows(s : %) : List List Boolean ==
+      getArr(s : %) : List List Boolean ==
         s.struct1
 
       -- start of FiniteGraph implementation
@@ -566,24 +827,6 @@ Poset(S) : Exports == Impl where
 
       -- end of FiniteGraph implementation
 
-      -- constucts the opposite in the category theory sense of reversing
-      -- all the arrows
-      opposite(s : %) : % ==
-        arr2 : List List Boolean := [nil]
-        for x in s.struct1 repeat
-          row: List Boolean := []
-          for y in x repeat
-            row := concat(row,false)
-          arr2:=concat(arr2,row)
-        for a in 1..#(s.struct1) repeat
-          for b in 1..#(s.struct1) repeat
-            if isArrow?(s.struct1,a,b) then setArrow!(arr2,b,a,true)
-        [s.set1,arr2]
-
-      implies(s : %,left:NNI,right:NNI) : Boolean ==
-        a : List Boolean := qelt(s.struct1,left)
-        b : Boolean := qelt(a,right)
-        b
 
       -- local function to display a list
       listToString(a:List NNI):String ==
@@ -650,171 +893,8 @@ Poset(S) : Exports == Impl where
         --sayMsg concat("join res=",listToString(res))$String
         lub(s,res)
 
-      -- returns the meet of a subset of lattice given by list of elements
-      meet(s : %,elements:List(NNI)):NNI ==
-        res : List NNI := []
-        for e in elements repeat
-          -- flag for each element is true if >= to 'e'
-          flage : List Boolean := []
-          for x in s.struct1 repeat
-            flage := concat(flage,qelt(x,e)$List(Boolean))$List(Boolean)
-          -- list of all element indexes which are >= than 'e'
-          candidates: List NNI := []
-          index:NNI := 1
-          for x in flage repeat
-            if x then candidates:= concat(candidates,index)
-            index := index +1
-        res := setIntersection(res,candidates)
-        --sayMsg concat("join candidates=",listToString(candidates))$String
-        --sayMsg concat("join res=",listToString(res))$String
-        lub(s,res)
 
-      -- returns the join of a subset of lattice given by list of elements
-      join(s : %,elements:List(NNI)):NNI ==
-        res : List NNI := []
-        for e in elements repeat
-          -- flag for each element is true if >= from 'e'
-          flage : List Boolean := qelt(s.struct1,e)
-          -- list of all element indexes which are >= from 'e'
-          candidates: List NNI := []
-          index:NNI := 1
-          for x in flage repeat
-            if x then candidates:= concat(candidates,index)
-            index := index +1
-          res := setIntersection(res,candidates)
-        glb(s,res)
 
-      -- 'greatest lower bound' or 'infimum'
-      -- In this version of glb nodes are represented as index values.
-      -- Not every subset of a poset will have a glb in which case
-      -- 0 will be returned as an error indication.
-      glb(s : %,a:List NNI):NNI ==
-        if empty?(a) then return 0::NNI
-        if #a=1 then return first(a)
-        resultList:List(NNI) := copy(a)
-        --sayMsg concat("lub res=",listToString(resultList))$String
-        for x in a repeat
-          --sayMsg concat("glb x=",string(x))$String
-          for y in a repeat
-            --sayMsg concat("glb y=",string(y))$String
-            if implies(s,x,y) then
-              if x ~= y then
-                if entry?(x,resultList) then
-                  --sayMsg concat("glb removing:",string(y))$String
-                  resultList := remove(y,resultList)
-                  --sayMsg concat("glb res=",listToString(resultList))$String
-        if #resultList ~= 1 then return 0::NNI
-        first(resultList)
-
-      -- 'least upper bound' or 'supremum'
-      -- In this version of lub nodes are represented as index values.
-      -- Not every subset of a poset will have a lub in which case
-      -- 0 will be returned as an error indication.
-      lub(s : %,a:List NNI):NNI ==
-        if empty?(a) then return 0::NNI
-        if #a=1 then return first(a)
-        resultList:List(NNI) := copy(a)
-        for x in a repeat
-          --sayMsg concat("lub x=",string(x))$String
-          for y in a repeat
-            --sayMsg concat("lub y=",string(y))$String
-            if implies(s,x,y) then
-              if x ~= y then
-                if entry?(y,resultList) then
-                  --sayMsg concat("lub removing:",string(x))$String
-                  resultList := remove(x,resultList)
-                  --sayMsg concat("lub res=",listToString(resultList))$String
-        if  #resultList ~= 1 then return 0::NNI
-        first(resultList)
-
-      -- returns the object at a given index
-      indexToObject(s : %,index:NNI):S ==
-        --sayMsg concat("indexToObject",string(index))$String
-        qelt(s.set1,index)
-
-      -- returns the index of a given object
-      objectToIndex(s : %,obj:S):NNI ==
-        position(obj,s.set1)$List(S) pretend NNI
-
-      -- Reflexivity requires forall(x): x<=x
-      -- This function inforces this by making sure that every element has
-      -- arrow to itself. That is, the leading diagonal is true.
-      completeReflexivity(s:%):% ==
-        set2:List S := s.set1
-        struct2:List(List(Boolean)) := copy(s.struct1)
-        for a in 1..(#set2) repeat
-          setArrow!(struct2,a,a,true)
-        [set2,struct2]
-
-      -- Transitivity requires forall(x,y,z): x<=y and y<=z implies x<=z
-      -- This function inforces this by making sure that the composition
-      -- of any two arrows is also an arrow.
-      completeTransitivity(s:%):% ==
-        set2:List S := s.set1
-        dim:NNI := #set2
-        struct2:List(List(Boolean)) := copy(s.struct1)
-        for a in 1..dim repeat
-          for b in 1..dim repeat
-            for c in 1..dim repeat
-              if isArrow?(struct2,a,b) and isArrow?(struct2,b,c) then
-                if not isArrow?(struct2,a,c) then
-                  setArrow!(struct2,a,c,true)
-        [set2,struct2]
-
-      -- Antisymmetric requires forall(x,y): x<=y and y<=x iff x=y
-      -- Returns true if this is the case for every element.
-      isAntisymmetric?(s:%):Boolean ==
-        dim:NNI := #(s.set1)
-        struct2:List(List(Boolean)) := copy(s.struct1)
-        for a in 1..dim repeat
-          for b in 1..dim repeat
-            if isArrow?(struct2,a,b) and isArrow?(struct2,b,a) then
-              if a ~= b then return false
-        true
-
-      -- start of SetCategory definitions --
-
-      hash(s : %) : SingleInteger == 0$SingleInteger
-
-      -- return string representation
-      -- I'm not sure how latex(s: %) is intended to be used but
-      -- there is nothing specifically latex here, it just returns a
-      -- string description of the graph.
-      latex(n : %) : String ==
-        -- s holds result that we are constructing
-        s:String := ""
-        s
-
-      -- returns true if x equals y
-      -- this is equality and not isomorphism
-      -- that is it returns true only if exact index values and names are used
-      -- in addition to the structure(arrows) being the same.
-      _=(x : %, y : %) : Boolean ==
-        if getVertices(x) ~= getVertices(y) then return false
-        if getArrows(x) ~= getArrows(y) then return false
-        true
-
-      -- returns true if x is not equal to y
-      _~_=(x : %, y : %) : Boolean == not(x = y)
-
-      -- output
-      coerce(s : %) : OutputForm ==
-        dim:NNI := #(s.set1)
-        if empty?(s.struct1) then return bracket(empty()$OutputForm)
-        mat:List List OutputForm := empty()$List(List(OutputForm))
-        for a in s.struct1 repeat
-          row:List OutputForm := empty()$List(OutputForm)
-          if empty?(a)
-            then
-              row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
-            else
-              for b in a repeat
-                c:Symbol := if b then "true"::Symbol else "false"::Symbol
-                row := concat(row,outputForm(c)$OutputForm)$List(OutputForm)
-          if #row ~= dim then return outputForm("wrong number of cols")
-          mat := concat(mat,row)
-        if #mat ~= dim then return outputForm("wrong number of rows")
-        matrix(mat)
 
 )abbrev category MEETLAT MeetSemilattice
 ++ Author: Martin Baker
@@ -962,6 +1042,16 @@ DistributiveLattice: Category == Lattice
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
 BoundedDistributiveLattice: Category == Join(BoundedLattice,DistributiveLattice)
 
+)if false
+Category for Boolean algebra since it adds 'not' to the lattice.
+
+Transferred from boolean.spad so that all lattice structures can be
+together.
+
+I don't really default definition of 'join' in terms of 'meet' but I
+have left it in in case existing code uses it.
+)endif
+
 )abbrev category LOGIC Logic
 ++ Note: transferred from boolean.spad
 ++ Author:
@@ -982,6 +1072,15 @@ Logic : Category == BoundedDistributiveLattice with
     -- default define 'join' in terms of 'meet' (Is that a good idea?)
     _\_/(x : %, y : %) == _~( _/_\(_~(x), _~(y)))
 
+)if false
+This is the algebration of poset. A big difference between
+this lattice domain and the poset domain is that, in this domain, the
+REP holds a single node wheras in poset REP holds the whole poset.
+
+The REP is NNI since this is used as an index into the poset nodes
+(S:SetCategory).
+)endif
+
 )abbrev domain FINLAT FiniteLattice
 ++ Author: Martin Baker
 ++ Description: This is the algebration of poset. A big difference between
@@ -989,7 +1088,7 @@ Logic : Category == BoundedDistributiveLattice with
 ++    REP holds a single node wheras in poset REP holds the whole poset.
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
+FiniteLattice(S:SetCategory,p:FinitePoset(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
      finiteLattice : (index:NNI) -> %
@@ -1008,15 +1107,15 @@ FiniteLattice(S:SetCategory,p:Poset(S)) : Exports == Impl where
 
       -- construct finite lattice element from object
       finiteLattice(obj:S) : % ==
-        objectToIndex(p,obj)$Poset(S)
+        objectToIndex(p,obj)$FinitePoset(S)
 
       -- returns the logical 'meet', e.g. 'and'.
       _/_\(a:%,b:%) : % ==
-        meet(p,a pretend NNI,b pretend NNI)$Poset(S)
+        meet(p,a pretend NNI,b pretend NNI)$FinitePoset(S)
 
       -- returns the logical 'join', e.g. 'or'.
       _\_/(a:%,b:%) : % ==
-        join(p,a pretend NNI,b pretend NNI)$Poset(S)
+        join(p,a pretend NNI,b pretend NNI)$FinitePoset(S)
 
       -- start of SetCategory definitions --
 
@@ -1179,138 +1278,14 @@ SubsetLattice(S:SetCategory,top:List(S)) : Exports == Impl where
         bracket(oup)
 
 )if false
-\section{Frames}
-Logic for semi-decidable propositions
+\section{Poset Factory}
+Provides functions to construct various small posets 
+including powerset.
 
-Some properties may possibly be provable but not disprovable (or visa versa) such
-properties are known as semi-decidable.
-
-We can interpret semi-decidable properties in topology as open sets. See [1]
-and [5].
-
-So, for example, imagine that we can measure the value of 'x' to any arbitrary level of
-accuracy but there will always be some error. If x is not equal to 2 then we can prove
-it, but if x is exactly 2 then we can never prove it.
-
-"This allows us to ignore points and do pointless or localic topology"[1]
-
-According to [1], terminology around concepts like 'frame' is not fixed amongst
-different authors. Steven Vickers [1] definition (which follows Johnstone) is:
-\begin{itemize}
-\item 1) every subset has a join
-\item 2) every finite subset has a meet
-\item 3) binary meets distribute over joins 
-\end{itemize}
-
-\subsection{Arbitrary vs. Finite Conjunction and Disjunctions}
-
-This structure makes a distinction between arbitrary and finite conjunction/disjunctions.
-This is related to the convergence of a sequence (Hausdorff Umgebungsaxiome).
-
-For example: a sequence of ever-smaller open intervals around zero: (-1,1), (-1/2,1/2), (-1/3,1/3), ...
-
-For unions:
-If we take any union of any of these open sets we will get an open set (any
-point in that union will have a little neighbourhood around it).
-
-For intersections:
-\begin{itemize}
-\item If we take a finite number of the sets and take their intersection, then we'll still
-get an open set.
-\item If we take the infinite intersection we don't necessarily get an open set, in the
-example above the only point that is in all the intervals is 0.
-0 on its own isn't an open set, because 0 doesn't have a little neighbourhood around it.
-\end{itemize}
-
-In this FriCAS domain we want to model arbitrary conjunctions and disjunctions so that we
-can see this asymmetry between the properties of conjunctions and disjunctions. Obviously
-a computer program can't have an infinite number of parameters so we need to model it
-another way. The intention is to model infinite series as a way to represent an infinite
-structure in a finite computer.
-
-\subsection{Algebra of Frames}
-Translating this into lattice algebra:
-If A and B are semi-decidable then:
-\begin{itemize}
-\item Conjunction A/\B: if A and B are semi-decidable, then A/\B is semi-decidable (you can
-test A/\B by testing A and B separately and stopping if and when both the tests for A and B stop).
-\item Conjunction arbitrary arity /\(Ai): infinite conjunction are not semi-decidable. Note: that
-even given that we can arbitrarily many tests at the same time, it still doesn’t follow that
-arbitrary conjunctions of semi-decidable propositions are semi-decidable: if the first one terminates
-after 1 minute, the second after 2, etc., we’ll never be able to stop the test of the conjunction
-even though all tests terminate eventually.
-\item Disjunction A\/B: if A and B are semi-decidable, then A\/B is semi-decidable
-\item Disjunction arbitrary arity \/(Ai): is semi-decidable.given Ai, we can test \/(Ai) by running
-all the tests in parallel and stopping when any of them stop. 
-\item Implication: A->B isn’t necessarily semi-decidable for the same reason
-that ¬A isn’t, but we still want to reason about the case where A implies B. Therefore, we
-allow A->B with the meaning that A implies B, but only at the 'top level' (you can’t nest
-this connective).
-\item Top is semi-decidable.
-\item Bottom  is semi-decidable.
-\item Not: this algebra does not have 'not'/'complement' because if A is semi-decidable, it’s
-not necessarily the case that ¬A is.
-\end{itemize}
-See [5]
-
-\subsection{Code}
+Perhaps it should be called a 'powerlist' but since we do
+not expect duplicates or reqire specific ordering it is
+essentially the same.
 )endif
-
-)abbrev category FRAME Frame
-++ Author: Martin Baker
-++ Description: frames are used in topology and are the lattice
-++              associated with the concept of a 'locale'.
-++              see: [1]
-++   A Frame is a Lattice where certain subsets are also Lattices
-++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
-++ Axiom: every subset has a join 
-++ Axiom: every finite subset has a meet
-++ Axiom: binary meets distribute over joins
-++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
-Frame(P:Poset(SetCategory)): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
-      meet:(List %) -> %
-        ++ returns the logical 'meet' of some subset specified
-        ++ by a list of elements.
-      join:(List %) -> %
-        ++ returns the logical 'join' of some subset specified
-        ++ by a list of elements.
-
-)abbrev domain FINFRM FiniteFrame
-++ Author: Martin Baker
-++ Description: A Frame is a Lattice where certain subsets are also Lattices
-++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
-FiniteFrame(S:SetCategory,p:Poset(S)) : Exports == Impl where
-    NNI==> NonNegativeInteger
-    --Exports ==> Join(Lattice,Frame(Poset(SetCategory)),CoercibleTo(OutputForm), SetCategory) with
-    --Exports ==> Join(Lattice,FiniteLattice(SetCategory,Poset(SetCategory)),CoercibleTo(OutputForm), SetCategory) with
-    -- *** TODO can't work out how to inherit from FiniteLattice
-    Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
-     finiteFrame : (index:NNI) -> %
-      ++ construct finite lattice element from index
-     finiteFrame : (obj:S) -> %
-      ++ construct finite lattice element from object
-
-    -- *** TODO can't work out how to inherit from FiniteLattice
-    --Impl == FiniteLattice(SetCategory,Poset(SetCategory)) add
-    Impl == add
-
-     -- *** TODO representation should really be inherited from FiniteLattice
-     Rep := NNI
-
-     -- returns the logical 'meet' of some subset specified
-     -- by a list of elements.
-     meet(elements:List(%)):% ==
-       e:List(NNI) := [(x pretend NNI) for x in elements]
-       meet(p,e)$Poset(S)
-
-     -- returns the logical 'join' of some subset specified
-     -- by a list of elements.
-     join(elements:List(%)):% ==
-       e:List(NNI) := [(x pretend NNI) for x in elements]
-       join(p,e)$Poset(S)
 
 )abbrev package POSETF PosetFactory
 ++ Author: Martin Baker
@@ -1326,20 +1301,20 @@ PI ==> PositiveInteger
 NNI==> NonNegativeInteger
 
 PosetFactory(S : SetCategory) : with
-  powerset:(List S) -> Poset(List(S))
+  powerset:(List S) -> FinitePoset(List(S))
     ++ generate a poset representing all possible subsets of a
     ++ given set with their subset relationships.
-  completelyOrderedSet:(objs:List(S)) -> Poset(S)
+  completelyOrderedSet:(objs:List(S)) -> FinitePoset(S)
     ++ generates a completely ordered set
-  posetN5:(objs:List(S)) -> Poset(S)
+  posetN5:(objs:List(S)) -> FinitePoset(S)
     ++ generates a poset corresponding to an N5 lattice
-  posetM5:(objs:List(S)) -> Poset(S)
+  posetM5:(objs:List(S)) -> FinitePoset(S)
     ++ generates a poset corresponding to an M5 lattice
-  posetO6:(objs:List(S)) -> Poset(S)
+  posetO6:(objs:List(S)) -> FinitePoset(S)
     ++ generates a poset corresponding to an O6 lattice
-  posetP6:(objs:List(S)) -> Poset(S)
+  posetP6:(objs:List(S)) -> FinitePoset(S)
     ++ generates a poset corresponding to an P6 lattice
-  posetL7:(objs:List(S)) -> Poset(S)
+  posetL7:(objs:List(S)) -> FinitePoset(S)
     ++ generates a poset corresponding to an L7 lattice
 
  == add
@@ -1373,16 +1348,16 @@ PosetFactory(S : SetCategory) : with
 
   -- generate a poset representing all possible subsets of a
   -- given set with their subset relationships.
-  powerset(objs:List S):Poset(List(S)) ==
+  powerset(objs:List S):FinitePoset(List(S)) ==
     eles:List(List(S)) := [nil]
     arrows: List(List(Boolean)):=[[true]]
     for x in objs repeat
       eles := addDimensionToObjects(eles,x)
       arrows := addDimensionToArrows(arrows)
-    poset(eles,arrows)$Poset(List(S))
+    finitePoset(eles,arrows)$FinitePoset(List(S))
 
   -- generates a completely ordered set
-  completelyOrderedSet(objs:List(S)):Poset(S) ==
+  completelyOrderedSet(objs:List(S)):FinitePoset(S) ==
     dim:NNI := #objs
     arrows:List(List(Boolean)) := [nil]
     for x in 1..dim repeat
@@ -1391,56 +1366,56 @@ PosetFactory(S : SetCategory) : with
         g:Boolean := if x >= y then true else false
         row := concat(row,g)
       arrows := concat(arrows,row)
-    poset(objs,arrows)$Poset(S)
+    finitePoset(objs,arrows)$FinitePoset(S)
     
   -- generates a poset corresponding to an N5 lattice
-  posetN5(objs:List(S)):Poset(S) ==
-    poset(objs,[[true,true,true,true,true],
+  posetN5(objs:List(S)):FinitePoset(S) ==
+    finitePoset(objs,[[true,true,true,true,true],
     [false,true,false,false,true],
     [false,false,true,true,true],
     [false,false,false,true,true],
     [false,false,false,false,true]
-    ])$Poset(S)
+    ])$FinitePoset(S)
 
   -- generates a poset corresponding to an M5 lattice
-  posetM5(objs:List(S)):Poset(S) ==
-    poset(objs,[[true,true,true,true,true],
+  posetM5(objs:List(S)):FinitePoset(S) ==
+    finitePoset(objs,[[true,true,true,true,true],
     [false,true,false,false,true],
     [false,false,true,false,true],
     [false,false,false,true,true],
     [false,false,false,false,true]
-    ])$Poset(S)
+    ])$FinitePoset(S)
 
   -- generates a poset corresponding to an O6 lattice
-  posetO6(objs:List(S)):Poset(S) ==
-    poset(objs,[[true,true,true,true,true,true],
+  posetO6(objs:List(S)):FinitePoset(S) ==
+    finitePoset(objs,[[true,true,true,true,true,true],
     [false,true,true,false,false,true],
     [false,false,true,false,false,true],
     [false,false,false,true,true,true],
     [false,false,false,false,true,true],
     [false,false,false,false,false,true]
-    ])$Poset(S)
+    ])$FinitePoset(S)
 
   -- generates a poset corresponding to an P6 lattice
-  posetP6(objs:List(S)):Poset(S) ==
-    poset(objs,[[true,true,true,true,true,true],
+  posetP6(objs:List(S)):FinitePoset(S) ==
+    finitePoset(objs,[[true,true,true,true,true,true],
     [false,true,true,false,true,true],
     [false,false,true,false,false,true],
     [false,false,true,true,true,true],
     [false,false,false,false,true,true],
     [false,false,false,false,false,true]
-    ])$Poset(S)
+    ])$FinitePoset(S)
 
   -- generates a poset corresponding to an L7 lattice
-  posetL7(objs:List(S)):Poset(S) ==
-    poset(objs,[[true,true,true,true,true,true,true],
+  posetL7(objs:List(S)):FinitePoset(S) ==
+    finitePoset(objs,[[true,true,true,true,true,true,true],
     [false,true,false,true,true,false,true],
     [false,false,true,false,true,true,true],
     [false,false,false,true,false,false,true],
     [false,false,false,false,true,false,true],
     [false,false,false,false,false,true,true],
     [false,false,false,false,false,false,true]
-    ])$Poset(S)
+    ])$FinitePoset(S)
 
 )if false
 \section{Infinite (unbounded) Littices}
@@ -1660,7 +1635,7 @@ so we get the required deduction 'b'
 )abbrev domain ILOGIC ILogic
 ++ Author: Martin Baker
 ++ Date Created: March 2011
-++ Date Last Updated: September 2011
+++ Date Last Updated: October 2015
 ++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: intuitionisticLogic
@@ -1675,7 +1650,7 @@ ILogic() : Exports == Implementation where
  PR ==> Record(rft : %, pout : NNI)
    ++ parse result includes term returned and new index
 
- Exports == Join(Logic, CoercibleTo(OutputForm)) with
+ Exports == Join(BoundedLattice, CoercibleTo(OutputForm)) with
   logicT : () -> %
     ++ true is a logical constant.
   logicF : () -> %
@@ -1712,6 +1687,12 @@ ILogic() : Exports == Implementation where
     ++ returns true (boolean true) if intuitionisticLogic values
     ++ are the same.
     ++ Translates from Intuitionistic Logic to Boolean Logic
+  _~: % -> %
+    ++ ~(x) returns the logical complement of x.
+    ++ TODO not sure if complement should be included here?
+    ++ intuitionistic logic can have complement but has different axioms
+    ++ to complement in Boolean algebra.
+    ++ Equivilant capability can be provided by implication.
   opType : (n : %) -> Symbol
     ++ if this is a compound op then opType returns the type of
     ++ that op:
@@ -3157,6 +3138,144 @@ LatticeJoinOfMeets() : Exports == Implementation where
     r
 
 )if false
+\section{Frames}
+Logic for semi-decidable propositions
+
+Some properties may possibly be provable but not disprovable (or visa versa) such
+properties are known as semi-decidable.
+
+We can interpret semi-decidable properties in topology as open sets. See [1]
+and [5].
+
+So, for example, imagine that we can measure the value of 'x' to any arbitrary level of
+accuracy but there will always be some error. If x is not equal to 2 then we can prove
+it, but if x is exactly 2 then we can never prove it.
+
+"This allows us to ignore points and do pointless or localic topology"[1]
+
+According to [1], terminology around concepts like 'frame' is not fixed amongst
+different authors. Steven Vickers [1] definition (which follows Johnstone) is:
+\begin{itemize}
+\item 1) every subset has a join
+\item 2) every finite subset has a meet
+\item 3) binary meets distribute over joins 
+\end{itemize}
+
+\subsection{Arbitrary vs. Finite Conjunction and Disjunctions}
+
+This structure makes a distinction between arbitrary and finite conjunction/disjunctions.
+This is related to the convergence of a sequence (Hausdorff Umgebungsaxiome).
+
+For example: a sequence of ever-smaller open intervals around zero: (-1,1), (-1/2,1/2), (-1/3,1/3), ...
+
+For unions:
+If we take any union of any of these open sets we will get an open set (any
+point in that union will have a little neighbourhood around it).
+
+For intersections:
+\begin{itemize}
+\item If we take a finite number of the sets and take their intersection, then we'll still
+get an open set.
+\item If we take the infinite intersection we don't necessarily get an open set, in the
+example above the only point that is in all the intervals is 0.
+0 on its own isn't an open set, because 0 doesn't have a little neighbourhood around it.
+\end{itemize}
+
+We cannot determine if arbitrary (infinite) frames are equal because, however many terms
+of two frames that start with the same values  we have, they might be still be extended
+with different values. We can never check the complete frame because we cannot hold an
+infinite structure in a finite computer.
+
+\subsection{Algebra of Frames}
+Translating this into lattice algebra:
+If A and B are semi-decidable then:
+\begin{itemize}
+\item Conjunction A/\B: if A and B are semi-decidable, then A/\B is semi-decidable (you can
+test A/\B by testing A and B separately and stopping if and when both the tests for A and B stop).
+\item Conjunction arbitrary arity /\(Ai): infinite conjunction are not semi-decidable. Note: that
+even given that we can arbitrarily many tests at the same time, it still doesn’t follow that
+arbitrary conjunctions of semi-decidable propositions are semi-decidable: if the first one terminates
+after 1 minute, the second after 2, etc., we’ll never be able to stop the test of the conjunction
+even though all tests terminate eventually.
+\item Disjunction A\/B: if A and B are semi-decidable, then A\/B is semi-decidable
+\item Disjunction arbitrary arity \/(Ai): is semi-decidable.given Ai, we can test \/(Ai) by running
+all the tests in parallel and stopping when any of them stop. 
+\item Implication: A->B isn’t necessarily semi-decidable for the same reason
+that ¬A isn’t, but we still want to reason about the case where A implies B. Therefore, we
+allow A->B with the meaning that A implies B, but only at the 'top level' (you can’t nest
+this connective).
+\item Top is semi-decidable.
+\item Bottom  is semi-decidable.
+\item Not: this algebra does not have 'not'/'complement' because if A is semi-decidable, it’s
+not necessarily the case that ¬A is.
+\end{itemize}
+See [5]
+
+\subsection{Code}
+)endif
+
+)abbrev category FRAME Frame
+++ Author: Martin Baker
+++ Description: frames are used in topology and are the lattice
+++              associated with the concept of a 'locale'.
+++              see: [1]
+++   A Frame is a Lattice where certain subsets are also Lattices
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: every subset has a join 
+++ Axiom: every finite subset has a meet
+++ Axiom: binary meets distribute over joins
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+Frame(P:SetCategory): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
+      meet:(List %) -> %
+        ++ returns the logical 'meet' of some subset specified
+        ++ by a list of elements.
+      join:(List %) -> %
+        ++ returns the logical 'join' of some subset specified
+        ++ by a list of elements.
+
+--)abbrev domain FINFRM FiniteFrame
+++ Author: Martin Baker
+++ Description: A Frame is a Lattice where certain subsets are also Lattices
+++ Date Created: Aug 2015
+++ Date Last Updated: Oct 2015
+--NNI==> NonNegativeInteger
+--FiniteFrame(S:SetCategory,p:FinitePoset(S)) : LatticeJoinOfMeets with
+    -- *** TODO can't work out how to inherit from LatticeJoinOfMeets
+    -- *** the following causes >> System error: The index 2 is too large.
+    -- What are the rules for extending one domain from another?
+    
+    --Exports ==> Join(Frame(S),CoercibleTo(OutputForm)) with
+--     finiteFrame : (index:NNI) -> %
+      ++ construct finite lattice element from index
+--     finiteFrame : (obj:S) -> %
+      ++ construct finite lattice element from object
+
+    -- *** TODO can't work out how to inherit from FiniteLattice
+    --Impl == FiniteLattice(SetCategory,FinitePoset(SetCategory)) add
+--    == add
+
+     -- *** TODO representation should really be inherited from FiniteLattice
+     --Rep := NNI
+
+--     finiteFrame(index:NNI) == [[[["T"::Symbol]]]]
+
+--     finiteFrame(obj:S) == [[[["T"::Symbol]]]]
+
+     -- returns the logical 'meet' of some subset specified
+     -- by a list of elements.
+--     meet(elements:List(%)):% ==
+--       e:List(NNI) := [(x pretend NNI) for x in elements]
+--       meet(p,e)$FinitePoset(S)
+
+     -- returns the logical 'join' of some subset specified
+     -- by a list of elements.
+--     join(elements:List(%)):% ==
+--       e:List(NNI) := [(x pretend NNI) for x in elements]
+--       join(p,e)$FinitePoset(S)
+
+)if false
 \section{Example Structures}
 \subsection{BitStreamFrame}
 BitStreams are potentially infinite in length. The elements of this domain are finite
@@ -3168,7 +3287,7 @@ streams are not equal but we cannot determine if they are equal. So if two strea
 it does not follow that they are equal.
 
 We cannot determine if they are equal because, however many terms of two streams that start with 
-the same values  we have, they might be still be extended with different values. We can never check
+the same values, they might be still be extended with different values. We can never check
 the complete bitstream because we cannot hold an infinite structure in a finite computer.
 )endif
 
