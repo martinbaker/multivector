@@ -208,7 +208,7 @@ Poset(S) : Category == Definition where
           padding:Union(NNI,"failed") := subtractIfCan(dim,width)
           if padding ~= "failed" then
             diff:NNI := padding::NNI
-            --sayMsg concat("addObject diff=",string(diff))$String
+            --print hconcat([("addObject diff=",string(diff))$String)])
             for x in 1..diff repeat
               a := concat(a,false)
           if empty?(arrows)
@@ -262,7 +262,7 @@ Poset(S) : Category == Definition where
           padding:Union(NNI,"failed") := subtractIfCan(dim,width)
           if padding ~= "failed" then
             diff:NNI := padding::NNI
-            --sayMsg concat("addObject! diff=",string(diff))$String
+            --print hconcat([("addObject! diff=",string(diff))$String
             for x in 1..diff repeat
               a := concat(a,false)
           if empty?(arrows)
@@ -649,9 +649,9 @@ Poset(S) : Category == Definition where
           if x then candidatesb:= concat(candidatesb,index)
           index := index +1
         res := setIntersection(candidatesa,candidatesb)
-        --sayMsg concat("join candidatesa=",listToString(candidatesa))$String
-        --sayMsg concat("join candidatesb=",listToString(candidatesb))$String
-        --sayMsg concat("join res=",listToString(res))$String
+        --print hconcat([("join candidatesa=",listToString(candidatesa)$String),
+        --"join candidatesb=",listToString(candidatesb)$String,
+        --"join res=",listToString(res)$String)])
         lub(s,res)
 
 
@@ -670,8 +670,8 @@ Poset(S) : Category == Definition where
             if x then candidates:= concat(candidates,index)
             index := index +1
         res := setIntersection(res,candidates)
-        --sayMsg concat("join candidates=",listToString(candidates))$String
-        --sayMsg concat("join res=",listToString(res))$String
+        --print hconcat([("join candidates=",listToString(candidates)$String,
+        --"join res=",listToString(res)$String)])
         lub(s,res)
 
       -- returns the join of a subset of lattice given by list of elements
@@ -697,17 +697,17 @@ Poset(S) : Category == Definition where
         if empty?(a) then return 0::NNI
         if #a=1 then return first(a)
         resultList:List(NNI) := copy(a)
-        --sayMsg concat("lub res=",listToString(resultList))$String
+        --print hconcat([("lub res=",listToString(resultList)$String)])
         for x in a repeat
-          --sayMsg concat("glb x=",string(x))$String
+          --print hconcat([("glb x=",string(x)$String)])
           for y in a repeat
-            --sayMsg concat("glb y=",string(y))$String
+            --print hconcat([("glb y=",string(y)$String)])
             if implies(s,x,y) then
               if x ~= y then
                 if entry?(x,resultList) then
-                  --sayMsg concat("glb removing:",string(y))$String
+                  --print hconcat([("glb removing:",string(y)$String)])
                   resultList := remove(y,resultList)
-                  --sayMsg concat("glb res=",listToString(resultList))$String
+                  --print hconcat([("glb res=",listToString(resultList)$String)])
         if #resultList ~= 1 then return 0::NNI
         first(resultList)
 
@@ -720,21 +720,21 @@ Poset(S) : Category == Definition where
         if #a=1 then return first(a)
         resultList:List(NNI) := copy(a)
         for x in a repeat
-          --sayMsg concat("lub x=",string(x))$String
+          --print hconcat([("lub x=",string(x))])
           for y in a repeat
-            --sayMsg concat("lub y=",string(y))$String
+            --print hconcat([("lub y=",string(y))])
             if implies(s,x,y) then
               if x ~= y then
                 if entry?(y,resultList) then
-                  --sayMsg concat("lub removing:",string(x))$String
+                  --print hconcat([("lub removing:",string(x))])
                   resultList := remove(x,resultList)
-                  --sayMsg concat("lub res=",listToString(resultList))$String
+                  --print hconcat([("lub res=",listToString(resultList))])
         if  #resultList ~= 1 then return 0::NNI
         first(resultList)
 
       -- returns the object at a given index
       indexToObject(s : %,index:NNI):S ==
-        --sayMsg concat("indexToObject",string(index))$String
+        --print hconcat([("indexToObject",string(index))])
         qelt(getVert(s),index)
 
       -- returns the index of a given object
@@ -855,15 +855,313 @@ FinitePoset(S) : Exports == Impl where
     Exports ==> Poset(S) with
      finitePoset : (set1:List S,struct1:List List Boolean) -> %
       ++ constructor where the set and structure is supplied
-     meet:(s : %,a:NNI,b:NNI) -> NNI
-      ++ returns the meet of 'a' and 'b'
-      ++ In this version of meet nodes are represented as index values.
-      ++ Not every poset will have a meet but CoCPO will.
-     
+
+    Impl ==> add
+
+      -- This holds a complete set together with a structure to codify
+      -- the partial order. The elements are put in a list so they
+      -- can be enumerated and linked to the structure.
+      -- The structure is a two dimensional array to determine
+      -- is each element is connected to each other element.
+      Rep := Record(set1:List S,struct1:List List Boolean)
+
+      -- constructor where the set and structure is supplied
+      finitePoset(set1:List S,struct1:List List Boolean) : % ==
+        [set1,struct1]
+
+      -- returns a list of all the vertices (or objects)
+      getVert(s : %) : List S ==
+        s.set1
+
+      -- returns a list of all the arrows (or edges)
+      getArr(s : %) : List List Boolean ==
+        s.struct1
+
+      -- sets the list of all vertices (or objects)
+      setVert(s : %,v:List S) : Void ==
+        s.set1 := v
+        void
+
+      -- sets the list of all arrows (or edges)
+      setArr(s : %,v:List List Boolean) : Void ==
+        s.struct1 := v
+        void
+
+      -- local function to display a list
+      listToString(a:List NNI):String ==
+        res :String := "["
+        for x in a repeat
+          res := concat(res,string(x))
+          res := concat(res,",")
+        concat(res,"]")
+
+
+)if false
+\section{Complete Partial Order}
+Complete partial orders are partial orders which are garanteed to have meets
+and/or joins depending on type of CPO. The terminoligy around this is not always
+consistant so I will use the following terminology.
+
+A DCPO, or directed-complete partial order, is a poset where joins (or supremum or
+least upper bound) are defined. That is join is a complete or closed function, not a
+partial function.
+Often a DCPO is required to have a bottom element; then it is called a pointed
+DCPO or a CPO.
+)endif
+
+)abbrev category DCPO Dcpo
+++ Author: Martin Baker
+++ Description: directed-complete partial order, partial order that is garanteed
+++              to have a join of any two elements.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+++ Date Created: Oct 2015
+++ Date Last Updated: Oct 2015
+Dcpo(S) : Category == Definition where 
+ S : SetCategory
+ NNI==> NonNegativeInteger
+ Definition ==> Poset(S) with
      join:(s : %,a:NNI,b:NNI) -> NNI
       ++ returns the join of 'a' and 'b'
       ++ In this version of join nodes are represented as index values.
-      ++ Not every poset will have a join but CPO will.
+      ++ Not every poset will have a join but DCPO will.
+
+)abbrev domain FDCPO FiniteDcpo
+++ Author: Martin Baker
+++ Description: holds a complete set together with a structure to codify
+++   the partial order.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: 
+++ Related packages: UserDefinedPartialOrdering in setorder.spad
+++ Related categories: PartialOrder in catdef.spad
+++ Related Domains: DirectedGraph in graph.spad
+++ Also See:
+++ AMS Classifications:
+++ Keywords: poset partial order
+++ Examples: power set structure
+++ References:
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: antisymmetry forall(x,y): x<=y and y<=x iff x=y
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+
+FiniteDcpo(S) : Exports == Impl where
+    S : SetCategory
+    PI ==> PositiveInteger
+    NNI==> NonNegativeInteger
+    SINT==> SingleInteger
+    OBJT ==> Record(value : S, posX : NNI, posY : NNI)
+    ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+
+    Exports ==> Dcpo(S) with
+     finitePoset : (set1:List S,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is supplied
+
+    Impl ==> add
+
+      -- This holds a complete set together with a structure to codify
+      -- the partial order. The elements are put in a list so they
+      -- can be enumerated and linked to the structure.
+      -- The structure is a two dimensional array to determine
+      -- is each element is connected to each other element.
+      Rep := Record(set1:List S,struct1:List List Boolean)
+
+      -- constructor where the set and structure is supplied
+      finitePoset(set1:List S,struct1:List List Boolean) : % ==
+        [set1,struct1]
+
+      -- returns a list of all the vertices (or objects)
+      getVert(s : %) : List S ==
+        s.set1
+
+      -- returns a list of all the arrows (or edges)
+      getArr(s : %) : List List Boolean ==
+        s.struct1
+
+      -- sets the list of all vertices (or objects)
+      setVert(s : %,v:List S) : Void ==
+        s.set1 := v
+        void
+
+      -- sets the list of all arrows (or edges)
+      setArr(s : %,v:List List Boolean) : Void ==
+        s.struct1 := v
+        void
+
+      -- local function to display a list
+      listToString(a:List NNI):String ==
+        res :String := "["
+        for x in a repeat
+          res := concat(res,string(x))
+          res := concat(res,",")
+        concat(res,"]")
+
+      -- returns the join of 'a' and 'b'
+      -- In this version of join nodes are represented as index values.
+      join(s : %,a:NNI,b:NNI): NNI ==
+        res:Union(NNI,"failed") := joinIfCan(s,a,b)
+        if res = "failed" then error "This POSET does not have join"
+        res::NNI
+
+)if false
+Here we will call the dual notion of a directed complete poset a Co-DCPO alternativly
+it is sometimes called a filtered complete partial order.
+)endif
+
+)abbrev category CODCPO CoDcpo
+++ Author: Martin Baker
+++ Description: directed-complete Order, partial order that is garanteed to have
+++              a meet of any two elements.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+++ Date Created: Oct 2015
+++ Date Last Updated: Oct 2015
+CoDcpo(S) : Category == Definition where 
+ S : SetCategory
+ NNI==> NonNegativeInteger
+ Definition ==> Poset(S) with
+     meet:(s : %,a:NNI,b:NNI) -> NNI
+      ++ returns the meet of 'a' and 'b'
+      ++ In this version of meet nodes are represented as index values.
+      ++ Not every poset will have a meet but CoDCPO will.
+
+)abbrev domain FCDCPO FiniteCoDcpo
+++ Author: Martin Baker
+++ Description: holds a complete set together with a structure to codify
+++   the partial order.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: 
+++ Related packages: UserDefinedPartialOrdering in setorder.spad
+++ Related categories: PartialOrder in catdef.spad
+++ Related Domains: DirectedGraph in graph.spad
+++ Also See:
+++ AMS Classifications:
+++ Keywords: poset partial order
+++ Examples: power set structure
+++ References:
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: antisymmetry forall(x,y): x<=y and y<=x iff x=y
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+
+FiniteCoDcpo(S) : Exports == Impl where
+    S : SetCategory
+    PI ==> PositiveInteger
+    NNI==> NonNegativeInteger
+    SINT==> SingleInteger
+    OBJT ==> Record(value : S, posX : NNI, posY : NNI)
+    ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+
+    Exports ==> CoDcpo(S) with
+     finitePoset : (set1:List S,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is supplied
+
+    Impl ==> add
+
+      -- This holds a complete set together with a structure to codify
+      -- the partial order. The elements are put in a list so they
+      -- can be enumerated and linked to the structure.
+      -- The structure is a two dimensional array to determine
+      -- is each element is connected to each other element.
+      Rep := Record(set1:List S,struct1:List List Boolean)
+
+      -- constructor where the set and structure is supplied
+      finitePoset(set1:List S,struct1:List List Boolean) : % ==
+        [set1,struct1]
+
+      -- returns a list of all the vertices (or objects)
+      getVert(s : %) : List S ==
+        s.set1
+
+      -- returns a list of all the arrows (or edges)
+      getArr(s : %) : List List Boolean ==
+        s.struct1
+
+      -- sets the list of all vertices (or objects)
+      setVert(s : %,v:List S) : Void ==
+        s.set1 := v
+        void
+
+      -- sets the list of all arrows (or edges)
+      setArr(s : %,v:List List Boolean) : Void ==
+        s.struct1 := v
+        void
+
+      -- local function to display a list
+      listToString(a:List NNI):String ==
+        res :String := "["
+        for x in a repeat
+          res := concat(res,string(x))
+          res := concat(res,",")
+        concat(res,"]")
+
+      -- returns the meet of 'a' and 'b'
+      -- In this version of meet nodes are represented as index values.
+      meet(s : %,a:NNI,b:NNI): NNI ==
+        res:Union(NNI,"failed") := meetIfCan(s,a,b)
+        if res = "failed" then error "This POSET does not have meet"
+        res::NNI
+
+)if false
+BiCPO is Join of Dcpo and CoDcpo, that is, it is both joins and meets are gauranteed
+to exist.
+)endif
+
+)abbrev category BICPO BiCPO
+++ Author: Martin Baker
+++ Description: Complete partial Order, partial order that is garanteed to have
+++              both a join and a meet of any two elements.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+++ Date Created: Oct 2015
+++ Date Last Updated: Oct 2015
+BiCPO(S: SetCategory): Category == Join(Dcpo(S),CoDcpo(S))
+
+)abbrev domain FBICPO FiniteBiCPO
+++ Author: Martin Baker
+++ Description: holds a complete set together with a structure to codify
+++   the partial order.
+++   for more documatation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Date Created: Aug 2015
+++ Date Last Updated: Aug 2015
+++ Basic Operations: 
+++ Related packages: UserDefinedPartialOrdering in setorder.spad
+++ Related categories: PartialOrder in catdef.spad
+++ Related Domains: DirectedGraph in graph.spad
+++ Also See:
+++ AMS Classifications:
+++ Keywords: poset partial order
+++ Examples: power set structure
+++ References:
+++ Axiom: reflexivity forall(x): x<=x
+++ Axiom: antisymmetry forall(x,y): x<=y and y<=x iff x=y
+++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
+
+FiniteBiCPO(S) : Exports == Impl where
+    S : SetCategory
+    PI ==> PositiveInteger
+    NNI==> NonNegativeInteger
+    SINT==> SingleInteger
+    OBJT ==> Record(value : S, posX : NNI, posY : NNI)
+    ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+
+    Exports ==> BiCPO(S) with
+     finitePoset : (set1:List S,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is supplied
 
     Impl ==> add
 
@@ -919,7 +1217,8 @@ FinitePoset(S) : Exports == Impl where
         res::NNI
 
 )if false
-End of POSET structures and start of Lattice structures
+\section{Lattice Structures}
+End of POSET structures and start of lattice structures
 )endif
 
 )abbrev category MEETLAT MeetSemilattice
@@ -1114,7 +1413,7 @@ The REP is NNI since this is used as an index into the poset nodes
 ++    REP holds a single node wheras in poset REP holds the whole poset.
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-FiniteLattice(S:SetCategory,p:FinitePoset(S)) : Exports == Impl where
+FiniteLattice(S:SetCategory,p:FiniteBiCPO(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
      finiteLattice : (index:NNI) -> %
@@ -1133,15 +1432,15 @@ FiniteLattice(S:SetCategory,p:FinitePoset(S)) : Exports == Impl where
 
       -- construct finite lattice element from object
       finiteLattice(obj:S) : % ==
-        objectToIndex(p,obj)$FinitePoset(S)
+        objectToIndex(p,obj)$FiniteBiCPO(S)
 
       -- returns the logical 'meet', e.g. 'and'.
       _/_\(a:%,b:%) : % ==
-        meet(p,a pretend NNI,b pretend NNI)$FinitePoset(S)
+        meet(p,a pretend NNI,b pretend NNI)$FiniteBiCPO(S)
 
       -- returns the logical 'join', e.g. 'or'.
       _\_/(a:%,b:%) : % ==
-        join(p,a pretend NNI,b pretend NNI)$FinitePoset(S)
+        join(p,a pretend NNI,b pretend NNI)$FiniteBiCPO(S)
 
       -- start of SetCategory definitions --
 
@@ -2091,7 +2390,7 @@ ILogic() : Exports == Implementation where
       error "expecting /\"
       return [trm, p1]
     p1 := p1 + (1::NNI)
-    --sayMsg concat("st ch=",ch::String)
+    --print hconcat([("st ch=",ch::String)
     r : PR := parseILTerm(t1, p1)
     secondTerm := r.rft
     p1 := r.pout
@@ -2114,7 +2413,7 @@ ILogic() : Exports == Implementation where
       error "expecting \/"
       return [trm, p1]
     p1 := p1 + (1::NNI)
-    --sayMsg concat("st ch=",ch::String)
+    --print hconcat([("st ch=",ch::String)
     r : PR := parseILTerm(t1, p1)
     secondTerm := r.rft
     p1 := r.pout
@@ -2137,7 +2436,7 @@ ILogic() : Exports == Implementation where
       error "expecting ->"
       return [trm, p1]
     p1 := p1 + (1::NNI)
-    --sayMsg concat("st ch=",ch::String)
+    --print hconcat([("st ch=",ch::String)
     r : PR := parseILTerm(t1, p1)
     secondTerm := r.rft
     p1 := r.pout
@@ -2149,7 +2448,7 @@ ILogic() : Exports == Implementation where
     vnm:String := ""
     pt : NNI := pin
     ch := qelt(t1, pt)
-    --sayMsg concat("st ch=",ch::String)
+    --print hconcat([("st ch=",ch::String)
     while alphanumeric?(ch) repeat
       vnm := concat(vnm, ch)
       pt := pt + (1::NNI)
@@ -2162,12 +2461,12 @@ ILogic() : Exports == Implementation where
     p1 := pin
     res : % := logicT()
     ch := qelt(t1, p1)
-    --sayMsg concat(["parseTerm ch=",ch::String," p1=",string(p1)])$String
+    --print hconcat([(["parseTerm ch=",ch::String," p1=",string(p1)])$String
     -- first remove leading spaces
     while ch = char(" ") repeat
       p1 := p1 + (1::NNI)
       if p1 > maxIndex(t1) then
-        --sayMsg concat(["parseTerm(",t1,") 1 giving:",toString(res)])
+        --print hconcat([(["parseTerm(",t1,") 1 giving:",toString(res)])
         return [res, p1]
       ch := qelt(t1, p1)
     r : PR := [res, p1]
@@ -2177,13 +2476,13 @@ ILogic() : Exports == Implementation where
     p1 := r.pout
     -- now check for compound term
     if p1 > maxIndex(t1) then
-      --sayMsg concat(["parseTerm(",t1,") 2 giving:",toString(res)])
+      --print hconcat([(["parseTerm(",t1,") 2 giving:",toString(res)])
       return [res, p1]
     ch := qelt(t1, p1)
     if ch = char(" ") then
       p1 := p1 + (1::NNI)
       if p1 > maxIndex(t1) then
-        --sayMsg concat(["parseTerm(",t1,") 3 giving:",toString(res)])
+        --print hconcat([(["parseTerm(",t1,") 3 giving:",toString(res)])
         return [res, p1]
     ch := qelt(t1, p1)
     if ch = char("/") then
@@ -2208,12 +2507,12 @@ ILogic() : Exports == Implementation where
     p1 := pin
     res : % := logicT()
     ch := qelt(t1, p1)
-    --sayMsg concat(["parseIL ch=",ch::String," p1=",string(p1)])$String
+    --print hconcat([(["parseIL ch=",ch::String," p1=",string(p1)])$String
     -- first remove leading spaces
     while ch = char(" ") repeat
       p1 := p1 + (1::NNI)
       if p1 > maxIndex(t1) then
-        --sayMsg concat(["parseTerm(",t1,") 1 giving:",toString(res)])
+        --print hconcat([(["parseTerm(",t1,") 1 giving:",toString(res)])
         return [res, p1]
       ch := qelt(t1, p1)
     r : PR := [res, p1]
@@ -2229,7 +2528,7 @@ ILogic() : Exports == Implementation where
   --            <term>-><term> | "("<term>")"
   parseIL(t1 : String) : % ==
     r := parseILTerm(t1, minIndex(t1)::NNI)
-    --sayMsg concat(["parseIL(",t1,") giving:",toString(tm)])
+    --print hconcat([(["parseIL(",t1,") giving:",toString(tm)])
     r.rft
 
   -- return string representation
@@ -2240,8 +2539,7 @@ ILogic() : Exports == Implementation where
       return "?"
     if n case var then
       return n.var.str
-      --sayMsg concat(["toString case i1=",s])
-      --sayMsg n
+      --print hconcat([(["toString case i1=",s,n])
     if n case binaryOp then
       -- binary node which has two subnodes c1 and c2
       s1:String := "->"
@@ -2262,8 +2560,7 @@ ILogic() : Exports == Implementation where
       return "?"
     if n case var then
       return n.var.str
-      --sayMsg concat(["toString case i1=",s])
-      --sayMsg n
+      --print hconcat([(["toString case i1=",s,n])
     if n case binaryOp then
       -- binary node which has two subnodes c1 and c2
       s1:String := "->"
