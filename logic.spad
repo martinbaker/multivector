@@ -10,24 +10,76 @@
 In this pamphlet are partial order, lattice structures and logic operations based on
 them. Logic operations based on lattice structures
 Finite lattices may be based on a poset (partial order)
-so see 'UserDefinedPartialOrdering' package in setorder.spad
-I have put a fuller explanation of this code here:
-http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
-\end{abstract}
 
+I have put a fuller explanation of this code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm}
+\end{abstract}
+\section{Related Code}
+See Package 'UserDefinedPartialOrdering' in setorder.spad
+See Domain: 'PartialOrder' in catdef.spad
+\section{Introduction}
 I am using Steven Vickers book [ref 1] as a reference.
 
 There are a common set of lattice-like structures that occur in various branches
 of mathematics such as orders, logic and sets. I would like to represent these
 structures in FriCAS.
 
-\section{Introduction}
+\begin{table}[]
+\label{Poset and Lattice Structures}
+\begin{tabular}{lll}
+Order & Logic & Set\\
+T (top) & true & universe\\
+_|_ (bottom) & false & empty\\
+greatest lower bound & meet & intersection \\
+least upper bound & join & union
+\end{tabular}
+\end{table}
+\section{Poset Code}
+
 What I have done so far seems to be applicable to finite lattices but a lot of my
 interest in this subject would be infinite structures. Especially structures
 from Topology such as a 'frame' which is a complete lattice with infinite meets.
 I am also interested in structures from computer science such as domain theory.
 
-My strategy so far is to have two sorts of domains:
+\section{Posets and Lattices}
+
+A Partially Ordered Set (POSET) is a structure with an operator '<=' with a binary
+output:
+<=(a:%,b:%) -> Boolean
+
+This structure has the following axioms:
+\begin{itemize}
+\item reflexivity \forall(x): x<=x
+\item antisymmetry \forall(x,y): x<=y and y<=x iff x=y
+\item transitivity \forall(x,y,z): x<=y and y<=z implies x<=z
+\end{itemize}
+
+A lattice is the same structure (every lattice is a poset, not every poset is a
+lattice) but it is an algebra (in the universal algebra sense) which has binary
+operations:
+\begin{itemize}
+\item x \vee y
+\item x \wedge y
+\end{itemize}
+Which obey the following axioms:
+
+\begin{table}[]
+\label{Lattice Axioms}
+\begin{tabular}{lll}
+commutativity \forall(x,y): & x \vee y=y \vee x & x \wedge y=y \wedge x\\
+associativity \forall(x,y,z): & (x \vee y) \vee z=y \vee (x \vee z) &
+(x \wedge y) \wedge z=y \wedge (x \wedge z)\\
+idempotence \forall x: & x \vee x=x & x \wedge x=x\\
+\end{tabular}
+\end{table}
+
+Both of these forms could probably be crunched together in the same FriCAS
+category/domain. The approved Axiom/FriCAS style seems to be to include as
+many functions as possible in categories/domains rather than separating them
+out.
+
+However we need to use these structures differently so my strategy so far is
+to have two sorts of domains:
 \begin{itemize}
 \item posets - here the representation is the whole structure.
 \item lattices - here the representation is an element of the structure.
@@ -39,28 +91,49 @@ Rep := Record(set:List S,struct:List List Boolean)
 \end{verbatim}
 
 The lattice is an algebraicizing of this. The lattice constructor would take the poset
-as a parameter.
+as a parameter. So corresponding poset and lattice categories are shown in the following table:
+
+\begin{table}[]
+\label{Poset and Lattice Structures}
+\begin{tabular}{ll}
+Poset Categories & Lattice Categories\\
+Poset &                \\
+Dcpo & JoinSemilattice\\
+CoDcpo & MeetSemilattice\\
+BiCPO & Lattice    
+\end{tabular}
+\end{table}
 \section{Poset Code}
+As already described, the representation in the following categories contains
+the whole order and not just one element (unlike PartialOrder in catdef.spad).
 )endif
 
 )abbrev category PREORD Preorder
 ++ Author: Martin Baker
 ++ Description: implies operation with reflexivity and transitivity
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ Related Domains: PartialOrder in catdef.spad
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
-NNI==> NonNegativeInteger
-Preorder: Category == SetCategory with
-    implies:(s : %,NNI, NNI) -> Boolean
+++ Date Last Updated: Oct 2015
+Preorder(S) : Category == Definition where 
+ S : SetCategory
+ NNI==> NonNegativeInteger
+ Definition ==> FiniteGraph(S) with
+    le:(s : %,NNI, NNI) -> Boolean
+      ++ less than or equal
+      ++ I would have liked to have used: "<=" instead of "le"
+      ++ "<=" compiles alright but when called gives:
+      ++ Internal Error: The function <= with signature hashcode is
+      ++ missing from domain
 
 )abbrev category POSET Poset
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
@@ -85,13 +158,13 @@ Poset(S) : Category == Definition where
  ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
            toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
 
- Definition ==> FiniteGraph(S) with
+ Definition ==> Preorder(S) with
    -- TODO check: not sure if it is valid/useful to inherit from FiniteGraph as it
    -- has different representation.
 
      finitePoset : (set1:List S,struct1:List List Boolean) -> %
       ++ constructor where the set and structure is supplied
-      ++ NOTE: does it make sense to include contructor in category?
+      ++ NOTE: does it make sense to include constructor in category?
       ++ because all implementing domains will have to use the same constructor.
       
      getVert : (s : %) -> List S
@@ -176,7 +249,7 @@ Poset(S) : Category == Definition where
 
      completeReflexivity:(s:%) -> %
       ++ Reflexivity requires forall(x): x<=x
-      ++ This function inforces this by making sure that every element has
+      ++ This function enforces this by making sure that every element has
       ++ arrow to itself. That is, the leading diagonal is true.
 
      completeTransitivity:(s:%) -> %
@@ -238,6 +311,8 @@ Poset(S) : Category == Definition where
             return val
           row=row+1
         false
+
+      le(s : %,a:NNI,b:NNI):Boolean == isArrow?(getArr(s),a,b)
 
       -- local function to set a single value in the arrow matrix
       setArrow!(arr:List(List(Boolean)),a:NNI,b:NNI,c:Boolean):Void ==
@@ -826,7 +901,7 @@ Poset(S) : Category == Definition where
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
@@ -887,33 +962,36 @@ FinitePoset(S) : Exports == Impl where
         s.struct1 := v
         void
 
-      -- local function to display a list
-      listToString(a:List NNI):String ==
-        res :String := "["
-        for x in a repeat
-          res := concat(res,string(x))
-          res := concat(res,",")
-        concat(res,"]")
-
-
 )if false
 \section{Complete Partial Order}
-Complete partial orders are partial orders which are garanteed to have meets
-and/or joins depending on type of CPO. The terminoligy around this is not always
-consistant so I will use the following terminology.
+Complete partial orders are partial orders which are guaranteed to have meets
+and/or joins depending on type of CPO. The terminology around this is not always
+consistent so I will use the following terminology.
 
 A DCPO, or directed-complete partial order, is a poset where joins (or supremum or
 least upper bound) are defined. That is join is a complete or closed function, not a
 partial function.
 Often a DCPO is required to have a bottom element; then it is called a pointed
 DCPO or a CPO.
+
+Finite DCPOs are pointed DCPOs, we can get the bottom element just by taking the
+join of all the elements, this is not true of infinite DCPOs.
+
+As an example consider the integers, any finite set of integers has a minimum
+element but the set of all integers does not (minus infinity is not an integer).
+
+Another example, more applicable to topology, is subsets of line segments.
+
+The examples below only model finite DCPOs. TODO: I want to model infinite DCPOs,
+we obvously cant do this by using a list of all the elements (as below). We need
+to define the elements, and their order, recursively.
 )endif
 
 )abbrev category DCPO Dcpo
 ++ Author: Martin Baker
 ++ Description: directed-complete partial order, partial order that is garanteed
 ++              to have a join of any two elements.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
@@ -932,7 +1010,7 @@ Dcpo(S) : Category == Definition where
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
@@ -1017,7 +1095,7 @@ it is sometimes called a filtered complete partial order.
 ++ Author: Martin Baker
 ++ Description: directed-complete Order, partial order that is garanteed to have
 ++              a meet of any two elements.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
@@ -1036,7 +1114,7 @@ CoDcpo(S) : Category == Definition where
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
@@ -1121,7 +1199,7 @@ to exist.
 ++ Author: Martin Baker
 ++ Description: Complete partial Order, partial order that is garanteed to have
 ++              both a join and a meet of any two elements.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
@@ -1133,7 +1211,7 @@ BiCPO(S: SetCategory): Category == Join(Dcpo(S),CoDcpo(S))
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
 ++   the partial order.
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
@@ -1232,7 +1310,7 @@ End of POSET structures and start of lattice structures
 ++ Keywords: Meet
 ++ Description: meet semilattice
 ++   Implementations in set, logic and orders
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x/\y=y/\x
 ++ Axiom: associativity forall(x,y,z): (x/\y)/\z=y/\(x/\z)
@@ -1252,7 +1330,7 @@ MeetSemilattice: Category == SetCategory with
 ++ Keywords: Meet Top
 ++ Description: meet semilattice with top
 ++   Implementations in set, logic and orders
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: unit forall x: x/\ T=x
 BoundedMeetSemilattice: Category == MeetSemilattice with
@@ -1272,7 +1350,7 @@ BoundedMeetSemilattice: Category == MeetSemilattice with
 ++   Different from exterior Grassmann product operator as
 ++   that anticommutes.
 ++   need to check precidence when used as an infix operator
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x\/y=y\/x
 ++ Axiom: associativity forall(x,y,z): (x\/y)\/z=y\/(x\/z)
@@ -1294,7 +1372,7 @@ JoinSemilattice: Category == SetCategory with
 ++   Different from exterior Grassmann product operator as
 ++   that anticommutes.
 ++   need to check precidence when used as an infix operator
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: unit forall x: x \/ _|_=x
 BoundedJoinSemilattice: Category == JoinSemilattice with
@@ -1311,7 +1389,7 @@ BoundedJoinSemilattice: Category == JoinSemilattice with
 ++  the case for all finite lattices since we can do a meet and join of all values
 ++ Keywords: Meet Top Join Bottom
 ++ Description: lattice
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: absorptionMeetOverJoin forall(x,y): x/\(x\/y)=x
 ++ Axiom: absorptionJoinOverMeet forall(x,y): x\/(x/\y)=x
@@ -1327,7 +1405,7 @@ Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
 ++  the case for all finite lattices since we can do a meet and join of all values
 ++ Keywords: Meet Top Join Bottom
 ++ Description: lattice with top and bottom
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: absorptionMeetOverJoin forall(x,y): x/\(x\/y)=x
 ++ Axiom: absorptionJoinOverMeet forall(x,y): x\/(x/\y)=x
@@ -1344,7 +1422,7 @@ BoundedLattice: Category == Join(BoundedMeetSemilattice,BoundedJoinSemilattice)
 ++ Keywords: Meet Top Join Bottom
 ++ Description: not every lattice is distributive so treat this
 ++              as a seperate case
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
@@ -1361,7 +1439,7 @@ DistributiveLattice: Category == Lattice
 ++ Keywords: Meet Top Join Bottom
 ++ Description: not every lattice is distributive so treat this
 ++              as a seperate case
-++   for more documatation see:
+++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
 ++ Axiom: distribution2 forall(x,y,z): x\/(y/\z)=(x\/y)/\(x\/z)
@@ -1626,20 +1704,20 @@ PI ==> PositiveInteger
 NNI==> NonNegativeInteger
 
 PosetFactory(S : SetCategory) : with
-  powerset:(List S) -> FinitePoset(List(S))
+  powerset:(List S) -> FiniteBiCPO(List(S))
     ++ generate a poset representing all possible subsets of a
     ++ given set with their subset relationships.
-  completelyOrderedSet:(objs:List(S)) -> FinitePoset(S)
+  completelyOrderedSet:(objs:List(S)) -> FiniteBiCPO(S)
     ++ generates a completely ordered set
-  posetN5:(objs:List(S)) -> FinitePoset(S)
+  posetN5:(objs:List(S)) -> FiniteBiCPO(S)
     ++ generates a poset corresponding to an N5 lattice
-  posetM5:(objs:List(S)) -> FinitePoset(S)
+  posetM5:(objs:List(S)) -> FiniteBiCPO(S)
     ++ generates a poset corresponding to an M5 lattice
-  posetO6:(objs:List(S)) -> FinitePoset(S)
+  posetO6:(objs:List(S)) -> FiniteBiCPO(S)
     ++ generates a poset corresponding to an O6 lattice
-  posetP6:(objs:List(S)) -> FinitePoset(S)
+  posetP6:(objs:List(S)) -> FiniteBiCPO(S)
     ++ generates a poset corresponding to an P6 lattice
-  posetL7:(objs:List(S)) -> FinitePoset(S)
+  posetL7:(objs:List(S)) -> FiniteBiCPO(S)
     ++ generates a poset corresponding to an L7 lattice
 
  == add
@@ -1673,16 +1751,16 @@ PosetFactory(S : SetCategory) : with
 
   -- generate a poset representing all possible subsets of a
   -- given set with their subset relationships.
-  powerset(objs:List S):FinitePoset(List(S)) ==
+  powerset(objs:List S):FiniteBiCPO(List(S)) ==
     eles:List(List(S)) := [nil]
     arrows: List(List(Boolean)):=[[true]]
     for x in objs repeat
       eles := addDimensionToObjects(eles,x)
       arrows := addDimensionToArrows(arrows)
-    finitePoset(eles,arrows)$FinitePoset(List(S))
+    finitePoset(eles,arrows)$FiniteBiCPO(List(S))
 
   -- generates a completely ordered set
-  completelyOrderedSet(objs:List(S)):FinitePoset(S) ==
+  completelyOrderedSet(objs:List(S)):FiniteBiCPO(S) ==
     dim:NNI := #objs
     arrows:List(List(Boolean)) := [nil]
     for x in 1..dim repeat
@@ -1691,48 +1769,48 @@ PosetFactory(S : SetCategory) : with
         g:Boolean := if x >= y then true else false
         row := concat(row,g)
       arrows := concat(arrows,row)
-    finitePoset(objs,arrows)$FinitePoset(S)
+    finitePoset(objs,arrows)$FiniteBiCPO(S)
     
   -- generates a poset corresponding to an N5 lattice
-  posetN5(objs:List(S)):FinitePoset(S) ==
+  posetN5(objs:List(S)):FiniteBiCPO(S) ==
     finitePoset(objs,[[true,true,true,true,true],
     [false,true,false,false,true],
     [false,false,true,true,true],
     [false,false,false,true,true],
     [false,false,false,false,true]
-    ])$FinitePoset(S)
+    ])$FiniteBiCPO(S)
 
   -- generates a poset corresponding to an M5 lattice
-  posetM5(objs:List(S)):FinitePoset(S) ==
+  posetM5(objs:List(S)):FiniteBiCPO(S) ==
     finitePoset(objs,[[true,true,true,true,true],
     [false,true,false,false,true],
     [false,false,true,false,true],
     [false,false,false,true,true],
     [false,false,false,false,true]
-    ])$FinitePoset(S)
+    ])$FiniteBiCPO(S)
 
   -- generates a poset corresponding to an O6 lattice
-  posetO6(objs:List(S)):FinitePoset(S) ==
+  posetO6(objs:List(S)):FiniteBiCPO(S) ==
     finitePoset(objs,[[true,true,true,true,true,true],
     [false,true,true,false,false,true],
     [false,false,true,false,false,true],
     [false,false,false,true,true,true],
     [false,false,false,false,true,true],
     [false,false,false,false,false,true]
-    ])$FinitePoset(S)
+    ])$FiniteBiCPO(S)
 
   -- generates a poset corresponding to an P6 lattice
-  posetP6(objs:List(S)):FinitePoset(S) ==
+  posetP6(objs:List(S)):FiniteBiCPO(S) ==
     finitePoset(objs,[[true,true,true,true,true,true],
     [false,true,true,false,true,true],
     [false,false,true,false,false,true],
     [false,false,true,true,true,true],
     [false,false,false,false,true,true],
     [false,false,false,false,false,true]
-    ])$FinitePoset(S)
+    ])$FiniteBiCPO(S)
 
   -- generates a poset corresponding to an L7 lattice
-  posetL7(objs:List(S)):FinitePoset(S) ==
+  posetL7(objs:List(S)):FiniteBiCPO(S) ==
     finitePoset(objs,[[true,true,true,true,true,true,true],
     [false,true,false,true,true,false,true],
     [false,false,true,false,true,true,true],
@@ -1740,7 +1818,7 @@ PosetFactory(S : SetCategory) : with
     [false,false,false,false,true,false,true],
     [false,false,false,false,false,true,true],
     [false,false,false,false,false,false,true]
-    ])$FinitePoset(S)
+    ])$FiniteBiCPO(S)
 
 )if false
 \section{Infinite (unbounded) Littices}
@@ -3533,7 +3611,25 @@ this connective).
 not necessarily the case that ¬A is.
 \end{itemize}
 See [5]
+\subsection{Examples}
+For example consider the integers implemented by:
+\begin{itemize}
+\item zero() -> %
+\item increment(%) -> %
+\item decrement(%) -> %
+\end{itemize}
+This constructs a partial order. In this order both meet and join are gauranteed
+to exist (glb and lub) for any finite set of elements. However top and bottom
+don't exist (∞ and -∞ are not integers). in other words we can't take a meet
+or a join of an infinite set of elements.
 
+Another example might be a 'tree', this has a bottom element (root) and joins
+(including infinite) exist. but meets do not exist and the top element does
+not exist. 
+
+The general case of these examples are recursively defined types.
+
+The following intuitionistic logic code is a sort of 'free' lattice. 
 \subsection{Code}
 )endif
 
@@ -3743,11 +3839,11 @@ For more details see:
      theory. Although this is not used in the current code, it suggests
      a promising generalisation.
 [3] I have put a fuller explanation of this code here:
-http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+\url{http://http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm}
 [4] Waldeks initial comments
 https://groups.google.com/forum/?hl=en#!topic/fricas-devel/Cy-RHn_g6RY
 [5] Blog about semi-decidable logic
-http://xorshammer.com/2011/07/09/a-logical-interpretation-of-some-bits-of-topology/
+\url{http://http://xorshammer.com/2011/07/09/a-logical-interpretation-of-some-bits-of-topology/}
 \end{thebibliography}
 \end{document}
 )endif
