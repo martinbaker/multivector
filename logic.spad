@@ -100,7 +100,7 @@ Poset Categories & Lattice Categories\\
 Poset &                \\
 Dcpo & JoinSemilattice\\
 CoDcpo & MeetSemilattice\\
-BiCPO & Lattice    
+BiCPO & Lattice
 \end{tabular}
 \end{table}
 \section{Poset Code}
@@ -118,14 +118,14 @@ the whole order and not just one element (unlike PartialOrder in catdef.spad).
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Oct 2015
-Preorder(S) : Category == Definition where 
+Preorder(S) : Category == Definition where
  S : SetCategory
  NNI==> NonNegativeInteger
  Definition ==> FiniteGraph(S) with
     le:(s : %,NNI, NNI) -> Boolean
       ++ less than or equal
       ++ I would have liked to have used: "<=" instead of "le"
-      ++ "<=" compiles alright but when called gives:
+      ++ "<=" compiles but when called gives:
       ++ Internal Error: The function <= with signature hashcode is
       ++ missing from domain
 
@@ -137,7 +137,7 @@ Preorder(S) : Category == Definition where
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-++ Basic Operations: 
+++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
 ++ Related Domains: DirectedGraph in graph.spad
@@ -149,7 +149,7 @@ Preorder(S) : Category == Definition where
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: antisymmetry forall(x,y): x<=y and y<=x iff x=y
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
-Poset(S) : Category == Definition where 
+Poset(S) : Category == Definition where
  S : SetCategory
  PI ==> PositiveInteger
  NNI==> NonNegativeInteger
@@ -159,14 +159,12 @@ Poset(S) : Category == Definition where
            toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
 
  Definition ==> Preorder(S) with
-   -- TODO check: not sure if it is valid/useful to inherit from FiniteGraph as it
-   -- has different representation.
 
      finitePoset : (set1:List S,struct1:List List Boolean) -> %
       ++ constructor where the set and structure is supplied
       ++ NOTE: does it make sense to include constructor in category?
       ++ because all implementing domains will have to use the same constructor.
-      
+
      getVert : (s : %) -> List S
       ++ getVert(s) returns a list of all the vertices (or objects)
       ++ of the graph s.
@@ -234,7 +232,7 @@ Poset(S) : Category == Definition where
       ++ In this version of lub nodes are represented as index values.
       ++ Not every subset of a poset will have a lub in which case
       ++ "failed" will be returned as an error indication.
-      
+
      upperSet:(s:%) -> %
       ++ a subset U with the property that, if x is in U and x<=y, then y is in U
 
@@ -393,7 +391,7 @@ Poset(S) : Category == Definition where
       -- this here so return an empty poset.
       flatten(n : DirectedGraph(%)):% ==
         finitePoset([],[nil()$List(Boolean)])
-   
+
       -- initial constructs a graph without vertices or edges
       initial():% ==
         finitePoset([],nil()$List(List(Boolean)))
@@ -461,7 +459,7 @@ Poset(S) : Category == Definition where
       isGreaterThan?(s : %, a : NNI, b : NNI):Boolean ==
         row : List Boolean := qelt(getArr(s),a)
         qelt(row,b)
-   
+
       -- max(s) returns index of the vertex which can be reached
       -- from all other vertices. Gives 0 if no such node exists
       -- or if it is not unique, if there is a loop for instance.
@@ -474,7 +472,7 @@ Poset(S) : Category == Definition where
         res:Union(NNI,"failed") := meetIfCan(s,arr)
         if res = "failed" then return 0::NNI
         res::NNI
-   
+
       -- max(s, sub) returns index of the vertex which
       -- can be reached from a given subset of the vertices. Gives
       -- 0 if no such node exists or if it is not unique, if there
@@ -483,7 +481,7 @@ Poset(S) : Category == Definition where
         res:Union(NNI,"failed") := meetIfCan(s,sub)
         if res = "failed" then return 0::NNI
         res::NNI
-    
+
       -- min(s) returns index of the vertex which can reach to all
       -- other vertices. Gives 0 if no such node exists or if it is
       -- not unique, if there is a loop for instance.
@@ -496,7 +494,7 @@ Poset(S) : Category == Definition where
         res:Union(NNI,"failed") := joinIfCan(s,arr)
         if res = "failed" then return 0::NNI
         res::NNI
-  
+
       -- min(s, sub) returns index of the vertex which can reach
       -- to a given subset of the vertices. Gives 0 if no such node
       -- exists or if it is not unique, if there is a loop for instance.
@@ -504,19 +502,19 @@ Poset(S) : Category == Definition where
         res:Union(NNI,"failed") := joinIfCan(s,sub)
         if res = "failed" then return 0::NNI
         res::NNI
-   
+
       -- isFixPoint?(s, a) is
       -- true if 'a' has an arrow to itself
       -- should always be true due to reflexivity law
       isFixPoint?(s : %, a : NNI):Boolean ==
         true
-   
+
       -- arrowName(s, a, b) retrieves
       -- the name of arrow a->b
       -- if it does not exist then return "?"
       arrowName(s : %, a : NNI, b : NNI):String ==
         "?"
-   
+
       -- getArrowIndex(s, a, b) retrieves
       -- arrow index of the arrow form a to b
       getArrowIndex(s : %, a : NNI, b : NNI):NNI ==
@@ -526,18 +524,18 @@ Poset(S) : Category == Definition where
       -- 'a' in graph 's'
       inDegree(s : %, a : NNI):NNI ==
         0::NNI
-   
+
       -- outDegree(s, a) gives
       -- the number of arrows leading out of node 'a' in graph 's'
       outDegree(s : %, a : NNI):NNI ==
         0::NNI
-   
+
       -- nodeFromNode(s, a) gives list
       -- of all nodes with a direct arrow leading
       -- in to node 'a' in graph 's'
       nodeFromNode(s : %, a : NNI):List NNI ==
         [0::NNI]
-   
+
       -- nodeToNode(s, a) gives list of all nodes with a direct arrow leading
       -- out of node 'a' in graph 's'
       nodeToNode(s : %, a : NNI):List NNI ==
@@ -550,12 +548,12 @@ Poset(S) : Category == Definition where
       -- arrowsToNode(s, a) gives list of all arrows leading from a given node
       arrowsToNode(s : %, a : NNI):List NNI ==
         [0::NNI]
-   
+
       -- nodeFromArrow(s, a) returns index of all nodes with a direct
       -- arrow leading in to arrow 'a' in graph 's'
       nodeFromArrow(s : %, a : NNI):List NNI ==
         [0::NNI]
-   
+
       -- nodeToArrow(s, a) returns index of all nodes with a direct
       -- arrow leading out of arrow 'a' in graph 's'
       nodeToArrow(s : %, a : NNI):List NNI ==
@@ -584,7 +582,7 @@ Poset(S) : Category == Definition where
       -- [0] if it is not possible to go from 'a' to 'b'
       routeArrows(s : %, a : NNI, b : NNI):List NNI ==
         [0::NNI]
-   
+
       -- distance(s, a, b) gives the shortest distance between
       -- nodes 'a' and 'b' as a
       -- number of hops.
@@ -729,7 +727,6 @@ Poset(S) : Category == Definition where
         --"join res=",listToString(res)$String)])
         lub(s,res)
 
-
       -- returns the meet of a subset of lattice given by list of elements
       meetIfCan(s : %,elements:List(NNI)):Union(NNI,"failed") ==
         res : List NNI := []
@@ -817,7 +814,7 @@ Poset(S) : Category == Definition where
         position(obj,getVert(s))$List(S) pretend NNI
 
       -- Reflexivity requires forall(x): x<=x
-      -- This function inforces this by making sure that every element has
+      -- This function enforces this by making sure that every element has
       -- arrow to itself. That is, the leading diagonal is true.
       completeReflexivity(s:%):% ==
         set2:List S := getVert(s)
@@ -827,7 +824,7 @@ Poset(S) : Category == Definition where
         finitePoset(set2,struct2)
 
       -- Transitivity requires forall(x,y,z): x<=y and y<=z implies x<=z
-      -- This function inforces this by making sure that the composition
+      -- This function enforces this by making sure that the composition
       -- of any two arrows is also an arrow.
       completeTransitivity(s:%):% ==
         set2:List S := getVert(s)
@@ -896,7 +893,6 @@ Poset(S) : Category == Definition where
         if #mat ~= dim then return outputForm("wrong number of rows")
         matrix(mat)
 
-
 )abbrev domain FPOSET FinitePoset
 ++ Author: Martin Baker
 ++ Description: holds a complete set together with a structure to codify
@@ -905,7 +901,7 @@ Poset(S) : Category == Definition where
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-++ Basic Operations: 
+++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
 ++ Related Domains: DirectedGraph in graph.spad
@@ -989,7 +985,7 @@ to define the elements, and their order, recursively.
 
 )abbrev category DCPO Dcpo
 ++ Author: Martin Baker
-++ Description: directed-complete partial order, partial order that is garanteed
+++ Description: directed-complete partial order, partial order that is guaranteed
 ++              to have a join of any two elements.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
@@ -997,7 +993,7 @@ to define the elements, and their order, recursively.
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Oct 2015
 ++ Date Last Updated: Oct 2015
-Dcpo(S) : Category == Definition where 
+Dcpo(S) : Category == Definition where
  S : SetCategory
  NNI==> NonNegativeInteger
  Definition ==> Poset(S) with
@@ -1014,7 +1010,7 @@ Dcpo(S) : Category == Definition where
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-++ Basic Operations: 
+++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
 ++ Related Domains: DirectedGraph in graph.spad
@@ -1087,13 +1083,13 @@ FiniteDcpo(S) : Exports == Impl where
         res::NNI
 
 )if false
-Here we will call the dual notion of a directed complete poset a Co-DCPO alternativly
+Here we will call the dual notion of a directed complete poset a Co-DCPO alternatively
 it is sometimes called a filtered complete partial order.
 )endif
 
 )abbrev category CODCPO CoDcpo
 ++ Author: Martin Baker
-++ Description: directed-complete Order, partial order that is garanteed to have
+++ Description: directed-complete Order, partial order that is guaranteed to have
 ++              a meet of any two elements.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
@@ -1101,7 +1097,7 @@ it is sometimes called a filtered complete partial order.
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Oct 2015
 ++ Date Last Updated: Oct 2015
-CoDcpo(S) : Category == Definition where 
+CoDcpo(S) : Category == Definition where
  S : SetCategory
  NNI==> NonNegativeInteger
  Definition ==> Poset(S) with
@@ -1118,7 +1114,7 @@ CoDcpo(S) : Category == Definition where
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-++ Basic Operations: 
+++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
 ++ Related Domains: DirectedGraph in graph.spad
@@ -1191,13 +1187,13 @@ FiniteCoDcpo(S) : Exports == Impl where
         res::NNI
 
 )if false
-BiCPO is Join of Dcpo and CoDcpo, that is, it is both joins and meets are gauranteed
+BiCPO is Join of Dcpo and CoDcpo, that is, it is both joins and meets are guaranteed
 to exist.
 )endif
 
 )abbrev category BICPO BiCPO
 ++ Author: Martin Baker
-++ Description: Complete partial Order, partial order that is garanteed to have
+++ Description: Complete partial Order, partial order that is guaranteed to have
 ++              both a join and a meet of any two elements.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
@@ -1215,7 +1211,7 @@ BiCPO(S: SetCategory): Category == Join(Dcpo(S),CoDcpo(S))
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
-++ Basic Operations: 
+++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
 ++ Related Domains: DirectedGraph in graph.spad
@@ -1349,7 +1345,7 @@ BoundedMeetSemilattice: Category == MeetSemilattice with
 ++ Description: join semilattice
 ++   Different from exterior Grassmann product operator as
 ++   that anticommutes.
-++   need to check precidence when used as an infix operator
+++   need to check precedence when used as an infix operator
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: commutativity forall(x,y): x\/y=y\/x
@@ -1371,7 +1367,7 @@ JoinSemilattice: Category == SetCategory with
 ++ Description: join semilattice with bottom
 ++   Different from exterior Grassmann product operator as
 ++   that anticommutes.
-++   need to check precidence when used as an infix operator
+++   need to check precedence when used as an infix operator
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: unit forall x: x \/ _|_=x
@@ -1438,7 +1434,7 @@ DistributiveLattice: Category == Lattice
 ++  the case for all finite lattices since we can do a meet and join of all values
 ++ Keywords: Meet Top Join Bottom
 ++ Description: not every lattice is distributive so treat this
-++              as a seperate case
+++              as a separate case
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Axiom: distribution1 forall(x,y,z): x/\(y\/z)=(x/\y)\/(x/\z)
@@ -1465,20 +1461,24 @@ have left it in in case existing code uses it.
 ++ Keywords: boolean
 ++ Description:
 ++ 'Logic' adds 'not' operation to lattices,
-++ Imlements De Morgan's laws.
+++ Implements De Morgan's laws.
 ++ Axiom: DeMorgan1 forall(x,y): ~(x/\y)=~x\/~y
 ++ Axiom: DeMorgan2 forall(x,y): ~(x\/y)=~x/\~y
 Logic : Category == BoundedDistributiveLattice with
-       _~:        % -> %
+       _~: % -> %
         ++ ~(x) returns the logical complement of x.
   add
-    -- default define 'join' in terms of 'meet' (Is that a good idea?)
+    -- default define 'join' in terms of 'meet' using DeMorgans law
+    -- This requires law of excluded middle and double negation
+    -- elimination which does not apply to intuitionistic logic
+    -- (Is that a good idea to have a default which only applies to
+    -- one type of logic?)
     _\_/(x : %, y : %) == _~( _/_\(_~(x), _~(y)))
 
 )if false
 This is the algebration of poset. A big difference between
 this lattice domain and the poset domain is that, in this domain, the
-REP holds a single node wheras in poset REP holds the whole poset.
+REP holds a single node whereas in poset REP holds the whole poset.
 
 The REP is NNI since this is used as an index into the poset nodes
 (S:SetCategory).
@@ -1488,7 +1488,7 @@ The REP is NNI since this is used as an index into the poset nodes
 ++ Author: Martin Baker
 ++ Description: This is the algebration of poset. A big difference between
 ++    this lattice domain and the poset domain is that, in this domain, the
-++    REP holds a single node wheras in poset REP holds the whole poset.
+++    REP holds a single node whereas in poset REP holds the whole poset.
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
 FiniteLattice(S:SetCategory,p:FiniteBiCPO(S)) : Exports == Impl where
@@ -1639,7 +1639,7 @@ SubsetLattice(S:SetCategory,top:List(S)) : Exports == Impl where
             if b=c then contains := true
           if not contains then r:=concat(r,b)
         r
-      
+
       complement(a:%,pseudoTop:List(S)):% ==
         r:List(S) := []
         for b in pseudoTop repeat
@@ -1648,7 +1648,7 @@ SubsetLattice(S:SetCategory,top:List(S)) : Exports == Impl where
             if b=c then contains := true
           if not contains then r:=concat(r,b)
         r
-      
+
       -- start of SetCategory definitions --
 
       hash(s : %) : SingleInteger == 0$SingleInteger
@@ -1686,7 +1686,7 @@ Provides functions to construct various small posets
 including powerset.
 
 Perhaps it should be called a 'powerlist' but since we do
-not expect duplicates or reqire specific ordering it is
+not expect duplicates or require specific ordering it is
 essentially the same.
 )endif
 
@@ -1695,7 +1695,7 @@ essentially the same.
 ++ Date Created: Aug 2015
 ++ Date Last Updated: Aug 2015
 ++ Description:
-++  Provides functions to construct various small posets 
+++  Provides functions to construct various small posets
 ++  including powerset.
 ++  Perhaps it should be called a 'powerlist' but since we do
 ++  not expect duplicates or reqire specific ordering it is
@@ -1770,7 +1770,7 @@ PosetFactory(S : SetCategory) : with
         row := concat(row,g)
       arrows := concat(arrows,row)
     finitePoset(objs,arrows)$FiniteBiCPO(S)
-    
+
   -- generates a poset corresponding to an N5 lattice
   posetN5(objs:List(S)):FiniteBiCPO(S) ==
     finitePoset(objs,[[true,true,true,true,true],
@@ -1864,7 +1864,7 @@ where:
     _|_ = false
     x = arbitrary proposition
 
-An opton to generalise this code might be to implement the 'free
+An option to generalise this code might be to implement the 'free
 logic algebra' as a category, then intuitional, ternary, many-valued,
 boolean could be domains which overload /\ , \/ and - with their own
 sets of rules.
@@ -1885,15 +1885,15 @@ These can be constructed as follows:
 \begin{verbatim}
 (1) -> logicF()
 
-   (1)  "_|_"
+   (1)  _|_
                                                              Type : ILogic
 (2) -> logicT()
 
-   (2)  "T"
+   (2)  T
                                                              Type : ILogic
 (3) -> ~logicT()
 
-   (3)  "_|_"
+   (3)  _|_
                                                              Type : ILogic
 \end{verbatim}
 
@@ -1904,8 +1904,7 @@ the following list:
 \begin{verbatim}
 (4) -> l:List ILogic := [logicF(),logicT(),proposition("a"),~proposition("a"),proposition("b"),~proposition("b")]
 
- LISP output:
-((0 F) (0 T) (1 a) (3 NOT 1 a) (1 b) (3 NOT 1 b))
+   (4)  [_|_,T,"a",~("a"),"b",~("b")]
                                                        Type : List(ILogic)
 \end{verbatim}
 
@@ -1913,7 +1912,7 @@ First we will try 'not':
 \begin{verbatim}
 (5) -> [(~j)::OutputForm for j in l]
 
-   (5)  ["~(_|_)","_|_","~(a)","~(~(a))","~(b)","~(~(b))"]
+   (5)  [~(_|_),_|_,~("a"),~(~("a")),~("b"),~(~("b"))]
                                                    Type : List(OutputForm)
 \end{verbatim}
 
@@ -1924,30 +1923,29 @@ boolean logic for true/false values and extended for the unproven case.
 
      (6)
     SUB
-       matrix
-       ["_|_","_|_","_|_","_|_","_|_","_|_"]
-      ["_|_","T","a","~(a)","b","~(b)"]
-      ["_|_","a","a","_|_","(a/\b)","(a/\~(b))"]
-      ["_|_","~(a)","_|_","~(a)","(~(a)/\b)","(~(a)/\~(b))"]
-      ["_|_","b","(b/\a)","(b/\~(a))","b","_|_"]
-      ["_|_","~(b)","(~(b)/\a)","(~(b)/\~(a))","_|_","~(b)"]
+       matrix,
+        [_|_,_|_,_|_,_|_,_|_,_|_],[_|_,T,"a",~("a"),"b",~("b")],
+        [_|_,"a","a",_|_,("a"/\"b"),("a"/\~("b"))],
+        [_|_,~("a"),_|_,~("a"),(~("a")/\"b"),(~("a")/\~("b"))],
+        [_|_,"b",("b"/\"a"),("b"/\~("a")),"b",_|_],
+        [_|_,~("b"),(~("b")/\"a"),(~("b")/\~("a")),_|_,~("b")]
+
                                                                Type : Symbol
 
 Note : Its hard to read this table in text, it displays better as
 html on this page:
-http : //www.euclideanspace.com/maths/standards/program/mycode/computation/intuitionistic/
+http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/intuitionistic/index.htm
 
 (7) -> matrix[ [(k \/ j)::OutputForm for j in l] for k in l]
 
      (7)
     SUB
-       matrix
-      ["_|_","T","a","~(a)","b","~(b)"]
-      ["T","T","T","T","T","T"]
-      ["a","T","a","(a\/~(a))","(a\/b)","(a\/~(b))"]
-      ["~(a)","T","(~(a)\/a)","~(a)","(~(a)\/b)","(~(a)\/~(b))"]
-      ["b","T","(b\/a)","(b\/~(a))","b","(b\/~(b))"]
-      ["~(b)","T","(~(b)\/a)","(~(b)\/~(a))","(~(b)\/b)","~(b)"]
+       matrix,
+        [_|_,T,"a",~("a"),"b",~("b")],[T,T,T,T,T,T],
+        ["a",T,"a",("a"\/~("a")),("a"\/"b"),("a"\/~("b"))],
+        [~("a"),T,(~("a")\/"a"),~("a"),(~("a")\/"b"),(~("a")\/~("b"))],
+        ["b",T,("b"\/"a"),("b"\/~("a")),"b",("b"\/~("b"))],
+        [~("b"),T,(~("b")\/"a"),(~("b")\/~("a")),(~("b")\/"b"),~("b")]
 
                                                                Type : Symbol
 \end{verbatim}
@@ -1956,18 +1954,17 @@ http : //www.euclideanspace.com/maths/standards/program/mycode/computation/intui
 \begin{verbatim}
 (8) -> matrix[ [implies(k, j)::OutputForm for j in l] for k in l]
 
-
    (8)
     SUB
-       matrix
-       ["T","T","(_|_->a)","(_|_->~(a))","(_|_->b)","(_|_->~(b))"]
-       ["_|_","T","(T->a)","(T->~(a))","(T->b)","(T->~(b))"]
-       ["(a->_|_)","(a->T)","(a->a)","(a->~(a))","(a->b)","(a->~(b))"]
-       ["(~(a)->_|_)", "(~(a)->T)", "(~(a)->a)", "(~(a)->~(a))", "(~(a)->b)",
-        "(~(a)->~(b))"]
-       ["(b->_|_)","(b->T)","(b->a)","(b->~(a))","(b->b)","(b->~(b))"]
-       ["(~(b)->_|_)", "(~(b)->T)", "(~(b)->a)", "(~(b)->~(a))", "(~(b)->b)",
-        "(~(b)->~(b))"]
+       matrix,
+        [T,T,(_|_->"a"),(_|_->~("a")),(_|_->"b"),(_|_->~("b"))],
+        [_|_,T,(T->"a"),(T->~("a")),(T->"b"),(T->~("b"))],
+        [("a"->_|_),("a"->T),("a"->"a"),("a"->~("a")),("a"->"b"),("a"->~("b"))],
+        [(~("a")->_|_), (~("a")->T), (~("a")->"a"), (~("a")->~("a")),
+         (~("a")->"b"), (~("a")->~("b"))],
+        [("b"->_|_),("b"->T),("b"->"a"),("b"->~("a")),("b"->"b"),("b"->~("b"))],
+        [(~("b")->_|_), (~("b")->T), (~("b")->"a"), (~("b")->~("a")),
+         (~("b")->"b"), (~("b")->~("b"))]
                                                                Type : Symbol
 \end{verbatim}
 
@@ -1987,11 +1984,11 @@ on \verb'a', however in (12) we cannot reduce to a single value.
 \begin{verbatim}
 (10) -> proposition("a") /\ proposition("b")
 
-   (10)  "(a/\b)"
+   (10)  ("a"/\"b")
                                                              Type : ILogic
 (11) -> implies(proposition("a"),proposition("b"))
 
-   (11)  "(a->b)"
+   (11)  ("a"->"b")
                                                              Type : ILogic
 (12) -> proposition("a") /\ logicT()
 
@@ -1999,7 +1996,7 @@ on \verb'a', however in (12) we cannot reduce to a single value.
                                                              Type : ILogic
 (13) -> proposition("a") /\ logicF()
 
-   (13)  "_|_"
+   (13)  _|_
                                                              Type : ILogic
 \end{verbatim}
 \section{applying modus ponens}
@@ -2008,15 +2005,14 @@ So we first assert 'a' and 'a->b' as follows:
 \begin{verbatim}
 (14) -> givens := proposition("a") /\ implies(proposition("a"),proposition("b"))
 
-   (14)  "(a/\(a->b))"
+   (14)  ("a"/\("a"->"b"))
                                                              Type : ILogic
 \end{verbatim}
-We then factor into seperate terms:
+We then factor into separate terms:
 \begin{verbatim}
 (15) -> fgivens := factor(givens)
 
- LISP output:
-((1 a) (2 . UNPRINTABLE))
+   (15)  ["a",("a"->"b")]
                                                        Type : List(ILogic)
 \end{verbatim}
 note : List ILOGIC to OutputForm is fixed in latest FriCAS so it will
@@ -2026,8 +2022,7 @@ We now apply the deductions function to this list.
 \begin{verbatim}
 (16) -> deduct := deductions(fgivens)
 
- LISP output:
-((1 b))
+   (16)  ["b"]
                                                        Type : List(ILogic)
 \end{verbatim}
 so we get the required deduction 'b'
@@ -2075,7 +2070,7 @@ ILogic() : Exports == Implementation where
     ++ splits n into a list of factors which must be true for the
     ++ whole to be true.
     ++ This assumes that the top level is already a set of factors
-    ++ seperated by /\ otherwise the result will just be a list with
+    ++ separated by /\ otherwise the result will just be a list with
     ++ one entry: 'n'.
     ++ This is used when converting ILogic to types by using the
     ++ Curry-Howard isomorphism.
@@ -2095,7 +2090,7 @@ ILogic() : Exports == Implementation where
     ++ TODO not sure if complement should be included here?
     ++ intuitionistic logic can have complement but has different axioms
     ++ to complement in Boolean algebra.
-    ++ Equivilant capability can be provided by implication.
+    ++ Equivalent capability can be provided by implication.
   opType : (n : %) -> Symbol
     ++ if this is a compound op then opType returns the type of
     ++ that op:
@@ -2228,7 +2223,6 @@ ILogic() : Exports == Implementation where
     if (a case const) then
       if (a.const.val = "T"::Symbol) then return b
     [["AND"::Symbol,a,b]]
-
 
   -- \/ returns the logical 'join', e.g. 'or'.
   --
@@ -2652,7 +2646,24 @@ ILogic() : Exports == Implementation where
 
   -- output
   coerce(n : %) : OutputForm ==
-    toString(n)::OutputForm
+    if n case const then
+      if (n.const.val = "F"::Symbol) then return "__|__"::OutputForm
+      if (n.const.val = "T"::Symbol) then return "T"::OutputForm
+      return "?"::OutputForm
+    if n case var then
+      return (n.var.str)::OutputForm
+      --print hconcat([(["toString case i1=",s,n])
+    if n case binaryOp then
+      -- binary node which has two subnodes c1 and c2
+      s1:OutputForm := "->"::OutputForm
+      if n.binaryOp.typ = "AND"::Symbol then s1 := "/\"::OutputForm
+      if n.binaryOp.typ = "OR"::Symbol then s1 := "\/"::OutputForm
+      return hconcat(["("::OutputForm,(n.binaryOp.c1)::OutputForm_
+         ,s1,(n.binaryOp.c2)::OutputForm,")"::OutputForm])$OutputForm
+    if n case unaryOp then
+      -- unary node which has a subnode c1
+     return hconcat(["~("::OutputForm,(n.unaryOp.c1)::OutputForm,")"::OutputForm])$OutputForm
+    "error"::OutputForm
 
 )if false
 \section{Infinite (unbounded) Lattices}
@@ -2760,7 +2771,7 @@ a\/(a/\b)
 
    (13)  ("a")
                                                 Type: LatticeMeetOfJoins
--- test composite contructions
+-- test composite constructions
 landor := land \/ c
 
    (14)  ("a"\/"c")/\("b"\/"c")
@@ -2833,14 +2844,14 @@ LatticeMeetOfJoins() : Exports == Implementation where
     ++ splits n into a list of factors which must be true for the
     ++ whole to be true.
     ++ This assumes that the top level is already a set of factors
-    ++ seperated by /\ otherwise the result will just be a list with
+    ++ separated by /\ otherwise the result will just be a list with
     ++ one entry: 'n'.
     ++ This is used when converting ILogic to types by using the
     ++ Curry-Howard isomorphism.
   deductions : (ln : List %) -> List %
     ++ assumes ln contains a list of factors which must be true for
     ++ the whole to be true (such as the list produced by factor).
-    ++ From this deductions attemps to produce a list of other
+    ++ From this deductions attempts to produce a list of other
     ++ proposition that must also be true by using modus ponens.
     ++ This is used to determine the returned type when converting
     ++ ILogic to types by using the Curry-Howard isomorphism.
@@ -2893,7 +2904,6 @@ LatticeMeetOfJoins() : Exports == Implementation where
     ++
     ++ 2) var: Record(str: String)
     ++   holds a proposition name
-
 
   -- Constructs a proposition
   proposition(s : String) : % == [[[[s]]]]
@@ -2994,7 +3004,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
       if not found then return false
     true
 
-  -- local function used by redux to apply absorbtion.
+  -- local function used by redux to apply absorption.
   -- Returns true if a is a sub-term of b.
   subTerm(a:List(ELEMENT),b:List(ELEMENT)) :Boolean ==
     if #a >= #b then return false
@@ -3025,7 +3035,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
       if not equalTerms(newinnerList,outer) then modified := true
       match:Boolean := false
       for inner in n for innern in 1..#n repeat
-        if equalTerms(inner,outer) and innern<outern then match := true      
+        if equalTerms(inner,outer) and innern<outern then match := true
       -- check for absorption
       isSubTerm:Boolean := false
       for inner in n repeat
@@ -3128,7 +3138,6 @@ LatticeMeetOfJoins() : Exports == Implementation where
       if outern ~= #n then r := concat(r::String,")_/_\("::String)
     r
 
-
   -- local function used by coerce to OutputForm
   -- convert variable or literal to OutputForm
   outputVarOrLit(a:Union(const : Record(val : Symbol),var : Record(str : String))) : OutputForm ==
@@ -3153,7 +3162,7 @@ LatticeMeetOfJoins() : Exports == Implementation where
 ++ Date Created: Sept 2015
 ++ Date Last Updated: Oct 2015
 ++ Basic Operations:
-++ Related Constructors: LatticeMeetOfJoins is complementry domain
+++ Related Constructors: LatticeMeetOfJoins is complementary domain
 ++ Keywords: Logic Lattice Meet Join
 ++ Description: Infinite Lattice which is distributive.
 ++   Representation held as join of meets.
@@ -3258,7 +3267,6 @@ LatticeJoinOfMeets() : Exports == Implementation where
     ++ 2) var: Record(str: String)
     ++   holds a proposition name
 
-
   -- Constructs a proposition
   proposition(s : String) : % == [[[[s]]]]
 
@@ -3298,7 +3306,6 @@ LatticeJoinOfMeets() : Exports == Implementation where
         term:=concat(termLeft,termRight)$List(ELEMENT)
         r:=concat(r,term)$List(List(ELEMENT))
     redux(r)
-
 
   -- \/ returns the logical 'join', e.g. 'or'.
   --
@@ -3359,7 +3366,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
       if not found then return false
     true
 
-  -- local function used by redux to apply absorbtion.
+  -- local function used by redux to apply absorption.
   -- Returns true if a is a sub-term of b.
   subTerm(a:List(ELEMENT),b:List(ELEMENT)) :Boolean ==
     if #a >= #b then return false
@@ -3408,7 +3415,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
   -- splits n into a list of factors which must be true for the
   -- whole to be true.
   -- This assumes that the top level is already a set of factors
-  -- seperated by /\ otherwise the result will just be a list with
+  -- separated by /\ otherwise the result will just be a list with
   -- one entry: 'n'.
   -- This is used when converting ILogic to types by using the
   -- Curry-Howard isomorphism.
@@ -3493,7 +3500,6 @@ LatticeJoinOfMeets() : Exports == Implementation where
       if outern ~= #n then r := concat(r::String,")_\_/("::String)
     r
 
-
   -- local function used by coerce to OutputForm
   -- convert variable or literal to OutputForm
   outputVarOrLit(a:Union(const : Record(val : Symbol),var : Record(str : String))) : OutputForm ==
@@ -3559,7 +3565,7 @@ different authors. Steven Vickers [1] definition (which follows Johnstone) is:
 \begin{itemize}
 \item 1) every subset has a join
 \item 2) every finite subset has a meet
-\item 3) binary meets distribute over joins 
+\item 3) binary meets distribute over joins
 \end{itemize}
 
 \subsection{Arbitrary vs. Finite Conjunction and Disjunctions}
@@ -3600,7 +3606,7 @@ after 1 minute, the second after 2, etc., we’ll never be able to stop the test
 even though all tests terminate eventually.
 \item Disjunction A\/B: if A and B are semi-decidable, then A\/B is semi-decidable
 \item Disjunction arbitrary arity \/(Ai): is semi-decidable.given Ai, we can test \/(Ai) by running
-all the tests in parallel and stopping when any of them stop. 
+all the tests in parallel and stopping when any of them stop.
 \item Implication: A->B isn’t necessarily semi-decidable for the same reason
 that ¬A isn’t, but we still want to reason about the case where A implies B. Therefore, we
 allow A->B with the meaning that A implies B, but only at the 'top level' (you can’t nest
@@ -3618,81 +3624,26 @@ For example consider the integers implemented by:
 \item increment(%) -> %
 \item decrement(%) -> %
 \end{itemize}
-This constructs a partial order. In this order both meet and join are gauranteed
+This constructs a partial order. In this order both meet and join are guaranteed
 to exist (glb and lub) for any finite set of elements. However top and bottom
 don't exist (∞ and -∞ are not integers). in other words we can't take a meet
 or a join of an infinite set of elements.
 
 Another example might be a 'tree', this has a bottom element (root) and joins
 (including infinite) exist. but meets do not exist and the top element does
-not exist. 
+not exist.
 
 The general case of these examples are recursively defined types.
 
-The following intuitionistic logic code is a sort of 'free' lattice. 
-\subsection{Code}
+I cannot work out how to represent infinite conjunctions, we could supply a list of arguments
+like this:
+\begin{verbatim}
+join(elements:List(%)):% ==
+\end{verbatim}
+but to encode the important structure we need to take the limit as the number of arguments
+approaches infinity. So I suspect we need to use some sort of infinite series. I don't know
+how to go about this so, for now, I have removed my attempts to encode a frame structure.
 )endif
-
-)abbrev category FRAME Frame
-++ Author: Martin Baker
-++ Description: frames are used in topology and are the lattice
-++              associated with the concept of a 'locale'.
-++              see: [1]
-++   A Frame is a Lattice where certain subsets are also Lattices
-++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
-++ Axiom: every subset has a join 
-++ Axiom: every finite subset has a meet
-++ Axiom: binary meets distribute over joins
-++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
-Frame(P:SetCategory): Category == Join(MeetSemilattice,BoundedJoinSemilattice) with
-      meet:(List %) -> %
-        ++ returns the logical 'meet' of some subset specified
-        ++ by a list of elements.
-      join:(List %) -> %
-        ++ returns the logical 'join' of some subset specified
-        ++ by a list of elements.
-
---)abbrev domain FINFRM FiniteFrame
-++ Author: Martin Baker
-++ Description: A Frame is a Lattice where certain subsets are also Lattices
-++ Date Created: Aug 2015
-++ Date Last Updated: Oct 2015
---NNI==> NonNegativeInteger
---FiniteFrame(S:SetCategory,p:FinitePoset(S)) : LatticeJoinOfMeets with
-    -- *** TODO can't work out how to inherit from LatticeJoinOfMeets
-    -- *** the following causes >> System error: The index 2 is too large.
-    -- What are the rules for extending one domain from another?
-    
-    --Exports ==> Join(Frame(S),CoercibleTo(OutputForm)) with
---     finiteFrame : (index:NNI) -> %
-      ++ construct finite lattice element from index
---     finiteFrame : (obj:S) -> %
-      ++ construct finite lattice element from object
-
-    -- *** TODO can't work out how to inherit from FiniteLattice
-    --Impl == FiniteLattice(SetCategory,FinitePoset(SetCategory)) add
---    == add
-
-     -- *** TODO representation should really be inherited from FiniteLattice
-     --Rep := NNI
-
---     finiteFrame(index:NNI) == [[[["T"::Symbol]]]]
-
---     finiteFrame(obj:S) == [[[["T"::Symbol]]]]
-
-     -- returns the logical 'meet' of some subset specified
-     -- by a list of elements.
---     meet(elements:List(%)):% ==
---       e:List(NNI) := [(x pretend NNI) for x in elements]
---       meet(p,e)$FinitePoset(S)
-
-     -- returns the logical 'join' of some subset specified
-     -- by a list of elements.
---     join(elements:List(%)):% ==
---       e:List(NNI) := [(x pretend NNI) for x in elements]
---       join(p,e)$FinitePoset(S)
 
 )if false
 \section{Example Structures}
@@ -3705,7 +3656,7 @@ These BitStream representations are semidecidable, we can determine if two repre
 streams are not equal but we cannot determine if they are equal. So if two streams are not unequal
 it does not follow that they are equal.
 
-We cannot determine if they are equal because, however many terms of two streams that start with 
+We cannot determine if they are equal because, however many terms of two streams that start with
 the same values, they might be still be extended with different values. We can never check
 the complete bitstream because we cannot hold an infinite structure in a finite computer.
 )endif
@@ -3734,7 +3685,7 @@ BitStreamFrame() : Exports == Impl where
      -- construct bit stream
      starts(index:List(Boolean)):% ==
        [index]
-      
+
      -- construct bit stream by parsing string containing 0,1 and *
      starts(str:String):% ==
        res:List(Boolean) := []
