@@ -2651,7 +2651,8 @@ ILogic() : Exports == Implementation where
       if (n.const.val = "T"::Symbol) then return "T"::OutputForm
       return "?"::OutputForm
     if n case var then
-      return (n.var.str)::OutputForm
+      return ((n.var.str)::Symbol)::OutputForm
+      -- convert to 'Symbol' first to avoid displaying quotes
       --print hconcat([(["toString case i1=",s,n])
     if n case binaryOp then
       -- binary node which has two subnodes c1 and c2
