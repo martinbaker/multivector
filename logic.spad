@@ -157,7 +157,8 @@ Poset(S) : Category == Definition where
  OBJT ==> Record(value : S, posX : NNI, posY : NNI)
  ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
            toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
-
+ x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+ 
  Definition ==> Preorder(S) with
 
      finitePoset : (set1:List S,struct1:List List Boolean) -> %
@@ -279,7 +280,7 @@ Poset(S) : Category == Definition where
           padding:Union(NNI,"failed") := subtractIfCan(dim,width)
           if padding ~= "failed" then
             diff:NNI := padding::NNI
-            --print hconcat([("addObject diff=",string(diff))$String)])
+            --print(("addObject diff=",string(diff))$String)])
             for x in 1..diff repeat
               a := concat(a,false)
           if empty?(arrows)
@@ -335,7 +336,7 @@ Poset(S) : Category == Definition where
           padding:Union(NNI,"failed") := subtractIfCan(dim,width)
           if padding ~= "failed" then
             diff:NNI := padding::NNI
-            --print hconcat([("addObject! diff=",string(diff))$String
+            --print("addObject! diff="::Symbol << string(diff))
             for x in 1..diff repeat
               a := concat(a,false)
           if empty?(arrows)
@@ -722,9 +723,9 @@ Poset(S) : Category == Definition where
           if x then candidatesb:= concat(candidatesb,index)
           index := index +1
         res := setIntersection(candidatesa,candidatesb)
-        --print hconcat([("join candidatesa=",listToString(candidatesa)$String),
-        --"join candidatesb=",listToString(candidatesb)$String,
-        --"join res=",listToString(res)$String)])
+        --print("join candidatesa="::Symbol << listToString(candidatesa)$String <<_
+        --"join candidatesb="::Symbol << listToString(candidatesb)$String <<_
+        --"join res="::Symbol << listToString(res)$String))
         lub(s,res)
 
       -- returns the meet of a subset of lattice given by list of elements
@@ -742,8 +743,8 @@ Poset(S) : Category == Definition where
             if x then candidates:= concat(candidates,index)
             index := index +1
         res := setIntersection(res,candidates)
-        --print hconcat([("join candidates=",listToString(candidates)$String,
-        --"join res=",listToString(res)$String)])
+        --print("join candidates="::Symbol << listToString(candidates)$String <<
+        --"join res="::Symbol <<listToString(res)$String))
         lub(s,res)
 
       -- returns the join of a subset of lattice given by list of elements
@@ -769,17 +770,17 @@ Poset(S) : Category == Definition where
         if empty?(a) then return 0::NNI
         if #a=1 then return first(a)
         resultList:List(NNI) := copy(a)
-        --print hconcat([("lub res=",listToString(resultList)$String)])
+        --print("lub res="::Symbol << listToString(resultList)$String)
         for x in a repeat
-          --print hconcat([("glb x=",string(x)$String)])
+          --print("glb x="::Symbol << string(x)$String)
           for y in a repeat
-            --print hconcat([("glb y=",string(y)$String)])
+            --print("glb y="::Symbol << string(y)$String)
             if implies(s,x,y) then
               if x ~= y then
                 if entry?(x,resultList) then
-                  --print hconcat([("glb removing:",string(y)$String)])
+                  --print("glb removing:"::Symbol << string(y)$String)
                   resultList := remove(y,resultList)
-                  --print hconcat([("glb res=",listToString(resultList)$String)])
+                  --print("glb res=::Symbol << listToString(resultList)$String)
         if #resultList ~= 1 then return 0::NNI
         first(resultList)
 
@@ -792,21 +793,21 @@ Poset(S) : Category == Definition where
         if #a=1 then return first(a)
         resultList:List(NNI) := copy(a)
         for x in a repeat
-          --print hconcat([("lub x=",string(x))])
+          --print("lub x="::Symbol << string(x))
           for y in a repeat
-            --print hconcat([("lub y=",string(y))])
+            --print("lub y="::Symbol << string(y))
             if implies(s,x,y) then
               if x ~= y then
                 if entry?(y,resultList) then
-                  --print hconcat([("lub removing:",string(x))])
+                  --print("lub removing:"::Symbol << string(x))
                   resultList := remove(x,resultList)
-                  --print hconcat([("lub res=",listToString(resultList))])
+                  --print("lub res="::Symbol << listToString(resultList))
         if  #resultList ~= 1 then return 0::NNI
         first(resultList)
 
       -- returns the object at a given index
       indexToObject(s : %,index:NNI):S ==
-        --print hconcat([("indexToObject",string(index))])
+        --print("indexToObject"::Symbol << string(index))
         qelt(getVert(s),index)
 
       -- returns the index of a given object
@@ -2462,7 +2463,7 @@ ILogic() : Exports == Implementation where
       error "expecting /\"
       return [trm, p1]
     p1 := p1 + (1::NNI)
-    --print hconcat([("st ch=",ch::String)
+    --print("st ch="::Symbol << ch)
     r : PR := parseILTerm(t1, p1)
     secondTerm := r.rft
     p1 := r.pout
@@ -2485,7 +2486,7 @@ ILogic() : Exports == Implementation where
       error "expecting \/"
       return [trm, p1]
     p1 := p1 + (1::NNI)
-    --print hconcat([("st ch=",ch::String)
+    --print("st ch="::Symbol << ch)
     r : PR := parseILTerm(t1, p1)
     secondTerm := r.rft
     p1 := r.pout
@@ -2508,7 +2509,7 @@ ILogic() : Exports == Implementation where
       error "expecting ->"
       return [trm, p1]
     p1 := p1 + (1::NNI)
-    --print hconcat([("st ch=",ch::String)
+    --print("st ch="::Symbol << ch)
     r : PR := parseILTerm(t1, p1)
     secondTerm := r.rft
     p1 := r.pout
@@ -2520,7 +2521,7 @@ ILogic() : Exports == Implementation where
     vnm:String := ""
     pt : NNI := pin
     ch := qelt(t1, pt)
-    --print hconcat([("st ch=",ch::String)
+    --print("st ch="::Symbol << ch::String)
     while alphanumeric?(ch) repeat
       vnm := concat(vnm, ch)
       pt := pt + (1::NNI)
@@ -2533,12 +2534,12 @@ ILogic() : Exports == Implementation where
     p1 := pin
     res : % := logicT()
     ch := qelt(t1, p1)
-    --print hconcat([(["parseTerm ch=",ch::String," p1=",string(p1)])$String
+    --print("parseTerm ch="::Symbol << ch << " p1="::Symbol << string(p1))
     -- first remove leading spaces
     while ch = char(" ") repeat
       p1 := p1 + (1::NNI)
       if p1 > maxIndex(t1) then
-        --print hconcat([(["parseTerm(",t1,") 1 giving:",toString(res)])
+        --print("parseTerm("::Symbol << t1 << ") 1 giving:"::Symbol << toString(res))
         return [res, p1]
       ch := qelt(t1, p1)
     r : PR := [res, p1]
@@ -2548,13 +2549,13 @@ ILogic() : Exports == Implementation where
     p1 := r.pout
     -- now check for compound term
     if p1 > maxIndex(t1) then
-      --print hconcat([(["parseTerm(",t1,") 2 giving:",toString(res)])
+      --print("parseTerm(",t1,") 2 giving:"::Symbol << toString(res))
       return [res, p1]
     ch := qelt(t1, p1)
     if ch = char(" ") then
       p1 := p1 + (1::NNI)
       if p1 > maxIndex(t1) then
-        --print hconcat([(["parseTerm(",t1,") 3 giving:",toString(res)])
+        --print("parseTerm("::Symbol << t1 << ") 3 giving:"::Symbol << toString(res))
         return [res, p1]
     ch := qelt(t1, p1)
     if ch = char("/") then
@@ -2579,12 +2580,12 @@ ILogic() : Exports == Implementation where
     p1 := pin
     res : % := logicT()
     ch := qelt(t1, p1)
-    --print hconcat([(["parseIL ch=",ch::String," p1=",string(p1)])$String
+    --print("parseIL ch="::Symbol << ch << " p1="::Symbol << string(p1))
     -- first remove leading spaces
     while ch = char(" ") repeat
       p1 := p1 + (1::NNI)
       if p1 > maxIndex(t1) then
-        --print hconcat([(["parseTerm(",t1,") 1 giving:",toString(res)])
+        --print("parseTerm(",t1,") 1 giving:"::Symbol << toString(res))
         return [res, p1]
       ch := qelt(t1, p1)
     r : PR := [res, p1]
@@ -2600,7 +2601,7 @@ ILogic() : Exports == Implementation where
   --            <term>-><term> | "("<term>")"
   parseIL(t1 : String) : % ==
     r := parseILTerm(t1, minIndex(t1)::NNI)
-    --print hconcat([(["parseIL(",t1,") giving:",toString(tm)])
+    --print("parseIL(",t1,") giving:"::Symbol << r)
     r.rft
 
   -- return string representation
@@ -2611,7 +2612,7 @@ ILogic() : Exports == Implementation where
       return "?"
     if n case var then
       return n.var.str
-      --print hconcat([(["toString case i1=",s,n])
+      --print("toString case i1="::Symbol << s << n)
     if n case binaryOp then
       -- binary node which has two subnodes c1 and c2
       s1:String := "->"
@@ -2632,7 +2633,7 @@ ILogic() : Exports == Implementation where
       return "?"
     if n case var then
       return n.var.str
-      --print hconcat([(["toString case i1=",s,n])
+      --print("toString case i1="::Symbol << s << n)
     if n case binaryOp then
       -- binary node which has two subnodes c1 and c2
       s1:String := "->"
@@ -2653,7 +2654,7 @@ ILogic() : Exports == Implementation where
     if n case var then
       return ((n.var.str)::Symbol)::OutputForm
       -- convert to 'Symbol' first to avoid displaying quotes
-      --print hconcat([(["toString case i1=",s,n])
+      --print("toString case i1="::Symbol << s << n)
     if n case binaryOp then
       -- binary node which has two subnodes c1 and c2
       s1:OutputForm := "->"::OutputForm
@@ -3044,10 +3045,8 @@ LatticeMeetOfJoins() : Exports == Implementation where
       if (not match) and (not isSubTerm)
         then r:=concat(r,newinnerList)$List(List(ELEMENT))
         else modified := true
---    print hconcat([("LatticeMeetOfJoins.redux"::OutputForm),(n::OutputForm),_
---       (","::OutputForm),((r pretend %)::OutputForm),_
---       (" mod="::OutputForm),(modified::OutputForm)_
---       ])$OutputForm
+--    print("LatticeMeetOfJoins.redux"::Symbol << n << _
+--       ","::Symbol << (r pretend %) << " mod="::Symbol << modified)
     -- apply until no more changes
     if modified then redux(r) else r
 
@@ -3406,10 +3405,9 @@ LatticeJoinOfMeets() : Exports == Implementation where
       if (not match) and (not isSubTerm)
         then r:=concat(r,newinnerList)$List(List(ELEMENT))
         else modified := true
---    print hconcat([("LatticeJoinOfMeets.redux"::OutputForm),(n::OutputForm),_
---       (","::OutputForm),((r pretend %)::OutputForm),_
---       (" mod="::OutputForm),(modified::OutputForm)_
---       ])$OutputForm
+--    print("LatticeJoinOfMeets.redux"::Symbol << n << _
+--       ","::Symbol << (r pretend %) << _
+--       " mod="::Symbol << modified)
     -- apply until no more changes
     if modified then redux(r) else r
 
@@ -3528,7 +3526,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
       for inner in outer for innern in 1..#outer repeat
         ele:LatticeMeetOfJoins := latticeMeetOfJoins(inner)
         term := _/_\(term,ele)
-        --print hconcat([("coerce:"::OutputForm),(ele::OutputForm),(term::OutputForm)])
+        --print("coerce:"::Symbol << ele << term)
       r:= _\_/(r,term)
     r
 
@@ -3541,7 +3539,7 @@ LatticeJoinOfMeets() : Exports == Implementation where
       for inner in outer for innern in 1..#outer repeat
         ele:% := latticeJoinOfMeets(inner)
         term := _\_/(term,ele)
-        --print hconcat([("coerce:"::OutputForm),(ele::OutputForm),(term::OutputForm)])
+        --print("coerce:"::Symbol << ele << term)
       r:= _/_\(r,term)
     r
 
