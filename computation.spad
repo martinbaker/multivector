@@ -2777,7 +2777,7 @@ Now we create some lambda expressions to be converted to source code:
 \end{verbatim}
 Now we generate the source code using the writePackage function where:
 \begin{itemize}
-  \item testComp1.spad is the filename
+  \item testGeneratedCode.spad is the filename
   \item TESTCCP is the short name
   \item TestCCP is the long name
   \item Type is the category name
@@ -2786,7 +2786,7 @@ Now we generate the source code using the writePackage function where:
 (8) -> writePackage([pacEx1,pacEx2,pacEx3],"testGeneratedCode.spad","TESTCCP","TestCCP","Type")
                                                                Type : Void
 \end{verbatim}
-When we look at the testComp1.spad file we can see the code that has
+When we look at the testGeneratedCode.spad file we can see the code that has
 been generated:
 \begin{verbatim}
 
@@ -2821,16 +2821,16 @@ intuitionistic logic terms as examples:
 \end{verbatim}
 Now we generate the source code using the writeCategory function where:
 \begin{itemize}
-  \item testComp2.spad is the filename
+  \item testGeneratedCode2.spad is the filename
   \item TESTCC is the short name
   \item TestCC is the long name
 \end{itemize}
 \begin{verbatim}
-(11) -> writeCategory([catEx1,catEx2],"testComp2.spad","TESTCC","TestCC")
+(11) -> writeCategory([catEx1,catEx2],"testGeneratedCode2.spad","TESTCC","TestCC")
 
                                                                    Type : Void
 \end{verbatim}
-When we look at the testComp2.spad file we can see the code that has
+When we look at the testGeneratedCode2.spad file we can see the code that has
 been generated:
 \begin{verbatim}
 

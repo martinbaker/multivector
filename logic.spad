@@ -1905,7 +1905,7 @@ the following list:
 \begin{verbatim}
 (4) -> l:List ILogic := [logicF(),logicT(),proposition("a"),~proposition("a"),proposition("b"),~proposition("b")]
 
-   (4)  [_|_,T,"a",~("a"),"b",~("b")]
+   (4)  [_|_,T,a,~(a),b,~(b)]
                                                        Type : List(ILogic)
 \end{verbatim}
 
@@ -1913,7 +1913,7 @@ First we will try 'not':
 \begin{verbatim}
 (5) -> [(~j)::OutputForm for j in l]
 
-   (5)  [~(_|_),_|_,~("a"),~(~("a")),~("b"),~(~("b"))]
+   (5)  [~(_|_),_|_,~(a),~(~(a)),~(b),~(~(b))]
                                                    Type : List(OutputForm)
 \end{verbatim}
 
@@ -1924,13 +1924,13 @@ boolean logic for true/false values and extended for the unproven case.
 
      (6)
     SUB
-       matrix,
-        [_|_,_|_,_|_,_|_,_|_,_|_],[_|_,T,"a",~("a"),"b",~("b")],
-        [_|_,"a","a",_|_,("a"/\"b"),("a"/\~("b"))],
-        [_|_,~("a"),_|_,~("a"),(~("a")/\"b"),(~("a")/\~("b"))],
-        [_|_,"b",("b"/\"a"),("b"/\~("a")),"b",_|_],
-        [_|_,~("b"),(~("b")/\"a"),(~("b")/\~("a")),_|_,~("b")]
-
+      matrix,
+      [_|_,_|_,_|_,_|_,_|_,_|_],
+      [_|_,T,a,~(a),b,~(b)],
+      [_|_,a,a,_|_,(a/\b),(a/\~(b))],
+      [_|_,~(a),_|_,~(a),(~(a)/\b),(~(a)/\~(b))],
+      [_|_,b,(b/\a),(b/\~(a)),b,_|_],
+      [_|_,~(b),(~(b)/\a),(~(b)/\~(a)),_|_,~(b)]
                                                                Type : Symbol
 
 Note : Its hard to read this table in text, it displays better as
@@ -1941,13 +1941,12 @@ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/intuitionist
 
      (7)
     SUB
-       matrix,
-        [_|_,T,"a",~("a"),"b",~("b")],[T,T,T,T,T,T],
-        ["a",T,"a",("a"\/~("a")),("a"\/"b"),("a"\/~("b"))],
-        [~("a"),T,(~("a")\/"a"),~("a"),(~("a")\/"b"),(~("a")\/~("b"))],
-        ["b",T,("b"\/"a"),("b"\/~("a")),"b",("b"\/~("b"))],
-        [~("b"),T,(~("b")\/"a"),(~("b")\/~("a")),(~("b")\/"b"),~("b")]
-
+      matrix,
+      [_|_,T,a,~(a),b,~(b)],[T,T,T,T,T,T],
+      [a,T,a,(a\/~(a)),(a\/b),(a\/~(b))],
+      [~(a),T,(~(a)\/a),~(a),(~(a)\/b),(~(a)\/~(b))],
+      [b,T,(b\/a),(b\/~(a)),b,(b\/~(b))],
+      [~(b),T,(~(b)\/a),(~(b)\/~(a)),(~(b)\/b),~(b)]
                                                                Type : Symbol
 \end{verbatim}
 
@@ -1957,15 +1956,13 @@ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/intuitionist
 
    (8)
     SUB
-       matrix,
-        [T,T,(_|_->"a"),(_|_->~("a")),(_|_->"b"),(_|_->~("b"))],
-        [_|_,T,(T->"a"),(T->~("a")),(T->"b"),(T->~("b"))],
-        [("a"->_|_),("a"->T),("a"->"a"),("a"->~("a")),("a"->"b"),("a"->~("b"))],
-        [(~("a")->_|_), (~("a")->T), (~("a")->"a"), (~("a")->~("a")),
-         (~("a")->"b"), (~("a")->~("b"))],
-        [("b"->_|_),("b"->T),("b"->"a"),("b"->~("a")),("b"->"b"),("b"->~("b"))],
-        [(~("b")->_|_), (~("b")->T), (~("b")->"a"), (~("b")->~("a")),
-         (~("b")->"b"), (~("b")->~("b"))]
+      matrix,
+      [T,T,(_|_->a),(_|_->~(a)),(_|_->b),(_|_->~(b))],
+      [_|_,T,(T->a),(T->~(a)),(T->b),(T->~(b))],
+      [(a->_|_),(a->T),(a->a),(a->~(a)),(a->b),(a->~(b))],
+      [(~(a)->_|_),(~(a)->T),(~(a)->a),(~(a)->~(a)),(~(a)->b),(~(a)->~(b))],
+      [(b->_|_),(b->T),(b->a),(b->~(a)),(b->b),(b->~(b))],
+      [(~(b)->_|_),(~(b)->T),(~(b)->a),(~(b)->~(a)),(~(b)->b),(~(b)->~(b))]
                                                                Type : Symbol
 \end{verbatim}
 
@@ -1974,7 +1971,7 @@ go on to represent theories. We can enter a symbolic value as follows:
 \begin{verbatim}
 (9) -> proposition("p1")
 
-   (9)  "p1"
+   (9)  p1
                                                              Type : ILogic
 \end{verbatim}
 
@@ -1985,15 +1982,15 @@ on \verb'a', however in (12) we cannot reduce to a single value.
 \begin{verbatim}
 (10) -> proposition("a") /\ proposition("b")
 
-   (10)  ("a"/\"b")
+   (10)  (a/\b)
                                                              Type : ILogic
 (11) -> implies(proposition("a"),proposition("b"))
 
-   (11)  ("a"->"b")
+   (11)  (a->b)
                                                              Type : ILogic
 (12) -> proposition("a") /\ logicT()
 
-   (12)  "a"
+   (12)  a
                                                              Type : ILogic
 (13) -> proposition("a") /\ logicF()
 
@@ -2006,14 +2003,14 @@ So we first assert 'a' and 'a->b' as follows:
 \begin{verbatim}
 (14) -> givens := proposition("a") /\ implies(proposition("a"),proposition("b"))
 
-   (14)  ("a"/\("a"->"b"))
+   (14)  (a/\(a->b))
                                                              Type : ILogic
 \end{verbatim}
 We then factor into separate terms:
 \begin{verbatim}
 (15) -> fgivens := factor(givens)
 
-   (15)  ["a",("a"->"b")]
+   (15)  [a,(a->b)]
                                                        Type : List(ILogic)
 \end{verbatim}
 note : List ILOGIC to OutputForm is fixed in latest FriCAS so it will
@@ -2023,7 +2020,7 @@ We now apply the deductions function to this list.
 \begin{verbatim}
 (16) -> deduct := deductions(fgivens)
 
-   (16)  ["b"]
+   (16)  [b]
                                                        Type : List(ILogic)
 \end{verbatim}
 so we get the required deduction 'b'
@@ -3607,13 +3604,13 @@ even though all tests terminate eventually.
 \item Disjunction arbitrary arity \/(Ai): is semi-decidable.given Ai, we can test \/(Ai) by running
 all the tests in parallel and stopping when any of them stop.
 \item Implication: A->B isn’t necessarily semi-decidable for the same reason
-that ¬A isn’t, but we still want to reason about the case where A implies B. Therefore, we
+that ~A isn’t, but we still want to reason about the case where A implies B. Therefore, we
 allow A->B with the meaning that A implies B, but only at the 'top level' (you can’t nest
 this connective).
 \item Top is semi-decidable.
 \item Bottom  is semi-decidable.
 \item Not: this algebra does not have 'not'/'complement' because if A is semi-decidable, it’s
-not necessarily the case that ¬A is.
+not necessarily the case that ~A is.
 \end{itemize}
 See [5]
 \subsection{Examples}
@@ -3625,7 +3622,7 @@ For example consider the integers implemented by:
 \end{itemize}
 This constructs a partial order. In this order both meet and join are guaranteed
 to exist (glb and lub) for any finite set of elements. However top and bottom
-don't exist (∞ and -∞ are not integers). in other words we can't take a meet
+don't exist (\infinity and -\infinity are not integers). in other words we can't take a meet
 or a join of an infinite set of elements.
 
 Another example might be a 'tree', this has a bottom element (root) and joins
