@@ -1,0 +1,111 @@
+)if false
+\documentclass{article}
+\usepackage{axiom}
+\usepackage{url}
+\begin{document}
+\title{Simplicial Complex Structures}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+
+
+I have put a fuller explanation of this code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/}
+\end{abstract}
+\section{Related Code}
+
+\section{Introduction}
+
+)endif
+
+)abbrev domain SIMPC SimplicialComplex
+++ Author: Martin Baker
+++ Description: 
+++
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
+    S : SetCategory
+    PI ==> PositiveInteger
+    NNI==> NonNegativeInteger
+    x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+    Exports ==> SetCategory with
+     simplicialComplex: (PrimitiveArray F,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is supplied
+
+    Impl ==> add
+
+      -- Representation holds whole Simplicial Complex. This consists of
+      -- a list of points (each point is a PrimitiveArray(F))
+      -- and a list of faces. each face is list of indexes.
+      -- 
+      -- 
+      Rep := Record(List(PrimitiveArray(F)),List(PrimitiveArray(NNI))
+
+      -- sets the list of all arrows (or edges)
+      setArr(s : %,v:List List Boolean) : Void ==
+        s.struct1 := v
+        void
+
+
+
+--Copyright (c) 2015, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+)if false
+\eject
+\begin{thebibliography}{99}
+For more details see:
+[1] Topology Via Logic - Steven Vickers ISBN 0 521 57651 2
+[2] J. Lambek, P. J. Scott 1988
+     Introduction to Higher-Order Categorical Logic ISBN : 0521356539
+     This book shows the relationship between mathematical logic and category
+     theory. Although this is not used in the current code, it suggests
+     a promising generalisation.
+[3] I have put a fuller explanation of this code here:
+\url{http://http://www.euclideanspace.com/prog/scratchpad/mycode/}
+\end{thebibliography}
+\end{document}
+)endif
+
