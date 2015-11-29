@@ -7,7 +7,13 @@
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
+I would like to code topological spaces in a finite way, simplicial
+complexes allow us to do this in a systematic way.
 
+Simplicial Complexes may not be the most efficient tool, for cutting
+edge topology, in terms the most economical representation. However,
+for computer-science and combinatorial uses, simplicial complexes may
+be the best tool because of their combinatorial simplicity. [1]
 
 I have put a fuller explanation of this code here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/}
@@ -40,25 +46,26 @@ SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
     S : SetCategory
     PI ==> PositiveInteger
     NNI==> NonNegativeInteger
+    Vertex ==> PrimitiveArray(F)
     x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
     Exports ==> SetCategory with
-     simplicialComplex: (PrimitiveArray F,struct1:List List Boolean) -> %
-      ++ constructor where the set and structure is supplied
+      simplicialComplex: (PrimitiveArray F,struct1:List List Boolean) -> %
+       ++ constructor where the vertex set and faces are supplied
 
     Impl ==> add
 
       -- Representation holds whole Simplicial Complex. This consists of
-      -- a list of points (each point is a PrimitiveArray(F))
-      -- and a list of faces. each face is list of indexes.
-      -- 
-      -- 
-      Rep := Record(List(PrimitiveArray(F)),List(PrimitiveArray(NNI))
+      -- a vertex set, here represented as a vertex list so that we can
+      -- index it.
+      -- Also a list of hyper-faces (that is n-dimensional faces). each
+      -- face is an array of vertex indexes.
+      -- So each face is a subset of the vertex set.
+      Rep := Record(List(Vertex),List(PrimitiveArray(NNI))
 
-      -- sets the list of all arrows (or edges)
-      setArr(s : %,v:List List Boolean) : Void ==
-        s.struct1 := v
-        void
+      -- constructor where the vertex set and faces are supplied
+      simplicialComplex(v:List(Vertex),f:List(PrimitiveArray(NNI)):% ==
+        [v,f]
 
 
 
@@ -97,12 +104,10 @@ SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
 \eject
 \begin{thebibliography}{99}
 For more details see:
-[1] Topology Via Logic - Steven Vickers ISBN 0 521 57651 2
-[2] J. Lambek, P. J. Scott 1988
-     Introduction to Higher-Order Categorical Logic ISBN : 0521356539
-     This book shows the relationship between mathematical logic and category
-     theory. Although this is not used in the current code, it suggests
-     a promising generalisation.
+[1] Mathematics++ Kantor,Matousek,Samal 2015  ISBN 978-1-4704-2261-5
+      Chapter 6 - Topology
+[2] Graphs, Surfaces and Homology, Peter Giblin 2010 ISBN 987-0-521-15405-5
+     
 [3] I have put a fuller explanation of this code here:
 \url{http://http://www.euclideanspace.com/prog/scratchpad/mycode/}
 \end{thebibliography}
