@@ -15,7 +15,8 @@ complexes allow us to do this in a systematic way.
 Simplicial Complexes may not be the most efficient tool, for cutting
 edge topology, in terms the most economical representation. However,
 for computer-science and combinatorial uses, simplicial complexes may
-be the best tool because of their combinatorial simplicity. [1]
+be the best tool because of their combinatorial simplicity.
+-- paraphrased from [1].
 
 I have put a fuller explanation of this code here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/}
@@ -23,13 +24,53 @@ I have put a fuller explanation of this code here:
 \section{Related Code}
 
 \section{Introduction}
+The representation holds whole Simplicial Complex. This consists of
+a vertex set, represented as a vertex list so that we can index it.
+Also a list of simplices (that is n-dimensional faces). each simplice
+is an array of vertex indexes. So each simplice is a subset of the
+vertex set.
 
+If the dimension given for the simplicial complex is 'k' then:
+\begin{itemize}
+\item The number of elements in each vertex = k.
+\item The maximum number of vertexes in each simplice = k + 1.
+\end{itemize}
+For example, a trangle has 3 vertexes, so it is maximum size face in 3-1=2 dimensions.
+\begin{table}[]
+\label{Dimensions}
+\begin{tabular}{lll}
+dimension \ vertex \ simplice - (faces) \\
+0 \ 0 elements \ point \\
+1 \ 1 element vertex \ line - (edge) \\
+2 \ 2 element vertex \ triangle \\
+3 \ 3 element vertex \ tetrahedron \\
+n \ n element vertex \ simplice \\
+\end{tabular}
+\end{table}
+
+\section{Abstract Simplicial Complex vs. Simplicial Complex}
+If we apply the restrictions explained so far we have an abstract simplicial complex,
+However, for a simplicial complex there are some additional conditions.
+
+I have not split these into different domains because we can't enforce these additional
+conditions.
+
+\section{Operations on Simplicial Complexes}
+
+Closure -
+Star -
+Join - We will call it a SimplicialJoin since it is not related to joins in lattices.
+
+\section{Simplicial Maps}
+Allow edges to be collapsed into vertices.
+
+\section{Oriented Simplexes Maps}
 )endif
 
 )abbrev domain SIMPC SimplicialComplex
 ++ Author: Martin Baker
 ++ Description: 
-++
+++   A Finite Simplicial Complex
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/
 ++ Date Created: Dec 2015
@@ -52,19 +93,19 @@ SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
 
   Exports ==> SetCategory() with
     simplicialComplex: (v:List(Vertex1),f:List(PrimitiveArray(NNI))) -> %
-     ++ constructor where the vertex set and faces are supplied
+     ++ constructor where the vertex set and simplices are supplied
 
   Impl ==> add
 
    -- Representation holds whole Simplicial Complex. This consists of
    -- a vertex set, here represented as a vertex list so that we can
    -- index it.
-   -- Also a list of hyper-faces (that is n-dimensional faces). each
-   -- face is an array of vertex indexes.
-   -- So each face is a subset of the vertex set.
-   Rep := Record(verts:List(Vertex1),faces:List(PrimitiveArray(NNI)))
+   -- Also a list of simplices (that is n-dimensional faces). each
+   -- simplice is an array of vertex indexes.
+   -- So each simplice is a subset of the vertex set.
+   Rep := Record(verts:List(Vertex1),simplice:List(PrimitiveArray(NNI)))
 
-   -- constructor where the vertex set and faces are supplied
+   -- constructor where the vertex set and simplices are supplied
    simplicialComplex(v:List(Vertex1),f:List(PrimitiveArray(NNI))):% ==
      [v,f]
 
