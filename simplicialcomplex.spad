@@ -7,6 +7,8 @@
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
+simplicialcomplex
+
 I would like to code topological spaces in a finite way, simplicial
 complexes allow us to do this in a systematic way.
 
@@ -43,30 +45,28 @@ I have put a fuller explanation of this code here:
 ++ References:
 
 SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
-    S : SetCategory
-    PI ==> PositiveInteger
-    NNI==> NonNegativeInteger
-    Vertex ==> PrimitiveArray(F)
-    x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+  PI ==> PositiveInteger
+  NNI==> NonNegativeInteger
+  Vertex1 ==> PrimitiveArray(F)
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
-    Exports ==> SetCategory with
-      simplicialComplex: (PrimitiveArray F,struct1:List List Boolean) -> %
-       ++ constructor where the vertex set and faces are supplied
+  Exports ==> SetCategory() with
+    simplicialComplex: (v:List(Vertex1),f:List(PrimitiveArray(NNI))) -> %
+     ++ constructor where the vertex set and faces are supplied
 
-    Impl ==> add
+  Impl ==> add
 
-      -- Representation holds whole Simplicial Complex. This consists of
-      -- a vertex set, here represented as a vertex list so that we can
-      -- index it.
-      -- Also a list of hyper-faces (that is n-dimensional faces). each
-      -- face is an array of vertex indexes.
-      -- So each face is a subset of the vertex set.
-      Rep := Record(List(Vertex),List(PrimitiveArray(NNI))
+   -- Representation holds whole Simplicial Complex. This consists of
+   -- a vertex set, here represented as a vertex list so that we can
+   -- index it.
+   -- Also a list of hyper-faces (that is n-dimensional faces). each
+   -- face is an array of vertex indexes.
+   -- So each face is a subset of the vertex set.
+   Rep := Record(verts:List(Vertex1),faces:List(PrimitiveArray(NNI)))
 
-      -- constructor where the vertex set and faces are supplied
-      simplicialComplex(v:List(Vertex),f:List(PrimitiveArray(NNI)):% ==
-        [v,f]
-
+   -- constructor where the vertex set and faces are supplied
+   simplicialComplex(v:List(Vertex1),f:List(PrimitiveArray(NNI))):% ==
+     [v,f]
 
 
 --Copyright (c) 2015, Martin J Baker.
