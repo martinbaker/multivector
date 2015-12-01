@@ -52,22 +52,94 @@ n \ n element vertex \ simplice \\
 If we apply the restrictions explained so far we have an abstract simplicial complex,
 However, for a simplicial complex there are some additional conditions.
 
-I have not split these into different domains because we can't enforce these additional
-conditions.
+An Abstract Simplicial Complex is purely combinitorial, that is we don't need the
+geometric information.
+
+Therefore the AbstractSimplicialComplex domain does not need coordinates for the
+verticies and they can be denoted by symbols.
 
 \section{Operations on Simplicial Complexes}
 
-Closure -
+Closure - closure of X contains X and all the faces touching X
 Star -
+Link -
 Join - We will call it a SimplicialJoin since it is not related to joins in lattices.
 
 \section{Simplicial Maps}
 Allow edges to be collapsed into vertices.
 
 \section{Oriented Simplexes Maps}
+
+\section{Vertex Set Code}
+We want to represent an indexed set of points, the simplest way to do this is to
+use a list of points.
+
+The vertices themselves may be either:
+\begin{itemize}
+\item literal coordinates.
+\item symbolic vertex names.
+\item numeric indexes.
+\end{itemize}
+So we cave a category that can represent any of these types and then a domain for
+each type.
 )endif
 
-)abbrev domain SIMPC SimplicialComplex
+)abbrev category VERTS VertexSet
+++ Author: Martin Baker
+++ Description:
+++   An indexed set of verticies
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/
+++ Related Domains:
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+VertexSet() : Category == Definition where
+ NNI==> NonNegativeInteger
+ Definition ==> SetCategory() with
+    vertexSet: (v:List(PrimitiveArray(F))) -> %
+     ++ constructor where the vertex set is supplied
+
+)abbrev domain CVERTS CoordVertexSet
+++ Author: Martin Baker
+++ Description: 
+++   An indexed set of verticies
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+CoordVertexSet(F:Field) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> VertexSet() with
+    vertexSet: (v:List(PrimitiveArray(F))) -> %
+     ++ constructor where the vertex set is supplied
+
+  Impl ==> add
+
+   -- Representation holds the vertex set, represented as a
+   -- vertex list so that we can index it.
+   Rep := List(PrimitiveArray(F))
+
+   -- constructor where the vertex set is supplied
+   vertexSet(v:List(PrimitiveArray(F))):% ==
+     v
+     
+)if false
+
+)endif
+
+)abbrev domain SIMPC FiniteSimplicialComplex
 ++ Author: Martin Baker
 ++ Description: 
 ++   A Finite Simplicial Complex
@@ -85,7 +157,7 @@ Allow edges to be collapsed into vertices.
 ++ Examples: 
 ++ References:
 
-SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
+FiniteSimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
   PI ==> PositiveInteger
   NNI==> NonNegativeInteger
   Vertex1 ==> PrimitiveArray(F)
@@ -108,7 +180,6 @@ SimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
    -- constructor where the vertex set and simplices are supplied
    simplicialComplex(v:List(Vertex1),f:List(PrimitiveArray(NNI))):% ==
      [v,f]
-
 
 --Copyright (c) 2015, Martin J Baker.
 --All rights reserved.
@@ -148,8 +219,14 @@ For more details see:
 [1] Mathematics++ Kantor,Matousek,Samal 2015  ISBN 978-1-4704-2261-5
       Chapter 6 - Topology
 [2] Graphs, Surfaces and Homology, Peter Giblin 2010 ISBN 987-0-521-15405-5
-     
-[3] I have put a fuller explanation of this code here:
+
+[3] Wikipedia
+\url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
+
+[4] Finite simplicial complexes in Sage
+\url{http://http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
+
+[5] I have put a fuller explanation of this code here:
 \url{http://http://www.euclideanspace.com/prog/scratchpad/mycode/}
 \end{thebibliography}
 \end{document}
