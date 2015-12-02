@@ -19,7 +19,7 @@ be the best tool because of their combinatorial simplicity.
 -- paraphrased from [1].
 
 I have put a fuller explanation of this code here:
-\url{http://www.euclideanspace.com/prog/scratchpad/mycode/}
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/}
 \end{abstract}
 \section{Related Code}
 
@@ -71,8 +71,8 @@ Allow edges to be collapsed into vertices.
 \section{Oriented Simplexes Maps}
 
 \section{Vertex Set Code}
-We want to represent an indexed set of points, the simplest way to do this is to
-use a list of points.
+We want an indexed set of points, the simplest way to do the indexing is to use
+'List' instead of 'Set'.
 
 The vertices themselves may be either:
 \begin{itemize}
@@ -89,7 +89,7 @@ each type.
 ++ Description:
 ++   An indexed set of verticies
 ++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/
 ++ Related Domains:
 ++ Date Created: Dec 2015
 ++ Date Last Updated: Dec 2015
@@ -99,12 +99,17 @@ VertexSet() : Category == Definition where
     vertexSet: (v:List(PrimitiveArray(F))) -> %
      ++ constructor where the vertex set is supplied
 
-)abbrev domain CVERTS CoordVertexSet
+)if false
+We want to represent an indexed set of points, the simplest way to do this is to
+use a list of points.
+)endif
+
+)abbrev domain CVERTS VertexSetCoord
 ++ Author: Martin Baker
 ++ Description: 
-++   An indexed set of verticies
+++   An indexed set of verticies represented as coordinates.
 ++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/
 ++ Date Created: Dec 2015
 ++ Date Last Updated: Dec 2015
 ++ Basic Operations:
@@ -117,7 +122,7 @@ VertexSet() : Category == Definition where
 ++ Examples: 
 ++ References:
 
-CoordVertexSet(F:Field) : Exports == Impl where
+VertexSetCoord(F:Field) : Exports == Impl where
   NNI==> NonNegativeInteger
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
@@ -144,7 +149,7 @@ CoordVertexSet(F:Field) : Exports == Impl where
 ++ Description: 
 ++   A Finite Simplicial Complex
 ++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/
 ++ Date Created: Dec 2015
 ++ Date Last Updated: Dec 2015
 ++ Basic Operations:
@@ -157,14 +162,13 @@ CoordVertexSet(F:Field) : Exports == Impl where
 ++ Examples: 
 ++ References:
 
-FiniteSimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
+FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   PI ==> PositiveInteger
   NNI==> NonNegativeInteger
-  Vertex1 ==> PrimitiveArray(F)
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    simplicialComplex: (v:List(Vertex1),f:List(PrimitiveArray(NNI))) -> %
+    simplicialComplex: (v:VS,f:List(PrimitiveArray(NNI))) -> %
      ++ constructor where the vertex set and simplices are supplied
 
   Impl ==> add
@@ -175,10 +179,10 @@ FiniteSimplicialComplex(k:PositiveInteger,F:Field) : Exports == Impl where
    -- Also a list of simplices (that is n-dimensional faces). each
    -- simplice is an array of vertex indexes.
    -- So each simplice is a subset of the vertex set.
-   Rep := Record(verts:List(Vertex1),simplice:List(PrimitiveArray(NNI)))
+   Rep := Record(verts:VS,simplice:List(PrimitiveArray(NNI)))
 
    -- constructor where the vertex set and simplices are supplied
-   simplicialComplex(v:List(Vertex1),f:List(PrimitiveArray(NNI))):% ==
+   simplicialComplex(v:VS,f:List(PrimitiveArray(NNI))):% ==
      [v,f]
 
 --Copyright (c) 2015, Martin J Baker.
@@ -227,7 +231,7 @@ For more details see:
 \url{http://http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
 
 [5] I have put a fuller explanation of this code here:
-\url{http://http://www.euclideanspace.com/prog/scratchpad/mycode/}
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/}
 \end{thebibliography}
 \end{document}
 )endif
