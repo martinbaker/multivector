@@ -7,7 +7,6 @@
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
-simplicialcomplex
 
 I would like to code topological spaces in a finite way, simplicial
 complexes allow us to do this in a systematic way.
@@ -96,20 +95,23 @@ each type.
 VertexSet() : Category == Definition where
  NNI==> NonNegativeInteger
  Definition ==> SetCategory() with
-    vertexSet: (v:List(PrimitiveArray(F))) -> %
-     ++ constructor where the vertex set is supplied
+   maxFaces:(a:%) -> NNI
+     ++ return the maximum number of faces
 
 )if false
+This is VertexSet for a geometric simplicial complex. In this case each vertex is
+represented by a point in some underlying space.
+
 We want to represent an indexed set of points, the simplest way to do this is to
 use a list of points.
 )endif
 
-)abbrev domain CVERTS VertexSetCoord
+)abbrev domain VERTSC VertexSetCoord
 ++ Author: Martin Baker
 ++ Description: 
 ++   An indexed set of verticies represented as coordinates.
 ++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/geometric/
 ++ Date Created: Dec 2015
 ++ Date Last Updated: Dec 2015
 ++ Basic Operations:
@@ -130,6 +132,9 @@ VertexSetCoord(F:Field) : Exports == Impl where
     vertexSet: (v:List(PrimitiveArray(F))) -> %
      ++ constructor where the vertex set is supplied
 
+    dimension:(a:%) -> NNI
+     ++ return dimension of underlying space
+
   Impl ==> add
 
    -- Representation holds the vertex set, represented as a
@@ -139,7 +144,84 @@ VertexSetCoord(F:Field) : Exports == Impl where
    -- constructor where the vertex set is supplied
    vertexSet(v:List(PrimitiveArray(F))):% ==
      v
-     
+
+   -- return dimension of underlying space
+   -- in this case assume its how many numbers used to specify a point
+   dimension(a:%):NNI ==
+     res:NNI := 0
+     for b in a repeat
+       if #b > res then res:=#b
+     res
+
+   -- return the maximum number of faces
+   maxFaces(a:%):NNI ==
+     #a
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     if empty?(s) then return bracket(empty()$OutputForm)
+     mat:List List OutputForm := empty()$List(List(OutputForm))
+     for a in s repeat
+       row:List OutputForm := empty()$List(OutputForm)
+       if empty?(members(a))$List(F)
+         then
+           row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
+         else
+           for b in members(a) repeat
+             row := concat(row,b::OutputForm)$List(OutputForm)
+       mat := concat(mat,row)
+     matrix(mat)
+
+)if false
+This is VertexSet for an abstract simplicial complex. In this case each vertex is
+represented by an index without any underlying coordinates.
+
+)endif
+
+)abbrev domain VERTSA VertexSetAbstract
+++ Author: Martin Baker
+++ Description: 
+++   An indexed set of abstract verticies without real coordinates.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+VertexSetAbstract(max) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  max:NNI
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> VertexSet() with
+    vertexSeta: (d:NNI) -> %
+     ++ constructor for abstract vertex set
+
+  Impl ==> add
+
+   -- Representation holds the vertex set, represented as a
+   -- vertex list so that we can index it.
+   Rep := NNI
+
+   -- constructor for abstract vertex set
+   vertexSeta(d:NNI):% ==
+     d
+
+   -- return the maximum number of faces
+   maxFaces(a:%):NNI ==
+     max
+
+   -- output
+   coerce(s : %) : OutputForm == outputForm(s pretend NNI)$OutputForm
+ 
 )if false
 
 )endif
@@ -163,13 +245,13 @@ VertexSetCoord(F:Field) : Exports == Impl where
 ++ References:
 
 FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
-  PI ==> PositiveInteger
   NNI==> NonNegativeInteger
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    simplicialComplex: (v:VS,f:List(PrimitiveArray(NNI))) -> %
-     ++ constructor where the vertex set and simplices are supplied
+    simplicialComplex: (f:List(List(NNI))) -> %
+     ++ constructor where the simplices are supplied
+    boundaryLine: (a:%) -> List(NNI)
 
   Impl ==> add
 
@@ -179,11 +261,30 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- Also a list of simplices (that is n-dimensional faces). each
    -- simplice is an array of vertex indexes.
    -- So each simplice is a subset of the vertex set.
-   Rep := Record(verts:VS,simplice:List(PrimitiveArray(NNI)))
+   Rep := List(List(NNI))
 
    -- constructor where the vertex set and simplices are supplied
-   simplicialComplex(v:VS,f:List(PrimitiveArray(NNI))):% ==
-     [v,f]
+   simplicialComplex(f:List(List(NNI))):% == f
+
+   -- constructor where the vertex set and simplices are supplied
+   boundaryLine(a:%):List(NNI) ==
+     [1]
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     if empty?(s) then return bracket(empty()$OutputForm)
+     mat:List List OutputForm := empty()$List(List(OutputForm))
+     for a in s repeat
+       row:List OutputForm := empty()$List(OutputForm)
+       if empty?(a)$List(NNI)
+         then
+           row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
+         else
+           for b in a repeat
+             row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
+       mat := concat(mat,row)
+     matrix(mat)
+
 
 --Copyright (c) 2015, Martin J Baker.
 --All rights reserved.
