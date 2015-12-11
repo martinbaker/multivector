@@ -246,12 +246,14 @@ VertexSetAbstract(max) : Exports == Impl where
 
 FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   NNI==> NonNegativeInteger
+  PAIR ==> Record(fst:NNI,sec:NNI)
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
     simplicialComplex: (f:List(List(NNI))) -> %
      ++ constructor where the simplices are supplied
-    boundaryLine: (a:%) -> List(NNI)
+    boundaryLine: (s:%) -> List(List(NNI))
+     ++ returns line around area assuming simplexes are all wound in same direction
 
   Impl ==> add
 
@@ -266,9 +268,37 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- constructor where the vertex set and simplices are supplied
    simplicialComplex(f:List(List(NNI))):% == f
 
-   -- constructor where the vertex set and simplices are supplied
-   boundaryLine(a:%):List(NNI) ==
-     [1]
+   -- returns line around area assuming simplexes are all wound in same direction
+   -- TODO try to put the segments on the line in order
+   boundaryLine(s:%):List(List(NNI)) ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     lines:List(PAIR) := empty()$List(PAIR)
+     for simp in s repeat
+       firstEntry:NNI := 0
+       for n in 1..(#simp) repeat
+         if n = 1 then firstEntry := simp.n
+         if n = #simp then
+           line:PAIR := construct(simp.n,firstEntry)$PAIR
+           lines := concat(lines,line)$List(PAIR)
+         if n < #simp then
+           line:PAIR := construct(simp.n,simp.(n+1))$PAIR
+           lines := concat(lines,line)$List(PAIR)
+     cancel:List(PAIR) := empty()$List(PAIR)
+     for x in lines repeat
+       pair:List(NNI) := [x.fst,x.sec]
+       if member?(x,cancel)
+         then
+           cancel := remove(x,cancel)$List(PAIR)
+         else
+           rev:PAIR := construct(x.sec,x.fst)$PAIR
+           -- TODO should really check that segment has not already been
+           -- canceled
+           if member?(rev,lines)
+             then
+               cancel := concat(cancel,rev)$List(PAIR)
+             else
+               res := concat(res,pair)$List(List(NNI))
+     res
 
    -- output
    coerce(s : %) : OutputForm ==
