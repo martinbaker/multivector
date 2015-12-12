@@ -252,8 +252,19 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   Exports ==> SetCategory() with
     simplicialComplex: (f:List(List(NNI))) -> %
      ++ constructor where the simplices are supplied
-    boundaryLine: (s:%) -> List(List(NNI))
+    boundaryLine: (s:%) -> %
      ++ returns line around area assuming simplexes are all wound in same direction
+     ++ For more information about such topological functions see this page:
+     ++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/topo/
+    star:(s:%,v:NNI) -> %
+     ++ The 'star' of a simplicial complex and a vertex contains only the simplexes
+     ++ of s which include vertex 'v'.
+    link:(s:%,v:NNI) -> %
+     ++ The 'link' of a simplicial complex and a vertex contains the boundary of the
+     ++ simplexes of s which include vertex 'v'.
+    SimplicialJoin:(a:%,b:FiniteSimplicialComplex(VS)) -> FiniteSimplicialComplex(VS)
+     ++ Forms disjoint union of two simplicial complexes, the resulting complex may
+     ++ be a different type since it has a different number of verticies.
 
   Impl ==> add
 
@@ -270,7 +281,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- returns line around area assuming simplexes are all wound in same direction
    -- TODO try to put the segments on the line in order
-   boundaryLine(s:%):List(List(NNI)) ==
+   -- For more information about such topological functions see this page:
+   -- http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/topo/
+   boundaryLine(s:%):% ==
      res:List(List(NNI)) := empty()$List(List(NNI))
      lines:List(PAIR) := empty()$List(PAIR)
      for simp in s repeat
@@ -298,7 +311,24 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
                cancel := concat(cancel,rev)$List(PAIR)
              else
                res := concat(res,pair)$List(List(NNI))
+     simplicialComplex(res)
+
+   -- The 'star' of a simplicial complex and a vertex contains only the simplexes
+   -- of s which include vertex 'v'.
+   star(s:%,v:NNI):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     for simp in s repeat
+       found:Boolean := false
+       for x in simp repeat
+         if x=v then found := true
+       if found then
+         res:=concat(res,simp)
      res
+
+   -- The 'link' of a simplicial complex and a vertex contains the boundary of the
+   -- simplexes of s which include vertex 'v'.
+   link(s:%,v:NNI):% ==
+     boundaryLine(star(s,v))
 
    -- output
    coerce(s : %) : OutputForm ==
