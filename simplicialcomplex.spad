@@ -338,6 +338,18 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    link(s:%,v:NNI):% ==
      boundaryLine(star(s,v))
 
+   -- Forms disjoint union of two simplicial complexes.
+   SimplicialJoin(a:%,b:%):% ==
+     c:VS := join(a.VERTS,b.VERTS)
+     offset:NNI := maxFaces(a.VERTS)
+     res:List(List(NNI)) := copy(a.SIMP)
+     for x in b.SIMP repeat
+       thisSimp:List(NNI) := empty()$List(NNI)
+       for n in x repeat
+         thisSimp := concat(thisSimp,n+offset)
+       res := concat(res,thisSimp)
+     simplicialComplex(c,res)
+
    -- output
    coerce(s : %) : OutputForm ==
      if empty?(s.SIMP) then return bracket(empty()$OutputForm)
@@ -352,16 +364,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
              row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
        mat := concat(mat,row)
      matrix(mat)
-
-   -- Forms disjoint union of two simplicial complexes.
-   SimplicialJoin(a:%,b:%):% ==
-     c:VS := join(a.VERTS,b.VERTS)
-     offset:NNI := maxFaces(a.VERTS)
-     res:List(List(NNI)) := copy(a.SIMP)
-     for x in b.SIMP repeat
-       thisSimp:List(NNI) := copy(x)
-       res := concat(res,thisSimp)
-     simplicialComplex(c,res)
 
 --Copyright (c) 2015, Martin J Baker.
 --All rights reserved.
