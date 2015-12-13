@@ -271,7 +271,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
     link:(s:%,v:NNI) -> %
      ++ The 'link' of a simplicial complex and a vertex contains the boundary of the
      ++ simplexes of s which include vertex 'v'.
-    SimplicialJoin:(a:%,b:%) -> %
+    simplicialJoin:(a:%,b:%) -> %
      ++ Forms disjoint union of two simplicial complexes.
 
   Impl ==> add
@@ -339,29 +339,37 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      boundaryLine(star(s,v))
 
    -- Forms disjoint union of two simplicial complexes.
-   SimplicialJoin(a:%,b:%):% ==
+   simplicialJoin(a:%,b:%):% ==
      c:VS := join(a.VERTS,b.VERTS)
      offset:NNI := maxFaces(a.VERTS)
      res:List(List(NNI)) := copy(a.SIMP)
      for x in b.SIMP repeat
        thisSimp:List(NNI) := empty()$List(NNI)
        for n in x repeat
+         print ("n="::Symbol << n << " offset="::Symbol << offset)
          thisSimp := concat(thisSimp,n+offset)
        res := concat(res,thisSimp)
+     print ("res="::Symbol << res)
      simplicialComplex(c,res)
 
    -- output
    coerce(s : %) : OutputForm ==
      if empty?(s.SIMP) then return bracket(empty()$OutputForm)
      mat:List List OutputForm := empty()$List(List(OutputForm))
+     -- matrix does not like different row widths so we need to
+     -- know the maximum width so we can pad to that width.
+     maxWidth:NNI := 0
+     for a in s.SIMP repeat
+       if #a > maxWidth then maxWidth := #a
+     if maxWidth = 0 then return empty()$OutputForm
      for a in s.SIMP repeat
        row:List OutputForm := empty()$List(OutputForm)
-       if empty?(a)$List(NNI)
-         then
-           row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
-         else
-           for b in a repeat
-             row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
+       for b in a repeat
+         row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
+       w:NNI := #a
+       while w < maxWidth repeat
+         row := concat(row,empty()$OutputForm)$List(OutputForm)
+         w:= w+1
        mat := concat(mat,row)
      matrix(mat)
 
