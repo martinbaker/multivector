@@ -97,6 +97,8 @@ VertexSet() : Category == Definition where
  Definition ==> SetCategory() with
    maxFaces:(a:%) -> NNI
      ++ return the maximum number of faces
+   join:(a:%,b:%) -> %
+     ++ disjoint union of two vertex sets
 
 )if false
 This is VertexSet for a geometric simplicial complex. In this case each vertex is
@@ -157,6 +159,10 @@ VertexSetCoord(F:Field) : Exports == Impl where
    maxFaces(a:%):NNI ==
      #a
 
+   -- disjoint union of two vertex sets
+   join(a:%,b:%):% ==
+     concat(a,b)
+
    -- output
    coerce(s : %) : OutputForm ==
      if empty?(s) then return bracket(empty()$OutputForm)
@@ -196,9 +202,8 @@ represented by an index without any underlying coordinates.
 ++ Examples: 
 ++ References:
 
-VertexSetAbstract(max) : Exports == Impl where
+VertexSetAbstract() : Exports == Impl where
   NNI==> NonNegativeInteger
-  max:NNI
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> VertexSet() with
@@ -217,7 +222,11 @@ VertexSetAbstract(max) : Exports == Impl where
 
    -- return the maximum number of faces
    maxFaces(a:%):NNI ==
-     max
+     a pretend NNI
+
+   -- disjoint union of two vertex sets
+   join(a:%,b:%):% ==
+     a+b
 
    -- output
    coerce(s : %) : OutputForm == outputForm(s pretend NNI)$OutputForm
@@ -250,7 +259,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    simplicialComplex: (f:List(List(NNI))) -> %
+    simplicialComplex: (v:VS,f:List(List(NNI))) -> %
      ++ constructor where the simplices are supplied
     boundaryLine: (s:%) -> %
      ++ returns line around area assuming simplexes are all wound in same direction
@@ -262,9 +271,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
     link:(s:%,v:NNI) -> %
      ++ The 'link' of a simplicial complex and a vertex contains the boundary of the
      ++ simplexes of s which include vertex 'v'.
-    SimplicialJoin:(a:%,b:FiniteSimplicialComplex(VS)) -> FiniteSimplicialComplex(VS)
-     ++ Forms disjoint union of two simplicial complexes, the resulting complex may
-     ++ be a different type since it has a different number of verticies.
+    SimplicialJoin:(a:%,b:%) -> %
+     ++ Forms disjoint union of two simplicial complexes.
 
   Impl ==> add
 
@@ -274,10 +282,10 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- Also a list of simplices (that is n-dimensional faces). each
    -- simplice is an array of vertex indexes.
    -- So each simplice is a subset of the vertex set.
-   Rep := List(List(NNI))
+   Rep := Record(VERTS:VS,SIMP:List(List(NNI)))
 
    -- constructor where the vertex set and simplices are supplied
-   simplicialComplex(f:List(List(NNI))):% == f
+   simplicialComplex(v:VS,f:List(List(NNI))):% == [v,f]
 
    -- returns line around area assuming simplexes are all wound in same direction
    -- TODO try to put the segments on the line in order
@@ -286,7 +294,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    boundaryLine(s:%):% ==
      res:List(List(NNI)) := empty()$List(List(NNI))
      lines:List(PAIR) := empty()$List(PAIR)
-     for simp in s repeat
+     for simp in s.SIMP repeat
        firstEntry:NNI := 0
        for n in 1..(#simp) repeat
          if n = 1 then firstEntry := simp.n
@@ -311,19 +319,19 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
                cancel := concat(cancel,rev)$List(PAIR)
              else
                res := concat(res,pair)$List(List(NNI))
-     simplicialComplex(res)
+     simplicialComplex(s.VERTS,res)
 
    -- The 'star' of a simplicial complex and a vertex contains only the simplexes
    -- of s which include vertex 'v'.
    star(s:%,v:NNI):% ==
      res:List(List(NNI)) := empty()$List(List(NNI))
-     for simp in s repeat
+     for simp in s.SIMP repeat
        found:Boolean := false
        for x in simp repeat
          if x=v then found := true
        if found then
          res:=concat(res,simp)
-     res
+     simplicialComplex(s.VERTS,res)
 
    -- The 'link' of a simplicial complex and a vertex contains the boundary of the
    -- simplexes of s which include vertex 'v'.
@@ -332,9 +340,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- output
    coerce(s : %) : OutputForm ==
-     if empty?(s) then return bracket(empty()$OutputForm)
+     if empty?(s.SIMP) then return bracket(empty()$OutputForm)
      mat:List List OutputForm := empty()$List(List(OutputForm))
-     for a in s repeat
+     for a in s.SIMP repeat
        row:List OutputForm := empty()$List(OutputForm)
        if empty?(a)$List(NNI)
          then
@@ -345,6 +353,15 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        mat := concat(mat,row)
      matrix(mat)
 
+   -- Forms disjoint union of two simplicial complexes.
+   SimplicialJoin(a:%,b:%):% ==
+     c:VS := join(a.VERTS,b.VERTS)
+     offset:NNI := maxFaces(a.VERTS)
+     res:List(List(NNI)) := copy(a.SIMP)
+     for x in b.SIMP repeat
+       thisSimp:List(NNI) := copy(x)
+       res := concat(res,thisSimp)
+     simplicialComplex(c,res)
 
 --Copyright (c) 2015, Martin J Baker.
 --All rights reserved.
