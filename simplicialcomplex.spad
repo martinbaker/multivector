@@ -346,11 +346,54 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      for x in b.SIMP repeat
        thisSimp:List(NNI) := empty()$List(NNI)
        for n in x repeat
-         print ("n="::Symbol << n << " offset="::Symbol << offset)
+         -- print ("n="::Symbol << n << " offset="::Symbol << offset)
          thisSimp := concat(thisSimp,n+offset)
        res := concat(res,thisSimp)
-     print ("res="::Symbol << res)
+     -- print ("res="::Symbol << res)
      simplicialComplex(c,res)
+
+   -- Local function used by '=' to check if two simplexes are equal.
+   -- To be equal they must contain the same indexes, wound in the same
+   -- direction but not necessarily starting at the same value.
+   equalSimplex(a:List(NNI),b:List(NNI)):Boolean ==
+     --print("equalSimplex:"::Symbol << a << ","::Symbol << b)
+     len:NNI := #a
+     if len ~= #b then return false
+     if len = 0 then return true
+     fst:NNI := first a
+     offset:Integer := position(fst,b)
+     if offset <1 then return false
+     for n in 1..#a repeat
+       if a.n ~= b.offset then return false
+       offset := offset+1
+       if offset > #b then offset := 1
+     true
+
+   -- Returns true if x equals y.
+   -- That is, they contain the same simplexes, although not necessarily in the
+   -- same order.
+   -- TODO - Assumes point set is exactly the same, for more generality we should allow
+   -- the points to be defined in a different order.
+   _=(a : %, b : %) : Boolean ==
+     as := a.SIMP
+     bs := b.SIMP
+     --print("equal:"::Symbol << as << ","::Symbol << bs)
+     len:NNI := #as
+     if len ~= #bs then return false
+     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+     --print("empty flags "::Symbol << flags)
+     for a1 in as repeat
+       x:NNI := 1
+       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
+         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+         x:=x+1
+         if x > #as then return false
+       flags.x := true
+       --print("flags."::Symbol << x << "=true "::Symbol << flags)
+     --print("final flags "::Symbol << flags)
+     for f in flags repeat
+       if f=false then return false
+     true
 
    -- output
    coerce(s : %) : OutputForm ==
