@@ -256,6 +256,7 @@ VertexSetAbstract() : Exports == Impl where
 FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   NNI==> NonNegativeInteger
   PAIR ==> Record(fst:NNI,sec:NNI)
+  SIMPLEX ==> List(NNI)
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
@@ -265,12 +266,17 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ returns line around area assuming simplexes are all wound in same direction
      ++ For more information about such topological functions see this page:
      ++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/topo/
-    star:(s:%,v:NNI) -> %
+    star:(s:%,simplex:SIMPLEX) -> %
      ++ The 'star' of a simplicial complex and a vertex contains only the simplexes
      ++ of s which include vertex 'v'.
-    link:(s:%,v:NNI) -> %
+    link:(s:%,simplex:SIMPLEX) -> %
      ++ The 'link' of a simplicial complex and a vertex contains the boundary of the
      ++ simplexes of s which include vertex 'v'.
+    cone:(s:%,vertex:NNI) -> %
+     ++ The 'cone' of a simplicial complex is formed by adding the vertex to every
+     ++ facet.
+     ++ 'vertex' should not already be included in existing faces, this is not checked
+     ++ and so will lead to simplexed with duplicate verticies.
     simplicialJoin:(a:%,b:%) -> %
      ++ Forms disjoint union of two simplicial complexes.
 
@@ -321,22 +327,60 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
                res := concat(res,pair)$List(List(NNI))
      simplicialComplex(s.VERTS,res)
 
-   -- The 'star' of a simplicial complex and a vertex contains only the simplexes
-   -- of s which include vertex 'v'.
-   star(s:%,v:NNI):% ==
+   -- local function, used by isFaceOf and subtract, which returns true if
+   -- vertex 'b' is contained in face 'a'.
+   isVertexOf(sa:SIMPLEX,vb:NNI):Boolean ==
+     for vertex in sa repeat
+       if vertex=vb then
+         --print("isVertexOf("::Symbol << sa << ","::Symbol << vb << ")=true"::Symbol)
+         return true
+     --print("isVertexOf("::Symbol << sa << ","::Symbol << vb << ")=false"::Symbol)
+     false
+
+   -- local function, used by link, which returns true if face 'b' is
+   -- contained in face 'a'.
+   isFaceOf(sa:SIMPLEX,sb:SIMPLEX):Boolean ==
+     for vertex in sb repeat
+       if not isVertexOf(sa,vertex) then return false
+     --print("isFaceOf("::Symbol << sa << ","::Symbol << sb << ")=true"::Symbol)
+     true
+ 
+   -- local function, used by link, which returns face 'a' minus
+   -- the verticies in face 'b'.
+   subtract(sa:SIMPLEX,sb:SIMPLEX):SIMPLEX ==
+     --print("subtract("::Symbol << sa << ","::Symbol << sb << ")="::Symbol << setDifference(sb,sa)$SIMPLEX)
+     setDifference(sb,sa)$SIMPLEX
+
+   -- The 'star' of a simplicial complex and a simplex contains only the simplexes
+   -- of s which include simplex.
+   star(s:%,simplex:SIMPLEX):% ==
      res:List(List(NNI)) := empty()$List(List(NNI))
      for simp in s.SIMP repeat
-       found:Boolean := false
-       for x in simp repeat
-         if x=v then found := true
-       if found then
+       if isFaceOf(simp,simplex) then
          res:=concat(res,simp)
      simplicialComplex(s.VERTS,res)
 
-   -- The 'link' of a simplicial complex and a vertex contains the boundary of the
-   -- simplexes of s which include vertex 'v'.
-   link(s:%,v:NNI):% ==
-     boundaryLine(star(s,v))
+   -- The 'link' of a simplicial complex and a simplex contains the boundary of the
+   -- simplexes of s which include simplex.
+   -- If s is continous then link is: boundaryLine(star(s,simplex))
+   link(s:%,simplex:SIMPLEX):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     for facet in s.SIMP repeat
+       if isFaceOf(facet,simplex) then
+         x:SIMPLEX := subtract(simplex,facet)
+         res:=concat(res,x)
+     simplicialComplex(s.VERTS,res)
+
+   -- The 'cone' of a simplicial complex is formed by adding the vertex to every
+   -- facet.
+   -- 'vertex' should not already be included in existing faces, this is not checked
+   -- and so will lead to simplexed with duplicate verticies.
+   cone(s:%,vertex:NNI):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     for facet in s.SIMP repeat
+       x:SIMPLEX := concat(facet,vertex)
+       res:=concat(res,x)
+     simplicialComplex(s.VERTS,res)
 
    -- Forms disjoint union of two simplicial complexes.
    simplicialJoin(a:%,b:%):% ==
@@ -458,11 +502,21 @@ For more details see:
 [3] Wikipedia
 \url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
 
-[4] Finite simplicial complexes in Sage
-\url{http://http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
-
-[5] I have put a fuller explanation of this code here:
+[4] I have put a fuller explanation of this code here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/}
+
+[5] Finite simplicial complexes in Sage
+\url{http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
+
+[6] Finite simplicial complexes in NPM
+\url{https://www.npmjs.com/package/simplicial-complex}
+
+[7] Simpcomp - a GAP package for working with simplicial complexes
+\url{https://code.google.com/p/simpcomp/}
+
+[8] A Macaulay2 package for working with simplicial complexes
+\url{http://www.math.uiuc.edu/Macaulay2/doc/Macaulay2-1.8.2/share/doc/Macaulay2/SimplicialComplexes/html}
+
 \end{thebibliography}
 \end{document}
 )endif
