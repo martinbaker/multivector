@@ -15,12 +15,27 @@ Simplicial Complexes may not be the most efficient tool, for cutting
 edge topology, in terms the most economical representation. However,
 for computer-science and combinatorial uses, simplicial complexes may
 be the best tool because of their combinatorial simplicity.
--- paraphrased from [1].
+- paraphrased from [1].
 
 I have put a fuller explanation of this code here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/}
 \end{abstract}
 \section{Related Code}
+
+Simplicial Complexes are a generalisation of graph theory as implemented here:
+https://github.com/fricas/fricas/blob/master/src/algebra/graph.spad
+I will implement coercions from graphs to simplicial complexes.
+
+I have not yet investigated whether this code can be linked to existing code such as:
+
+DeRhamComplex
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/derham.spad}
+
+DifferentialGeometry
+\url{http://axiom-wiki.newsynthesis.org/SandBoxDifferentialGeometry}
+
+UnitGaussianElimination
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/smith2.spad}
 
 \section{Introduction}
 The representation holds whole Simplicial Complex. This consists of
@@ -396,6 +411,32 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      -- print ("res="::Symbol << res)
      simplicialComplex(c,res)
 
+   -- local function used by simplexProduct.
+   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
+     res:Integer := (indexA + indexB*maxA)::Integer
+     if res<1 then error "productIndex out of range"
+     (res-1)::NNI
+
+   -- local function, used by product of simplicial complexes, this local function returns
+   -- the product of two simplexes.
+   -- For more detailed explanation of simplex product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/simplex/product/}
+   -- Also see Hatcher [9].
+   -- page 277 - The simplical cross product.
+   -- page 278 - The cohomology cross product.
+   -- Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
+   -- of entries in sa and y is number of entries in sb.
+   -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
+   -- be done by combinatorics code?
+   simplexProduct(sa:SIMPLEX,sb:SIMPLEX):List(SIMPLEX) ==
+     --print("simplexProduct("::Symbol << sa << ","::Symbol << sb << ")"::Symbol)
+     if #sa = 0 or #sb = 0 then return [empty()$SIMPLEX]
+     if #sa = 1 then return [[productIndex(1,x,1) for x in sb]]
+     if #sb = 1 then return [[productIndex(x,1,#sa) for x in sa]]
+     path1:SIMPLEX := concat(last simplexProduct(sa,sb),1)
+     path2:SIMPLEX := concat(last simplexProduct(sa,sb),1)
+     [concat(path1,path2)]
+
    -- Local function used by '=' to check if two simplexes are equal.
    -- To be equal they must contain the same indexes, wound in the same
    -- direction but not necessarily starting at the same value.
@@ -516,6 +557,9 @@ For more details see:
 
 [8] A Macaulay2 package for working with simplicial complexes
 \url{http://www.math.uiuc.edu/Macaulay2/doc/Macaulay2-1.8.2/share/doc/Macaulay2/SimplicialComplexes/html}
+
+[9] Hatcher - Algebraic Topology
+\url{https://www.math.cornell.edu/~hatcher/AT/AT.pdf}
 
 \end{thebibliography}
 \end{document}
