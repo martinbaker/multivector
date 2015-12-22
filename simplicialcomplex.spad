@@ -114,6 +114,8 @@ VertexSet() : Category == Definition where
      ++ return the maximum number of faces
    join:(a:%,b:%) -> %
      ++ disjoint union of two vertex sets
+   prod:(a:%,b:%) -> %
+     ++ product of two vertex sets
 
 )if false
 This is VertexSet for a geometric simplicial complex. In this case each vertex is
@@ -177,6 +179,9 @@ VertexSetCoord(F:Field) : Exports == Impl where
    -- disjoint union of two vertex sets
    join(a:%,b:%):% ==
      concat(a,b)
+
+   prod(a:%,b:%):% ==
+     a
 
    -- output
    coerce(s : %) : OutputForm ==
@@ -243,6 +248,10 @@ VertexSetAbstract() : Exports == Impl where
    join(a:%,b:%):% ==
      a+b
 
+   -- product of two vertex sets
+   prod(a:%,b:%):% ==
+     a*b
+
    -- output
    coerce(s : %) : OutputForm == outputForm(s pretend NNI)$OutputForm
  
@@ -294,6 +303,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ and so will lead to simplexed with duplicate verticies.
     simplicialJoin:(a:%,b:%) -> %
      ++ Forms disjoint union of two simplicial complexes.
+    product:(a:%,b:%) -> %
+     ++ Forms product of two simplicial complexes.
 
   Impl ==> add
 
@@ -413,9 +424,19 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- local function used by simplexProduct.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
-     res:Integer := (indexA + indexB*maxA)::Integer
-     if res<1 then error "productIndex out of range"
-     (res-1)::NNI
+     if indexA<1 then error "productIndex out of range"
+     if indexB<1 then error "productIndex out of range"
+     ia:Integer := indexA -1
+     ib:Integer := indexB -1
+     res := ia + ib*maxA
+     (res+1)::NNI
+
+   -- local function used by simplexProduct.
+   addToPath(listPath:List(SIMPLEX),indexA:NNI,indexB:NNI,maxA:NNI):List(SIMPLEX) ==
+     i:NNI := productIndex(indexA,indexB,maxA)
+     if empty?(listPath) then return [[i]]
+     if empty?(first listPath) then return [[i]]
+     return [concat(path,i)$SIMPLEX for path in listPath]
 
    -- local function, used by product of simplicial complexes, this local function returns
    -- the product of two simplexes.
@@ -428,14 +449,33 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- of entries in sa and y is number of entries in sb.
    -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
    -- be done by combinatorics code?
-   simplexProduct(sa:SIMPLEX,sb:SIMPLEX):List(SIMPLEX) ==
-     --print("simplexProduct("::Symbol << sa << ","::Symbol << sb << ")"::Symbol)
-     if #sa = 0 or #sb = 0 then return [empty()$SIMPLEX]
-     if #sa = 1 then return [[productIndex(1,x,1) for x in sb]]
-     if #sb = 1 then return [[productIndex(x,1,#sa) for x in sa]]
-     path1:SIMPLEX := concat(last simplexProduct(sa,sb),1)
-     path2:SIMPLEX := concat(last simplexProduct(sa,sb),1)
-     [concat(path1,path2)]
+   simplexProduct(pathList:List(SIMPLEX),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI):List(SIMPLEX) ==
+     --print("simplexProduct("::Symbol << pathList << ","::Symbol << minA << ","::Symbol << _
+     --         maxA<< ","::Symbol << minB<< ","::Symbol << maxB<< ")"::Symbol)
+     diffA:Integer := maxA-minA
+     diffB:Integer := maxB-minB
+     if diffA = 0 and diffB = 0 then return addToPath(pathList,maxA,maxB,maxA)
+     if diffA = 0 then return simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     if diffB = 0 then return simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     --print("["::Symbol::OutputForm)
+     path1:List(SIMPLEX) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     --print(","::Symbol::OutputForm)
+     path2:List(SIMPLEX) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     --print("]"::Symbol::OutputForm)
+     concat(path1,path2)
+
+   -- Forms product of two simplicial complexes.
+   product(a:%,b:%):% ==
+     simpsa:List(SIMPLEX) := a.SIMP
+     simpsb:List(SIMPLEX) := b.SIMP
+     dima:NNI := maxFaces(a.VERTS)$VS
+     dimb:NNI := maxFaces(b.VERTS)$VS
+     vs:VS := prod(a.VERTS,b.VERTS)
+     res:List(SIMPLEX) := [empty()$SIMPLEX]
+     for simpa in simpsa repeat
+       for simpb in simpsb repeat
+         res := concat(res,simplexProduct([empty()$SIMPLEX],1,dima,1,dimb))
+     simplicialComplex(vs,res)
 
    -- Local function used by '=' to check if two simplexes are equal.
    -- To be equal they must contain the same indexes, wound in the same
