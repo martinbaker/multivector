@@ -1,0 +1,613 @@
+)if false
+\documentclass{article}
+\usepackage{axiom}
+\usepackage{url}
+\begin{document}
+\title{Algebraic Topology Structures}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+
+I would like to code topological spaces in a finite way, simplicial
+complexes allow us to do this in a systematic way.
+
+Simplicial Complexes may not be the most efficient tool, for cutting
+edge topology, in terms the most economical representation. However,
+for computer-science and combinatorial uses, simplicial complexes may
+be the best tool because of their combinatorial simplicity.
+- paraphrased from [1].
+
+I have put a fuller explanation of this code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/}
+\end{abstract}
+\section{Related Code}
+
+Simplicial Complexes are a generalisation of graph theory as implemented here:
+https://github.com/fricas/fricas/blob/master/src/algebra/graph.spad
+I will implement coercions from graphs to simplicial complexes.
+
+I have not yet investigated whether this code can be linked to existing code such as:
+
+Zariski topology
+The Zariski topology of an algebraic variety is the topology whose closed sets
+are the algebraic subsets of the variety.
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/zerodim.spad}
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/regset.spad}
+
+DeRhamComplex
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/derham.spad}
+
+DifferentialGeometry
+\url{http://axiom-wiki.newsynthesis.org/SandBoxDifferentialGeometry}
+
+UnitGaussianElimination
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/smith2.spad}
+
+\section{Introduction}
+The representation holds whole Simplicial Complex. This consists of
+a vertex set, represented as a vertex list so that we can index it.
+Also a list of simplices (that is n-dimensional faces). each simplice
+is an array of vertex indexes. So each simplice is a subset of the
+vertex set.
+
+If the dimension given for the simplicial complex is 'k' then:
+\begin{itemize}
+\item The number of elements in each vertex = k.
+\item The maximum number of vertexes in each simplice = k + 1.
+\end{itemize}
+For example, a trangle has 3 vertexes, so it is maximum size face in 3-1=2 dimensions.
+\begin{table}[]
+\label{Dimensions}
+\begin{tabular}{lll}
+dimension \ vertex \ simplice - (faces) \\
+0 \ 0 elements \ point \\
+1 \ 1 element vertex \ line - (edge) \\
+2 \ 2 element vertex \ triangle \\
+3 \ 3 element vertex \ tetrahedron \\
+n \ n element vertex \ simplice \\
+\end{tabular}
+\end{table}
+
+\section{Abstract Simplicial Complex vs. Simplicial Complex}
+If we apply the restrictions explained so far we have an abstract simplicial complex,
+However, for a simplicial complex there are some additional conditions.
+
+An Abstract Simplicial Complex is purely combinitorial, that is we don't need the
+geometric information.
+
+Therefore the AbstractSimplicialComplex domain does not need coordinates for the
+verticies and they can be denoted by symbols.
+
+\section{Operations on Simplicial Complexes}
+
+Closure - closure of X contains X and all the faces touching X
+Star -
+Link -
+Join - We will call it a SimplicialJoin since it is not related to joins in lattices.
+
+\section{Simplicial Maps}
+Allow edges to be collapsed into vertices.
+
+\section{Oriented Simplexes Maps}
+
+\section{Vertex Set Code}
+We want an indexed set of points, the simplest way to do the indexing is to use
+'List' instead of 'Set'.
+
+The vertices themselves may be either:
+\begin{itemize}
+\item literal coordinates.
+\item symbolic vertex names.
+\item numeric indexes.
+\end{itemize}
+So we cave a category that can represent any of these types and then a domain for
+each type.
+)endif
+
+)abbrev category VERTS VertexSet
+++ Author: Martin Baker
+++ Description:
+++   An indexed set of verticies
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+++ Related Domains:
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+VertexSet() : Category == Definition where
+ NNI==> NonNegativeInteger
+ Definition ==> SetCategory() with
+   maxFaces:(a:%) -> NNI
+     ++ return the maximum number of faces
+   join:(a:%,b:%) -> %
+     ++ disjoint union of two vertex sets
+   prod:(a:%,b:%) -> %
+     ++ product of two vertex sets
+
+)if false
+This is VertexSet for a geometric simplicial complex. In this case each vertex is
+represented by a point in some underlying space.
+
+We want to represent an indexed set of points, the simplest way to do this is to
+use a list of points.
+)endif
+
+)abbrev domain VERTSC VertexSetCoord
+++ Author: Martin Baker
+++ Description: 
+++   An indexed set of verticies represented as coordinates.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/geometric/
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+VertexSetCoord(F:Field) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> VertexSet() with
+    vertexSet: (v:List(PrimitiveArray(F))) -> %
+     ++ constructor where the vertex set is supplied
+
+    dimension:(a:%) -> NNI
+     ++ return dimension of underlying space
+
+  Impl ==> add
+
+   -- Representation holds the vertex set, represented as a
+   -- vertex list so that we can index it.
+   Rep := List(PrimitiveArray(F))
+
+   -- constructor where the vertex set is supplied
+   vertexSet(v:List(PrimitiveArray(F))):% ==
+     v
+
+   -- return dimension of underlying space
+   -- in this case assume its how many numbers used to specify a point
+   dimension(a:%):NNI ==
+     res:NNI := 0
+     for b in a repeat
+       if #b > res then res:=#b
+     res
+
+   -- return the maximum number of faces
+   maxFaces(a:%):NNI ==
+     #a
+
+   -- disjoint union of two vertex sets
+   join(a:%,b:%):% ==
+     concat(a,b)
+
+   prod(a:%,b:%):% ==
+     a
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     if empty?(s) then return bracket(empty()$OutputForm)
+     mat:List List OutputForm := empty()$List(List(OutputForm))
+     for a in s repeat
+       row:List OutputForm := empty()$List(OutputForm)
+       if empty?(members(a))$List(F)
+         then
+           row := concat(row,bracket(empty()$OutputForm))$List(OutputForm)
+         else
+           for b in members(a) repeat
+             row := concat(row,b::OutputForm)$List(OutputForm)
+       mat := concat(mat,row)
+     matrix(mat)
+
+)if false
+This is VertexSet for an abstract simplicial complex. In this case each vertex is
+represented by an index without any underlying coordinates.
+
+)endif
+
+)abbrev domain VERTSA VertexSetAbstract
+++ Author: Martin Baker
+++ Description: 
+++   An indexed set of abstract verticies without real coordinates.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+VertexSetAbstract() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> VertexSet() with
+    vertexSeta: (d:NNI) -> %
+     ++ constructor for abstract vertex set
+
+  Impl ==> add
+
+   -- Representation holds the vertex set, represented as a
+   -- vertex list so that we can index it.
+   Rep := NNI
+
+   -- constructor for abstract vertex set
+   vertexSeta(d:NNI):% ==
+     d
+
+   -- return the maximum number of faces
+   maxFaces(a:%):NNI ==
+     a pretend NNI
+
+   -- disjoint union of two vertex sets
+   join(a:%,b:%):% ==
+     a+b
+
+   -- product of two vertex sets
+   prod(a:%,b:%):% ==
+     a*b
+
+   -- output
+   coerce(s : %) : OutputForm == outputForm(s pretend NNI)$OutputForm
+ 
+)if false
+
+)endif
+
+)abbrev domain SIMPC FiniteSimplicialComplex
+++ Author: Martin Baker
+++ Description: 
+++   A Finite Simplicial Complex
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+++ Date Created: Dec 2015
+++ Date Last Updated: Dec 2015
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  PAIR ==> Record(fst:NNI,sec:NNI)
+  SIMPLEX ==> List(NNI)
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    simplicialComplex: (v:VS,f:List(List(NNI))) -> %
+     ++ constructor where the simplices are supplied
+    boundaryLine: (s:%) -> %
+     ++ returns line around area assuming simplexes are all wound in same direction
+     ++ For more information about such topological functions see this page:
+     ++ http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/topo/
+    star:(s:%,simplex:SIMPLEX) -> %
+     ++ The 'star' of a simplicial complex and a vertex contains only the simplexes
+     ++ of s which include vertex 'v'.
+    link:(s:%,simplex:SIMPLEX) -> %
+     ++ The 'link' of a simplicial complex and a vertex contains the boundary of the
+     ++ simplexes of s which include vertex 'v'.
+    cone:(s:%,vertex:NNI) -> %
+     ++ The 'cone' of a simplicial complex is formed by adding the vertex to every
+     ++ facet.
+     ++ 'vertex' should not already be included in existing faces, this is not checked
+     ++ and so will lead to simplexed with duplicate verticies.
+    simplicialJoin:(a:%,b:%) -> %
+     ++ Forms disjoint union of two simplicial complexes.
+    product:(a:%,b:%) -> %
+     ++ Forms product of two simplicial complexes.
+
+  Impl ==> add
+
+   -- Representation holds whole Simplicial Complex. This consists of
+   -- a vertex set, here represented as a vertex list so that we can
+   -- index it.
+   -- Also a list of simplices (that is n-dimensional faces). each
+   -- simplice is an array of vertex indexes.
+   -- So each simplice is a subset of the vertex set.
+   Rep := Record(VERTS:VS,SIMP:List(List(NNI)))
+
+   -- constructor where the vertex set and simplices are supplied
+   simplicialComplex(v:VS,f:List(List(NNI))):% == [v,f]
+
+   -- returns line around area assuming simplexes are all wound in same direction
+   -- TODO try to put the segments on the line in order
+   -- For more information about such topological functions see this page:
+   -- http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/topo/
+   boundaryLine(s:%):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     lines:List(PAIR) := empty()$List(PAIR)
+     for simp in s.SIMP repeat
+       firstEntry:NNI := 0
+       for n in 1..(#simp) repeat
+         if n = 1 then firstEntry := simp.n
+         if n = #simp then
+           line:PAIR := construct(simp.n,firstEntry)$PAIR
+           lines := concat(lines,line)$List(PAIR)
+         if n < #simp then
+           line:PAIR := construct(simp.n,simp.(n+1))$PAIR
+           lines := concat(lines,line)$List(PAIR)
+     cancel:List(PAIR) := empty()$List(PAIR)
+     for x in lines repeat
+       pair:List(NNI) := [x.fst,x.sec]
+       if member?(x,cancel)
+         then
+           cancel := remove(x,cancel)$List(PAIR)
+         else
+           rev:PAIR := construct(x.sec,x.fst)$PAIR
+           -- TODO should really check that segment has not already been
+           -- canceled
+           if member?(rev,lines)
+             then
+               cancel := concat(cancel,rev)$List(PAIR)
+             else
+               res := concat(res,pair)$List(List(NNI))
+     simplicialComplex(s.VERTS,res)
+
+   -- local function, used by isFaceOf and subtract, which returns true if
+   -- vertex 'b' is contained in face 'a'.
+   isVertexOf(sa:SIMPLEX,vb:NNI):Boolean ==
+     for vertex in sa repeat
+       if vertex=vb then
+         --print("isVertexOf("::Symbol << sa << ","::Symbol << vb << ")=true"::Symbol)
+         return true
+     --print("isVertexOf("::Symbol << sa << ","::Symbol << vb << ")=false"::Symbol)
+     false
+
+   -- local function, used by link, which returns true if face 'b' is
+   -- contained in face 'a'.
+   isFaceOf(sa:SIMPLEX,sb:SIMPLEX):Boolean ==
+     for vertex in sb repeat
+       if not isVertexOf(sa,vertex) then return false
+     --print("isFaceOf("::Symbol << sa << ","::Symbol << sb << ")=true"::Symbol)
+     true
+ 
+   -- local function, used by link, which returns face 'a' minus
+   -- the verticies in face 'b'.
+   subtract(sa:SIMPLEX,sb:SIMPLEX):SIMPLEX ==
+     --print("subtract("::Symbol << sa << ","::Symbol << sb << ")="::Symbol << setDifference(sb,sa)$SIMPLEX)
+     setDifference(sb,sa)$SIMPLEX
+
+   -- The 'star' of a simplicial complex and a simplex contains only the simplexes
+   -- of s which include simplex.
+   star(s:%,simplex:SIMPLEX):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     for simp in s.SIMP repeat
+       if isFaceOf(simp,simplex) then
+         res:=concat(res,simp)
+     simplicialComplex(s.VERTS,res)
+
+   -- The 'link' of a simplicial complex and a simplex contains the boundary of the
+   -- simplexes of s which include simplex.
+   -- If s is continous then link is: boundaryLine(star(s,simplex))
+   link(s:%,simplex:SIMPLEX):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     for facet in s.SIMP repeat
+       if isFaceOf(facet,simplex) then
+         x:SIMPLEX := subtract(simplex,facet)
+         res:=concat(res,x)
+     simplicialComplex(s.VERTS,res)
+
+   -- The 'cone' of a simplicial complex is formed by adding the vertex to every
+   -- facet.
+   -- 'vertex' should not already be included in existing faces, this is not checked
+   -- and so will lead to simplexed with duplicate verticies.
+   cone(s:%,vertex:NNI):% ==
+     res:List(List(NNI)) := empty()$List(List(NNI))
+     for facet in s.SIMP repeat
+       x:SIMPLEX := concat(facet,vertex)
+       res:=concat(res,x)
+     simplicialComplex(s.VERTS,res)
+
+   -- Forms disjoint union of two simplicial complexes.
+   simplicialJoin(a:%,b:%):% ==
+     c:VS := join(a.VERTS,b.VERTS)
+     offset:NNI := maxFaces(a.VERTS)
+     res:List(List(NNI)) := copy(a.SIMP)
+     for x in b.SIMP repeat
+       thisSimp:List(NNI) := empty()$List(NNI)
+       for n in x repeat
+         -- print ("n="::Symbol << n << " offset="::Symbol << offset)
+         thisSimp := concat(thisSimp,n+offset)
+       res := concat(res,thisSimp)
+     -- print ("res="::Symbol << res)
+     simplicialComplex(c,res)
+
+   -- local function used by simplexProduct.
+   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
+     if indexA<1 then error "productIndex out of range"
+     if indexB<1 then error "productIndex out of range"
+     ia:Integer := indexA -1
+     ib:Integer := indexB -1
+     res := ia + ib*maxA
+     (res+1)::NNI
+
+   -- local function used by simplexProduct.
+   addToPath(listPath:List(SIMPLEX),indexA:NNI,indexB:NNI,maxA:NNI):List(SIMPLEX) ==
+     i:NNI := productIndex(indexA,indexB,maxA)
+     if empty?(listPath) then return [[i]]
+     if empty?(first listPath) then return [[i]]
+     return [concat(path,i)$SIMPLEX for path in listPath]
+
+   -- local function, used by product of simplicial complexes, this local function returns
+   -- the product of two simplexes.
+   -- For more detailed explanation of simplex product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
+   -- Also see Hatcher [9].
+   -- page 277 - The simplical cross product.
+   -- page 278 - The cohomology cross product.
+   -- Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
+   -- of entries in sa and y is number of entries in sb.
+   -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
+   -- be done by combinatorics code?
+   simplexProduct(pathList:List(SIMPLEX),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI):List(SIMPLEX) ==
+     --print("simplexProduct("::Symbol << pathList << ","::Symbol << minA << ","::Symbol << _
+     --         maxA<< ","::Symbol << minB<< ","::Symbol << maxB<< ")"::Symbol)
+     diffA:Integer := maxA-minA
+     diffB:Integer := maxB-minB
+     if diffA = 0 and diffB = 0 then return addToPath(pathList,maxA,maxB,maxA)
+     if diffA = 0 then return simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     if diffB = 0 then return simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     --print("["::Symbol::OutputForm)
+     path1:List(SIMPLEX) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     --print(","::Symbol::OutputForm)
+     path2:List(SIMPLEX) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     --print("]"::Symbol::OutputForm)
+     concat(path1,path2)
+
+   -- Forms product of two simplicial complexes.
+   product(a:%,b:%):% ==
+     simpsa:List(SIMPLEX) := a.SIMP
+     simpsb:List(SIMPLEX) := b.SIMP
+     dima:NNI := maxFaces(a.VERTS)$VS
+     dimb:NNI := maxFaces(b.VERTS)$VS
+     vs:VS := prod(a.VERTS,b.VERTS)
+     res:List(SIMPLEX) := [empty()$SIMPLEX]
+     for simpa in simpsa repeat
+       for simpb in simpsb repeat
+         res := concat(res,simplexProduct([empty()$SIMPLEX],1,dima,1,dimb))
+     simplicialComplex(vs,res)
+
+   -- Local function used by '=' to check if two simplexes are equal.
+   -- To be equal they must contain the same indexes, wound in the same
+   -- direction but not necessarily starting at the same value.
+   equalSimplex(a:List(NNI),b:List(NNI)):Boolean ==
+     --print("equalSimplex:"::Symbol << a << ","::Symbol << b)
+     len:NNI := #a
+     if len ~= #b then return false
+     if len = 0 then return true
+     fst:NNI := first a
+     offset:Integer := position(fst,b)
+     if offset <1 then return false
+     for n in 1..#a repeat
+       if a.n ~= b.offset then return false
+       offset := offset+1
+       if offset > #b then offset := 1
+     true
+
+   -- Returns true if x equals y.
+   -- That is, they contain the same simplexes, although not necessarily in the
+   -- same order.
+   -- TODO - Assumes point set is exactly the same, for more generality we should allow
+   -- the points to be defined in a different order.
+   _=(a : %, b : %) : Boolean ==
+     as := a.SIMP
+     bs := b.SIMP
+     --print("equal:"::Symbol << as << ","::Symbol << bs)
+     len:NNI := #as
+     if len ~= #bs then return false
+     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+     --print("empty flags "::Symbol << flags)
+     for a1 in as repeat
+       x:NNI := 1
+       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
+         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+         x:=x+1
+         if x > #as then return false
+       flags.x := true
+       --print("flags."::Symbol << x << "=true "::Symbol << flags)
+     --print("final flags "::Symbol << flags)
+     for f in flags repeat
+       if f=false then return false
+     true
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     if empty?(s.SIMP) then return bracket(empty()$OutputForm)
+     mat:List List OutputForm := empty()$List(List(OutputForm))
+     -- matrix does not like different row widths so we need to
+     -- know the maximum width so we can pad to that width.
+     maxWidth:NNI := 0
+     for a in s.SIMP repeat
+       if #a > maxWidth then maxWidth := #a
+     if maxWidth = 0 then return empty()$OutputForm
+     for a in s.SIMP repeat
+       row:List OutputForm := empty()$List(OutputForm)
+       for b in a repeat
+         row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
+       w:NNI := #a
+       while w < maxWidth repeat
+         row := concat(row,empty()$OutputForm)$List(OutputForm)
+         w:= w+1
+       mat := concat(mat,row)
+     matrix(mat)
+
+--Copyright (c) 2015, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+)if false
+\eject
+\begin{thebibliography}{99}
+For more details see:
+[1] Mathematics++ Kantor,Matousek,Samal 2015  ISBN 978-1-4704-2261-5
+      Chapter 6 - Topology
+[2] Graphs, Surfaces and Homology, Peter Giblin 2010 ISBN 987-0-521-15405-5
+
+[3] Wikipedia
+\url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
+
+[4] I have put a fuller explanation of this code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/}
+
+[5] Finite simplicial complexes in Sage
+\url{http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
+
+[6] Finite simplicial complexes in NPM
+\url{https://www.npmjs.com/package/simplicial-complex}
+
+[7] Simpcomp - a GAP package for working with simplicial complexes
+\url{https://code.google.com/p/simpcomp/}
+
+[8] A Macaulay2 package for working with simplicial complexes
+\url{http://www.math.uiuc.edu/Macaulay2/doc/Macaulay2-1.8.2/share/doc/Macaulay2/SimplicialComplexes/html}
+
+[9] Hatcher - Algebraic Topology
+\url{https://www.math.cornell.edu/~hatcher/AT/AT.pdf}
+
+\end{thebibliography}
+\end{document}
+)endif
+
