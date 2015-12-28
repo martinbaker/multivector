@@ -44,6 +44,57 @@ UnitGaussianElimination
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/smith2.spad}
 
 \section{Introduction}
+
+\section{Homotopy Group}
+)endif
+
+)abbrev domain HOMTYG HomotopyGroup
+++ Author: Martin Baker
+++ Description: 
+++   Homotopy group represented by its generators.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/
+++ Date Created: Jan 2016
+++ Date Last Updated: Jan 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+HomotopyGroup() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    HomotopyGroup: (v:List(NNI)) -> %
+     ++ construct from generators
+
+  Impl ==> add
+
+   -- Representation holds the vertex set, represented as a
+   -- vertex list so that we can index it.
+   Rep := PrimitiveArray(NNI)
+
+   -- constructor where the vertex set is supplied
+   homotopyGroup(v:List(NNI)):% ==
+     construct(v)$PrimitiveArray(NNI)
+
+   -- Returns true if x equals y.
+   _=(a : %, b : %) : Boolean ==
+     a=b
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     s::OutputForm
+
+)if false
+\section{Simplicial Complexes}
+
 The representation holds whole Simplicial Complex. This consists of
 a vertex set, represented as a vertex list so that we can index it.
 Also a list of simplices (that is n-dimensional faces). each simplice
@@ -311,6 +362,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ Forms disjoint union of two simplicial complexes.
     product:(a:%,b:%) -> %
      ++ Forms product of two simplicial complexes.
+    oneSkeleton:(s:%) -> DirectedGraph(NNI)
+     ++ generates graph AKA 1-skeleton
 
   Impl ==> add
 
@@ -427,6 +480,35 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        res := concat(res,thisSimp)
      -- print ("res="::Symbol << res)
      simplicialComplex(c,res)
+
+   -- local function used in oneSkeleton
+   concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
+         List(Record(value : NNI, posX : NNI, posY : NNI)) ==
+     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
+     if member?([b,0::NNI,0::NNI],a)$List(OBJT) then return a
+     concat(a,[b,0::NNI,0::NNI])$List(OBJT)
+
+   -- Generates graph AKA 1-skeleton.
+   -- Used to generate fundamental group
+   oneSkeleton(s:%):DirectedGraph(NNI) ==
+     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
+     GS := DirectedGraph(NNI)
+     nodes:List(OBJT) := empty()$List(OBJT)
+     edges:List(ARROW) := empty()$List(ARROW)
+     for x in s.SIMP repeat
+       n:NNI := #x
+       if n=2 then
+         nodes := concatIfNew(nodes,x.1)
+         nodes := concatIfNew(nodes,x.2)
+         y:ARROW := ["x",0::NNI,x.1,x.2,0::Integer,0::Integer,[]]
+         edges := concat(edges,y)$List(ARROW)
+         --print ("nodes="::Symbol << nodes << " edges="::Symbol << edges)
+       if n>2 then
+         for m in x repeat
+           nodes := concatIfNew(nodes,m)
+     directedGraph(nodes,edges)$GS
 
    -- local function used by simplexProduct.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
