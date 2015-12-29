@@ -71,7 +71,7 @@ HomotopyGroup() : Exports == Impl where
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    HomotopyGroup: (v:List(NNI)) -> %
+    homotopyGroup: (v:List(NNI)) -> %
      ++ construct from generators
 
   Impl ==> add
@@ -364,6 +364,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ Forms product of two simplicial complexes.
     oneSkeleton:(s:%) -> DirectedGraph(NNI)
      ++ generates graph AKA 1-skeleton
+    fundamentalGroup:(s:%) -> HomotopyGroup
+     ++ Generates fundamental group from this simplicial complex.
+     ++ under construction
 
   Impl ==> add
 
@@ -508,7 +511,25 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        if n>2 then
          for m in x repeat
            nodes := concatIfNew(nodes,m)
+           for p in x repeat
+             if p<m then
+               y:ARROW := ["x",0::NNI,p,m,0::Integer,0::Integer,[]]
+               edges := concat(edges,y)$List(ARROW)
      directedGraph(nodes,edges)$GS
+
+   -- Generates fundamental group from this simplicial complex.
+   -- under construction
+   fundamentalGroup(s:%):HomotopyGroup ==
+     -- under construction
+     -- compute edge-path group
+     graph:DirectedGraph(NNI) := oneSkeleton(s)
+     -- choose a spanning tree for the 1-skeleton
+     -- groups generators: edges in 1-skeleton
+     -- groups relations: for every 2-simplex
+     --                   e0 e1^-1 e2
+     --                   (e0,e1,e2 are edges)
+     generators:List(NNI) := [0::NNI]
+     homotopyGroup(generators)$HomotopyGroup
 
    -- local function used by simplexProduct.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
