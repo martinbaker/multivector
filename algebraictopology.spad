@@ -90,7 +90,11 @@ HomotopyGroup() : Exports == Impl where
 
    -- output
    coerce(s : %) : OutputForm ==
-     s::OutputForm
+     ps:List(NNI) := parts(s pretend PrimitiveArray(NNI))
+     res:List(OutputForm) := empty()$List(OutputForm)
+     for p in ps repeat
+       res := concat(res,p::OutputForm)
+     bracket(res)
 
 )if false
 \section{Simplicial Complexes}
@@ -323,7 +327,7 @@ VertexSetAbstract() : Exports == Impl where
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Date Created: Dec 2015
-++ Date Last Updated: Dec 2015
+++ Date Last Updated: Jan 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
@@ -491,6 +495,18 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      if member?([b,0::NNI,0::NNI],a)$List(OBJT) then return a
      concat(a,[b,0::NNI,0::NNI])$List(OBJT)
 
+   -- local function used in oneSkeleton
+   concatIfNewArrow(a:List(Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)),_
+           p:NNI,m:NNI):_
+           List(Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)) ==
+     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+     if member?(["x",0::NNI,p,m,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
+     if member?(["x",0::NNI,m,p,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
+     concat(a,["x",0::NNI,p,m,0::Integer,0::Integer,[]])$List(ARROW)
+
    -- Generates graph AKA 1-skeleton.
    -- Used to generate fundamental group
    oneSkeleton(s:%):DirectedGraph(NNI) ==
@@ -513,17 +529,20 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
            nodes := concatIfNew(nodes,m)
            for p in x repeat
              if p<m then
-               y:ARROW := ["x",0::NNI,p,m,0::Integer,0::Integer,[]]
-               edges := concat(edges,y)$List(ARROW)
+               edges := concatIfNewArrow(edges,p::NNI,m::NNI)
      directedGraph(nodes,edges)$GS
 
    -- Generates fundamental group from this simplicial complex.
    -- under construction
    fundamentalGroup(s:%):HomotopyGroup ==
+     print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
      -- under construction
      -- compute edge-path group
      graph:DirectedGraph(NNI) := oneSkeleton(s)
+     print("fundamentalGroup graph="::Symbol << graph )
      -- choose a spanning tree for the 1-skeleton
+     span := spanningTreeNode(graph,1::NNI)$DirectedGraph(NNI)
+     print("fundamentalGroup span="::Symbol << span )
      -- groups generators: edges in 1-skeleton
      -- groups relations: for every 2-simplex
      --                   e0 e1^-1 e2
@@ -650,6 +669,88 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        mat := concat(mat,row)
      matrix(mat)
 
+)if false
+SimplicialComplexFactory contructs example simplicial complexes for us.
+)endif
+
+)abbrev package SIMPCF SimplicialComplexFactory
+++ Author: Martin Baker
+++ Date Created: Jan 2016
+++ Date Last Updated: Jan 2016
+++ Description:
+++  Provides functions to construct various simplicial complexes.
+PI ==> PositiveInteger
+NNI==> NonNegativeInteger
+x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+SimplicialComplexFactory() : with
+  sphereSolid:(dim:NNI) -> FiniteSimplicialComplex(VertexSetAbstract)
+    ++ generate a simplicial complex equivalent to a solid hyper-sphere. That
+    ++ is, a solid volume with no holes in it, so we use a single n-dimensional
+    ++ simplex.
+  sphereSurface:(dim:NNI) -> FiniteSimplicialComplex(VertexSetAbstract)
+    ++ generate a simplicial complex equivalent to the surface of a hyper-sphere.
+    ++ That is, the surface of a volume with no holes in it, so we use a minimal
+    ++ triangulation of the faces of a single simplex.
+  torusSurface:() -> FiniteSimplicialComplex(VertexSetAbstract)
+    ++ generate a minimal triangulation of the surface of an 3-dimensional torus.
+  projectivePlane:() -> FiniteSimplicialComplex(VertexSetAbstract)
+    ++ generate a minimal triangulation of the surface of a projective plane.
+  kleinBottle:() -> FiniteSimplicialComplex(VertexSetAbstract)
+    ++ generate a minimal triangulation of the surface of a Klein bottle.
+
+ == add
+
+  -- generate a simplicial complex equivalent to a solid hyper-sphere. That
+  -- is, a solid volume with no holes in it, so we use a single n-dimensional
+  -- simplex.
+  sphereSolid(dim:NNI):FiniteSimplicialComplex(VertexSetAbstract) ==
+    ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
+    v1:List(List(NNI)) := [[n for n in 1..(dim+1)]]
+    vs1:VertexSetAbstract := vertexSeta(dim)
+    simplicialComplex(vs1,v1)$ASIMP
+
+  -- generate a simplicial complex equivalent to the surface of a hyper-sphere.
+  -- That is, the surface of a volume with no holes in it, so we use a minimal
+  -- triangulation of the faces of a single simplex.
+  sphereSurface(dim:NNI):FiniteSimplicialComplex(VertexSetAbstract) ==
+    ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
+    v1:List(List(NNI)) := empty()$List(List(NNI))
+    for a in 1..(dim+1) repeat
+      for b in (a+1)..(dim+1) repeat
+        for c in (b+1)..(dim+1) repeat
+          --if (b>a) and (c>b) then
+            --print("sphere a="::Symbol << a << " b="::Symbol << b << " c="::Symbol << c)
+            v1 := concat(v1,[a::NNI,b::NNI,c::NNI])
+    vs1:VertexSetAbstract := vertexSeta(dim)
+    simplicialComplex(vs1,v1)$ASIMP
+
+  -- generate a minimal triangulation of the surface of an 3-dimensional torus.
+  torusSurface():FiniteSimplicialComplex(VertexSetAbstract) ==
+    ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
+    v1:List(List(NNI)) := [[1,2,3],[2,3,5],[2,4,5],[2,4,7],[1,2,6],[2,6,7],_
+                           [3,4,6],[3,5,6],[3,4,7],[1,3,7],[1,4,5],[1,4,6],_
+                           [5,6,7],[1,5,7]]
+    vs1:VertexSetAbstract := vertexSeta(7::NNI)
+    simplicialComplex(vs1,v1)$ASIMP
+
+  -- generate a minimal triangulation of the surface of a projective plane.
+  projectivePlane():FiniteSimplicialComplex(VertexSetAbstract) ==
+    ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
+    v1:List(List(NNI)) := [[1,2,3],[1,3,4],[1,2,6],[1,5,6],[1,4,5],[2,3,5],_
+                           [2,4,5],[2,4,6],[3,4,6],[3,5,6]]
+    vs1:VertexSetAbstract := vertexSeta(6::NNI)
+    simplicialComplex(vs1,v1)$ASIMP
+
+  -- generate a minimal triangulation of the surface of a Klein bottle.
+  kleinBottle():FiniteSimplicialComplex(VertexSetAbstract) ==
+    ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
+    v1:List(List(NNI)) := [[3,4,8],[2,3,4],[2,4,6],[2,6,8],[2,5,8],[3,5,7],_
+                           [2,3,7],[2,7,1],[2,5,1],[3,5,1],[4,5,8],[4,5,7],_
+                           [4,6,7],[6,7,1],[3,6,1],[3,6,8]]
+    vs1:VertexSetAbstract := vertexSeta(8::NNI)
+    simplicialComplex(vs1,v1)$ASIMP
+
 --Copyright (c) 2015, Martin J Baker.
 --All rights reserved.
 --
@@ -686,8 +787,10 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 \begin{thebibliography}{99}
 For more details see:
 [1] Mathematics++ Kantor,Matousek,Samal 2015  ISBN 978-1-4704-2261-5
-      Chapter 6 - Topology
+      Chapter 6 - Topology. Contains a relatively gentle introduction to homology.
+
 [2] Graphs, Surfaces and Homology, Peter Giblin 2010 ISBN 987-0-521-15405-5
+      Builds up to homology groups via graphs and simplicial complexes.
 
 [3] Wikipedia
 \url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
@@ -707,8 +810,15 @@ For more details see:
 [8] A Macaulay2 package for working with simplicial complexes
 \url{http://www.math.uiuc.edu/Macaulay2/doc/Macaulay2-1.8.2/share/doc/Macaulay2/SimplicialComplexes/html}
 
-[9] Hatcher - Algebraic Topology
+[9] Hatcher - Algebraic Topology - book also available free online. 
 \url{https://www.math.cornell.edu/~hatcher/AT/AT.pdf}
+
+[10]Computational Geometry - Algorithms and Applications by
+    Mark de Berg, Otfried Cheong, Marc van Kreveld and Mark Overmars
+    This book looks at the algorithms from a computer science, rather
+    than pure mathematics, point-of-view. So homotopy or homology is
+    not mentioned but subjects like Voronoi Diagrams, Delauney
+    Triangulations, Convex Hulls and many similar topics are covered.
 
 \end{thebibliography}
 \end{document}
