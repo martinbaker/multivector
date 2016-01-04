@@ -2282,6 +2282,10 @@ DirectedGraph(S) : Exports == Implementation where
   directedGraph : (perms : List Permutation S) -> %
     ++ directedGraph(perms) constructs graph from a list of
     ++ permutations: perms.
+  directedGraph : (poset :Poset(S)) -> %
+    ++ directedGraph(poset) constructs graph from a partially
+    ++ ordered set. This will be a graph with, at most, one arrow
+    ++ between nodes.
   "*":(%,%) -> GRPHPROD
     ++ "*"(a,b) returns a tensor product : the tensor product G*H of
     ++ graphs G and H is
@@ -2376,6 +2380,30 @@ DirectedGraph(S) : Exports == Implementation where
       o : OBJT := [ob, createX(#obs, obn), createY(#obs, obn)]
       nodes := concat(nodes, o)
     edges:List(ARROW) := empty()$List(ARROW)
+    for ar in ars for arn in 1..#(ars) repeat
+      -- build edges (arrows)
+      edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
+               0::Integer,0::Integer,[]])$List(ARROW)
+    [nodes, edges]
+
+  -- directedGraph(poset) constructs graph from a partially
+  -- ordered set. This will be a graph with, at most, one arrow
+  -- between nodes.
+  directedGraph(poset :Poset(S)):% ==
+    nodes:List(OBJT) := empty()$List(OBJT)
+    obs:List(S) := getVert(poset)
+    for ob in obs for obn in 1..#(obs) repeat
+      -- build nodes (objects)
+      o : OBJT := [ob, createX(#obs, obn), createY(#obs, obn)]
+      nodes := concat(nodes, o)
+    edges:List(ARROW) := empty()$List(ARROW)
+    ars:List(Record(fromOb:NNI,toOb:NNI)) := empty()$List(Record(fromOb:NNI,toOb:NNI))
+    mat:List(List(Boolean)) :=getArr(poset)
+    for x in mat for xn in 1..#mat repeat
+      for y in x for yn in 1..#x repeat
+        if y then
+          z:Record(fromOb:NNI,toOb:NNI) := []
+          ars := concat(ars,z)$List(Record(fromOb:NNI,toOb:NNI))
     for ar in ars for arn in 1..#(ars) repeat
       -- build edges (arrows)
       edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
