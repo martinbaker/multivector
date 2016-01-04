@@ -19,7 +19,7 @@ in a way that is visually easy to understand and so is very
 helpful in understanding such structures.
 
 For more information and diagrams see:
-\url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/}
+\url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/}
 \end{abstract}
 \eject
 \tableofcontents
@@ -852,121 +852,121 @@ diagrams may overlap the circles.
 \section{Tutorial}
 This graph framework has many methods to create graph instances, click on the following links for details:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/construct/index.htm#individual}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#individual}
 Constructing graphs by building up individual objects and arrows.
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/construct/index.htm#adjacency}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#adjacency}
 Constructing from adjacency matrix.
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/construct/index.htm#standard}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#standard}
 Constructing standard types.
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/product/index.htm}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 Combining existing graphs using sum and product.
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/map/index.htm}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm}
 Mapping from an existing graph.
 \end{itemize}
 We now have a graph and we can check out various things about it by calling functions such as those listed below. Click on these function names for more information:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#matrix}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#matrix}
 Matrix representations:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#incidence}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#incidence}
 incidenceMatrix
-\item  \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#adjacency}
+\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#adjacency}
 adjacencyMatrix
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#laplacian}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#laplacian}
 laplacianMatrix
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#distance}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#distance}
 distanceMatrix
 \end{itemize}
 
 \item about whole graph:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#acyclic}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#acyclic}
 isAcyclic?
-\item  \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#acyclic}
+\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#acyclic}
 isFunctional?
 \end{itemize}
 \item about specific nodes
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
 isDirectSuccessor?
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}isGreaterThan?
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}isGreaterThan?
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
 isFixPoint?
 \end{itemize}
-\item  \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#arrowName}
+\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowName}
 arrowName -- the name of arrow a->b
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#inDegree}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#inDegree}
 inDegree -- the number of arrows leading in to node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#outDegree}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#outDegree}
 outDegree -- the number of arrows leading out of node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#nodeFromNode}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeFromNode}
 nodeFromNode -- index of all nodes with a direct arrow leading in to node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#nodeToNode}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeToNode}
 nodeToNode -- index of all nodes with a direct arrow leading out of node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#arrowsFromNode}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsFromNode}
 arrowsFromNode -- index of all arrows leading to a given node
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#arrowsToNode}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsToNode}
 arrowsToNode -- index of all arrows leading from a given node
-\item  \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#nodeFromArrow}
+\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeFromArrow}
 nodeFromArrow -- index of all nodes with a direct arrow leading in to arrow 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#nodeToArrow}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeToArrow}
 nodeToArrow -- index of all nodes with a direct arrow leading out of arrow 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#arrowsFromArrow}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsFromArrow}
 arrowsFromArrow -- index of all arrows leading to a given arrow
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#arrowsToArrow}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsToArrow}
 arrowsToArrow -- index of all arrows leading from a given arrow
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#max}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
 min and max can be over whole graph or over a subset of nodes
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#max}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
 min -- there is an arrow or a sequence of arrows from this node to every other node
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/viewing/index.htm#max}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
 max -- there is an arrow or a sequence of arrows to this node from every other node
 \end{itemize}
 \end{itemize}
 Now lets explore the methods for combining the graphs, these include:
 \begin{itemize}
-\item  "\url{http://www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/product/index.htm}
+\item  "\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 +" (Sum) : disjoint union of nodes with arrows from appropriate input
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/product/index.htm}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 merge : (Sum) : union (not necessarily disjoint) of nodes with arrows merged in from appropriate input, if arrow exists from both inputs then it will be duplicated.
-\item "\url{http://www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/product/index.htm}
+\item "\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 *" : Tensor product : the tensor product G*H of graphs G and H is a graph such that the vertex set of G*H is the Cartesian product V(G) x V(H); and any two vertices (u,u') and (v,v') are adjacent in G*H if and only if u' is adjacent with v' and u is adjacent with v.
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/product/index.htm}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 cartesian : Cartesian product : the vertex set of G o H is the Cartesian product V(G) x V(H) and any two vertices (u, u') and (v, v')  are adjacent in G o H if and only if either u = v and u' is adjacent with v' in H, or u' = v' and u is adjacent with v in G.
 \end{itemize}
-There is a much more detailed tutorial for these operations \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/product/index.htm}
+There is a much more detailed tutorial for these operations \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 here.
 Maps:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/map/index.htm#function}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#function}
 Maps in FunctionGraph
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/map/index.htm#mapContra}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#mapContra}
 mapContra
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/map/index.htm#adjoint}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#adjoint}
 coAdjoint and contraAdjoint
 \end{itemize}
 Loops and Routes:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/loops/index.htm#tree}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#tree}
 Spanning Tree
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/loops/index.htm#loops}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#loops}
 Loops
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/loops/index.htm#routes}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#routes}
 Routes
 \end{itemize}
  Specialised variants of graph:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/special/index.htm#function}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#function}
 Function Graphs
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/special/index.htm#undirected}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#undirected}
 Undirected Graphs
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/special/index.htm#multifunction}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#multifunction}
 Multifunction Graphs
-\item \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/special/index.htm#weighted}
+\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#weighted}
 Weighted Graphs
 \end{itemize}
-To follow the whole tutorial start on \url{http : //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/construct/index.htm}
+To follow the whole tutorial start on \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm}
 this page with constructing graphs.
 \section{Loop Tutorial}
 The aim of this domain is to hold a loop as a sequence of node or arrow
@@ -1014,7 +1014,7 @@ as [2, 8, 5, 6]) but different to [5, 2, 6, 8] (which is stored as
 ++ Also See: Graph
 ++ Keywords: graph theory
 ++ Examples: see
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 ++ References:
 ++
 ++ Description: This is used with graph theory code (FiniteGraph,
@@ -1126,7 +1126,7 @@ implementations:
 ++  Category of finite graphs, allows us to model graph theory
 ++
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 FiniteGraph(S) : Category == Definition where
  S : SetCategory
@@ -1544,21 +1544,30 @@ FiniteGraph(S) : Category == Definition where
    -- a local function, called recursively by spanningTreeNode
    -- i = index of current node
    -- visited = list of node indexes already visited
-   spanningTreeNodeRecursive(s : %, i : NNI, visited : List NNI) : Tree Integer ==
-    oa : List NNI := nodeToNode(s, i)
-    ch : List Tree Integer := []
-    for x in oa repeat
-      if entry?(x, visited)
-        then ch := concat(ch, tree((-x)::Integer))
-        else ch := concat(ch, spanningTreeNodeRecursive(s, x, concat(visited, x)))
+   spanningTreeNodeRecursive(s : %, i : NNI, visited : List(NNI)) : Tree Integer ==
+    localVisited:List(NNI) := copy visited
+    oa : List(NNI) := nodeToNode(s, i)
+    ch : List(Tree(Integer)) := empty()$List(Tree(Integer))
+    -- To minimise the depth of the tree it is best to do a breadth-first search.
+    -- So first we flag all links that lead to a new node:
+    flags:List(Boolean) := empty()$List(Boolean)
+    for n in oa repeat
+      if entry?(n, localVisited)
+        then flags := concat(flags,false)$List(Boolean)
+        else
+          flags := concat(flags,true)$List(Boolean)
+          localVisited:= concat(localVisited,n)$List(NNI)
+    -- now add these links to tree
+    for n in oa for flag in flags repeat
+      if flag then
+        ch := concat(ch, spanningTreeNodeRecursive(s,n,localVisited))
     tree(i::Integer, ch)
 
    -- constructs a spanning tree for graph 's' rooted at the
    -- node indexed by 'i'.
    -- The tree will expand out from 'i' only stopping when reaching
    -- a vertex that has already been visited (that is: loop detected).
-   -- Elements in the tree are Integer, a positive Integer represents
-   -- a vertex and a negative Integer represents a repeated vertex.
+   -- Elements in the tree are Integer.
    spanningTreeNode(s : %, i : NNI) : Tree Integer ==
     spanningTreeNodeRecursive(s, i, [i])
 
@@ -2232,7 +2241,7 @@ diagrams.
 ++  Category of directed graphs, allows us to model graph theory
 ++
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 DirectedGraph(S) : Exports == Implementation where
 
@@ -2260,11 +2269,15 @@ DirectedGraph(S) : Exports == Implementation where
     ++ objects ob, more objects and arrows can be added later
     ++ if required.
   directedGraph : (ob : List OBJT, ar : List ARROW) -> %
-    ++ directedGraph(ob, ar) construcs graph with objects ob
+    ++ directedGraph(ob, ar) constructs graph with objects ob
     ++ and arrows ar, more objects and arrows can be added
     ++ later if required.
+  directedGraph : (obs : List S, ars : List(Record(fromOb : NNI, toOb : NNI))) -> %
+    ++ directedGraph(obs, ars) constructs graph with objects obs
+    ++ and arrows ars. This constructor just has pure abstract graph information
+    ++ without decoration information.
   directedGraph : (ob : List S, am : List List NNI) -> %
-    ++ directedGraph(ob, am) construcs graph with objects ob
+    ++ directedGraph(ob, am) constructs graph with objects ob
     ++ and adjacency matrix am.
   directedGraph : (perms : List Permutation S) -> %
     ++ directedGraph(perms) constructs graph from a list of
@@ -2352,6 +2365,22 @@ DirectedGraph(S) : Exports == Implementation where
   -- more objects and arrows can be added later if required.
   directedGraph(ob : List OBJT, ar : List ARROW) : % ==
     [ob, ar]
+
+  -- directedGraph(obs, ars) constructs graph with objects obs
+  -- and arrows ars. This constructor just has pure abstract graph information
+  -- without decoration information.
+  directedGraph(obs : List S, ars : List(Record(fromOb : NNI, toOb : NNI))) : % ==
+    nodes:List(OBJT) := empty()$List(OBJT)
+    for ob in obs for obn in 1..#(obs) repeat
+      -- build nodes (objects)
+      o : OBJT := [ob, createX(#obs, obn), createY(#obs, obn)]
+      nodes := concat(nodes, o)
+    edges:List(ARROW) := empty()$List(ARROW)
+    for ar in ars for arn in 1..#(ars) repeat
+      -- build edges (arrows)
+      edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
+               0::Integer,0::Integer,[]])$List(ARROW)
+    [nodes, edges]
 
   -- constructor for graph with given objects and adjacency
   -- matrix.
@@ -2931,7 +2960,7 @@ multiple function graphs such as Cayley graphs.
 ++ Description: allows us to model graph theory
 ++
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 FunctionGraph(S) : Exports == Implementation where
 
@@ -3372,7 +3401,7 @@ for notation and for drawing diagrams.
 ++ Description: allows us to model graph theory
 ++
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 UndirectedGraph(S) : Exports == Implementation where
 
@@ -3401,6 +3430,10 @@ UndirectedGraph(S) : Exports == Implementation where
   undirectedGraph : (ob : List OBJT, ar : List ARROW) -> %
     ++ constructor for graph with given objects and arrows
     ++ more objects and arrows can be added later if required.
+  undirectedGraph : (obs : List S, ars : List(Record(fromOb : NNI, toOb : NNI))) -> %
+    ++ undirectedGraph(obs, ars) constructs graph with objects obs
+    ++ and arrows ars. This constructor just has pure abstract graph information
+    ++ without decoration information.
   undirectedGraph : (ob : List S, am : List List NNI) -> %
     ++ constructor for graph with given objects and adjacency
     ++ matrix.
@@ -3471,6 +3504,22 @@ UndirectedGraph(S) : Exports == Implementation where
   -- more objects and arrows can be added later if required.
   undirectedGraph(ob : List OBJT, ar : List ARROW) : % ==
     [ob, ar]
+
+  -- undirectedGraph(obs, ars) constructs graph with objects obs
+  -- and arrows ars. This constructor just has pure abstract graph information
+  -- without decoration information.
+  undirectedGraph(obs : List S, ars : List(Record(fromOb : NNI, toOb : NNI))) : % ==
+    nodes:List(OBJT) := empty()$List(OBJT)
+    for ob in obs for obn in 1..#(obs) repeat
+      -- build nodes (objects)
+      o : OBJT := [ob, createX(#obs, obn), createY(#obs, obn)]
+      nodes := concat(nodes, o)
+    edges:List(ARROW) := empty()$List(ARROW)
+    for ar in ars for arn in 1..#(ars) repeat
+      -- build edges (arrows)
+      edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
+               0::Integer,0::Integer,[]])$List(ARROW)
+    [nodes, edges]
 
   -- constructor for graph with given objects and adjacency
   -- matrix.
@@ -3920,7 +3969,7 @@ multiple function graphs such as Cayley graphs.
 ++ Description: allows us to model graph theory
 ++
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 MultifunctionGraph(S) : Exports == Implementation where
 
@@ -4644,7 +4693,7 @@ the vertices are used, I plan to correct this in the future.
 ++ be plugged in.
 ++
 ++ References:
-++ http: //www.euclideanspace.com/maths/standards/program/mycode/discrete/graph/
+++ http: //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 WeightedGraph(S, W) : Exports == Implementation where
 
@@ -4682,6 +4731,10 @@ WeightedGraph(S, W) : Exports == Implementation where
   weightedGraph : (ob : List OBJT, ar : List ARROW) -> %
     ++ constructor for graph with given objects and arrows
     ++ more objects and arrows can be added later if required.
+  weightedGraph : (obs : List S, ars : List(Record(fromOb : NNI, toOb : NNI))) -> %
+    ++ weightedGraph(obs, ars) constructs graph with objects obs
+    ++ and arrows ars. This constructor just has pure abstract graph information
+    ++ without decoration information.
   weightedGraph : (ob : List S, am : List List NNI) -> %
     ++ constructor for graph with given objects and adjacency
     ++ matrix.
@@ -4782,6 +4835,22 @@ WeightedGraph(S, W) : Exports == Implementation where
       fo : WOBJT := [f.value, f.posX, f.posY, 0$W]
       fobs := concat(fobs, fo)
     [fobs, arrs]
+
+  -- weightedGraph(obs, ars) constructs graph with objects obs
+  -- and arrows ars. This constructor just has pure abstract graph information
+  -- without decoration information.
+  weightedGraph(obs : List S, ars : List(Record(fromOb : NNI, toOb : NNI))) : % ==
+    nodes:List(OBJT) := empty()$List(OBJT)
+    for ob in obs for obn in 1..#(obs) repeat
+      -- build nodes (objects)
+      o : OBJT := [ob, createX(#obs, obn), createY(#obs, obn)]
+      nodes := concat(nodes, o)
+    edges:List(ARROW) := empty()$List(ARROW)
+    for ar in ars for arn in 1..#(ars) repeat
+      -- build edges (arrows)
+      edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
+               0::Integer,0::Integer,[]])$List(ARROW)
+    weightedGraph(nodes, edges)
 
   -- constructor for graph with given objects and adjacency
   -- matrix.
