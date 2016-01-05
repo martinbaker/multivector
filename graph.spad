@@ -2204,7 +2204,6 @@ FiniteGraph(S) : Category == Definition where
       fst := false()
     s
 
-
 )if false
 
 \section{domain DGRPH DirectedGraph}
@@ -2233,7 +2232,7 @@ diagrams.
 )abbrev domain DGRPH DirectedGraph
 ++ Author: Martin Baker
 ++ Date Created: December 2011
-++ Date Last Updated: March 2012
+++ Date Last Updated: January 2016
 ++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: graph theory
@@ -2282,10 +2281,10 @@ DirectedGraph(S) : Exports == Implementation where
   directedGraph : (perms : List Permutation S) -> %
     ++ directedGraph(perms) constructs graph from a list of
     ++ permutations: perms.
-  directedGraph : (poset :Poset(S)) -> %
+  directedGraph : (poset :FinitePoset(S)) -> %
     ++ directedGraph(poset) constructs graph from a partially
     ++ ordered set. This will be a graph with, at most, one arrow
-    ++ between nodes.
+    ++ between any two nodes.
   "*":(%,%) -> GRPHPROD
     ++ "*"(a,b) returns a tensor product : the tensor product G*H of
     ++ graphs G and H is
@@ -2315,6 +2314,8 @@ DirectedGraph(S) : Exports == Implementation where
     ++ http: //en.wikipedia.org/wiki/Complement_graph
   coerce : (pg : PermutationGroup S) -> %
     ++ coerce PermutationGroup to graph
+  coerce : (poset :FinitePoset(S)) -> %
+    ++ coerce FinitePoset to graph
   coerce : (lst : List S) -> %
     ++ coerce List to graph
 
@@ -2347,6 +2348,8 @@ DirectedGraph(S) : Exports == Implementation where
         objects : List OBJT, _
         arrows : List ARROW_
         )
+
+  -- import from FinitePoset(S)
 
   -- constructor for graph with given list of object names and
   -- no arrows. Use this version of the constructor
@@ -2388,27 +2391,17 @@ DirectedGraph(S) : Exports == Implementation where
 
   -- directedGraph(poset) constructs graph from a partially
   -- ordered set. This will be a graph with, at most, one arrow
-  -- between nodes.
-  directedGraph(poset :Poset(S)):% ==
-    nodes:List(OBJT) := empty()$List(OBJT)
-    obs:List(S) := getVert(poset)
-    for ob in obs for obn in 1..#(obs) repeat
-      -- build nodes (objects)
-      o : OBJT := [ob, createX(#obs, obn), createY(#obs, obn)]
-      nodes := concat(nodes, o)
-    edges:List(ARROW) := empty()$List(ARROW)
+  -- between any two nodes.
+  directedGraph(poset :FinitePoset(S)):% ==
+    obs:List(S) := getVert(poset)$FinitePoset(S)
     ars:List(Record(fromOb:NNI,toOb:NNI)) := empty()$List(Record(fromOb:NNI,toOb:NNI))
-    mat:List(List(Boolean)) :=getArr(poset)
+    mat:List(List(Boolean)) :=getArr(poset)$FinitePoset(S)
     for x in mat for xn in 1..#mat repeat
       for y in x for yn in 1..#x repeat
         if y then
-          z:Record(fromOb:NNI,toOb:NNI) := []
+          z:Record(fromOb:NNI,toOb:NNI) := [xn,yn]
           ars := concat(ars,z)$List(Record(fromOb:NNI,toOb:NNI))
-    for ar in ars for arn in 1..#(ars) repeat
-      -- build edges (arrows)
-      edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
-               0::Integer,0::Integer,[]])$List(ARROW)
-    [nodes, edges]
+    directedGraph(obs,ars)
 
   -- constructor for graph with given objects and adjacency
   -- matrix.
@@ -2831,7 +2824,6 @@ DirectedGraph(S) : Exports == Implementation where
         newObjs := concat(newObjs, ob)
     newObjs
 
-
   -- as tensor product but returns %.
   closedTensor(a : %, b : %, f : (S, S)->S) : % ==
     -- new objects are calculated by local closedObjProd function
@@ -2928,6 +2920,10 @@ DirectedGraph(S) : Exports == Implementation where
   -- coerce PermutationGroup to graph
   coerce(pg : PermutationGroup S) : % ==
     directedGraph(pg::(List Permutation S))
+
+  -- coerce FinitePoset to graph
+  coerce(poset :FinitePoset(S)) : % ==
+    directedGraph(poset)
 
   -- coerce List to graph
   coerce(lst : List S) : % ==
@@ -3422,7 +3418,7 @@ for notation and for drawing diagrams.
 )abbrev domain UDGRPH UndirectedGraph
 ++ Author: Martin Baker
 ++ Date Created: January 2012
-++ Date Last Updated: March 2012
+++ Date Last Updated: January 2016
 ++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: graph theory
@@ -3462,6 +3458,10 @@ UndirectedGraph(S) : Exports == Implementation where
     ++ undirectedGraph(obs, ars) constructs graph with objects obs
     ++ and arrows ars. This constructor just has pure abstract graph information
     ++ without decoration information.
+  undirectedGraph : (poset :FinitePoset(S)) -> %
+    ++ undirectedGraph(poset) constructs graph from a partially
+    ++ ordered set. This will be a graph with, at most, one arrow
+    ++ between any two nodes (in each direction).
   undirectedGraph : (ob : List S, am : List List NNI) -> %
     ++ constructor for graph with given objects and adjacency
     ++ matrix.
@@ -3481,6 +3481,8 @@ UndirectedGraph(S) : Exports == Implementation where
     ++ as tensor product but returns %.
   closedCartesian : (a : %, b : %, f : (S, S)->S) -> %
     ++ as Cartesian product but returns %.
+  coerce : (poset :FinitePoset(S)) -> %
+    ++ coerce FinitePoset to graph
 
  Implementation ==> add
 
@@ -3548,6 +3550,20 @@ UndirectedGraph(S) : Exports == Implementation where
       edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
                0::Integer,0::Integer,[]])$List(ARROW)
     [nodes, edges]
+
+  -- undirectedGraph(poset) constructs graph from a partially
+  -- ordered set. This will be a graph with, at most, one arrow
+  -- between any two nodes (in each direction).
+  undirectedGraph(poset :FinitePoset(S)):% ==
+    obs:List(S) := getVert(poset)$FinitePoset(S)
+    ars:List(Record(fromOb:NNI,toOb:NNI)) := empty()$List(Record(fromOb:NNI,toOb:NNI))
+    mat:List(List(Boolean)) :=getArr(poset)$FinitePoset(S)
+    for x in mat for xn in 1..#mat repeat
+      for y in x for yn in 1..#x repeat
+        if y then
+          z:Record(fromOb:NNI,toOb:NNI) := [xn,yn]
+          ars := concat(ars,z)$List(Record(fromOb:NNI,toOb:NNI))
+    undirectedGraph(obs,ars)
 
   -- constructor for graph with given objects and adjacency
   -- matrix.
@@ -3942,6 +3958,11 @@ UndirectedGraph(S) : Exports == Implementation where
                        oldArrow.xOffset, oldArrow.yOffset, oldArrow.map]
       newArrs := concat(newArrs, newArr)
     [newObjs, newArrs]
+
+  -- coerce FinitePoset to graph
+  coerce(poset :FinitePoset(S)) : % ==
+    undirectedGraph(poset)
+
 
 )if false
 
@@ -4704,7 +4725,7 @@ the vertices are used, I plan to correct this in the future.
 )abbrev domain WGRPH WeightedGraph
 ++ Author: Martin Baker
 ++ Date Created: January 2012
-++ Date Last Updated: March 2012
+++ Date Last Updated: January 2016
 ++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: graph theory
@@ -4763,6 +4784,10 @@ WeightedGraph(S, W) : Exports == Implementation where
     ++ weightedGraph(obs, ars) constructs graph with objects obs
     ++ and arrows ars. This constructor just has pure abstract graph information
     ++ without decoration information.
+  weightedGraph : (poset :FinitePoset(S)) -> %
+    ++ weightedGraph(poset) constructs graph from a partially
+    ++ ordered set. This will be a graph with, at most, one arrow
+    ++ between any two nodes.
   weightedGraph : (ob : List S, am : List List NNI) -> %
     ++ constructor for graph with given objects and adjacency
     ++ matrix.
@@ -4800,7 +4825,8 @@ WeightedGraph(S, W) : Exports == Implementation where
     ++ distance weights between vertices.
     ++ if there is no connection between the vertices then the
     ++ element will be set to "disjoint"
-
+  coerce : (poset :FinitePoset(S)) -> %
+    ++ coerce FinitePoset to graph
 
  Implementation ==> add
 
@@ -4879,6 +4905,20 @@ WeightedGraph(S, W) : Exports == Implementation where
       edges := concat(edges,[concat("a",string(arn)),0::NNI,ar.fromOb,ar.toOb,_
                0::Integer,0::Integer,[]])$List(ARROW)
     weightedGraph(nodes, edges)
+
+  -- weightedGraph(poset) constructs graph from a partially
+  -- ordered set. This will be a graph with, at most, one arrow
+  -- between any two nodes.
+  weightedGraph(poset :FinitePoset(S)):% ==
+    obs:List(S) := getVert(poset)$FinitePoset(S)
+    ars:List(Record(fromOb:NNI,toOb:NNI)) := empty()$List(Record(fromOb:NNI,toOb:NNI))
+    mat:List(List(Boolean)) :=getArr(poset)$FinitePoset(S)
+    for x in mat for xn in 1..#mat repeat
+      for y in x for yn in 1..#x repeat
+        if y then
+          z:Record(fromOb:NNI,toOb:NNI) := [xn,yn]
+          ars := concat(ars,z)$List(Record(fromOb:NNI,toOb:NNI))
+    weightedGraph(obs,ars)
 
   -- constructor for graph with given objects and adjacency
   -- matrix.
@@ -5392,8 +5432,11 @@ WeightedGraph(S, W) : Exports == Implementation where
             qsetelt!(m, u, v, distanceWeighted(s, u, v))
     m
 
+  -- coerce FinitePoset to graph
+  coerce(poset :FinitePoset(S)) : % ==
+    weightedGraph(poset)
 
---Copyright (c) 2012, Martin J Baker.
+--Copyright (c) 2012-2016, Martin J Baker.
 --All rights reserved.
 --
 --Redistribution and use in source and binary forms, with or without
