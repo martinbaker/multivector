@@ -103,6 +103,465 @@ CoDcpo & MeetSemilattice\\
 BiCPO & Lattice
 \end{tabular}
 \end{table}
+
+\section{Utilities}
+Before the code for posets here are some utilities that they use.
+
+ListPackage code is written by Franz Lehner but these notes are written by
+me (Martin Baker) so apologies if if have misinterpreted anything.
+
+ListPackage does topological sort/splitting of lists. Should this code
+belong with other list code or should it be defined in terms of graphs?
+
+For an explanation of 'topological sorting' see this wikipedia page:
+\url{https://en.wikipedia.org/wiki/Topological_sorting}
+Topological sorting applies, in the most general case, to DAGs (Directed Acyclic
+Graph). We can define a poset from a DAG, alternative methods are transitive
+closure and transitive reduction.
+
+In the context of partial orders they are also closely related to the concept of a
+linear extension of a partial order.
+
+)endif
+)abbrev package LISTPKG ListPackage
+++ Author: Franz Lehner
+++ Date Created: 24.04.2008
+++ Date Last Updated:
+++ Basic Functions:
+++ Related Constructors:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ Description:
+++ splitting lists
+ListPackage(T:BasicType): Exports == Implementation where
+  NNI==> NonNegativeInteger
+  Exports ==> with 
+    splitList:(T->Boolean,List T)->Record(yes:List T,no:List T)
+      ++ \spad{splitList(f,x)} splits the list x into a
+      ++ yes part and a no part according to the boolean function f
+    topologicalSort!: ((T,T) -> Boolean, List T) -> List T
+      ++ \spad{topologicalSort(xx)} returns a rearrangement of the elements
+      ++ which is compatible with the partial order.
+      ++ The argument list xx is destroyed.
+    topologicalSort: ((T,T) -> Boolean, List T) -> List T
+      ++ \spad{topologicalSort(xx)} returns a rearrangement of the elements
+      ++ which is compatible with the partial order.
+    topologicalSort: (List(List(Boolean)), List T) -> List T
+      ++ \spad{topologicalSort(xx)} returns a rearrangement of the elements
+      ++ which is compatible with the partial order.
+      ++ (Martin Baker) I added this version because predicate function can
+      ++ be difficult to work with so use table instead.
+    shiftLeft : List T -> List T
+      ++ \spad{leftShift(l)} rotates the list l to the left and inserts the
+      ++ first element at the end
+    cartesian:List List T -> List List T
+      ++ \spad{cartesian([S1,S2,...])} returns the set of lists
+      ++ [s1,s2,...] with si in Si
+    cartesianPower:(List T, NonNegativeInteger) -> List List T
+      ++ \spad{cartesianPower(S,n)} returns the n-th cartesian power of the list S
+    if T has OrderedSet then
+      minShift : List T -> List T
+        ++ \spad{minShift(l)} returns the lexicographically minimal cyclic
+        ++ rotation of the list l
+     
+  Implementation ==> add 
+    splitList(f:T->Boolean, l:List T):Record(yes:List T, no:List T) == 
+        empty? l => [empty(),empty()]
+        -- fill the lists to make concat! work
+        resyes:List T := empty()
+        resno:List T := empty()
+        for t in l repeat 
+            if test f(t) then 
+              resyes:=cons(t,resyes)
+            else 
+              resno:=cons(t,resno)
+        [reverse! resyes, reverse! resno]
+        
+    topologicalSort!(f, xx) ==
+        bucket:List T := empty()
+        res:List List T := empty()
+        while not empty? xx repeat
+            x0:= first xx
+            xx:=rest xx
+            bucket:= [x0]
+            xx1:List T := empty()
+            for x in xx repeat
+                if f(x0, x) then
+                    bucket:=cons(x,bucket)
+                else
+                    xx1:=cons(x,xx1)
+            res:=cons(reverse bucket, res)
+            xx:=reverse xx1
+        concat res
+
+    topologicalSort(f, xx) ==
+        xx1:= copy xx
+        topologicalSort!(f, xx1)
+
+    -- \spad{topologicalSort(xx)} returns a rearrangement of the elements
+    -- which is compatible with the partial order.
+    -- (Martin Baker) I added this version because predicate function can
+    -- be difficult to work with so use table instead.
+    topologicalSort(adjacency:List(List(Boolean)), xx:List(T)) ==
+        -- concert to with indexes to work with
+        xi:List(NNI) := [n for n in 1..(#xx)]
+        bucket:List NNI := empty()
+        res:List(List(NNI)) := empty()
+        while not empty? xi repeat
+            x0:= first xi
+            xi:=rest xi
+            bucket:= [x0]
+            xx1:List NNI := empty()
+            for x in xi repeat
+                if adjacency.x0.x then
+                    bucket:=cons(x,bucket)
+                else
+                    xx1:=cons(x,xx1)
+            res:=cons(reverse bucket, res)
+            xi:=reverse xx1
+        r:List(NNI) := concat res
+        -- convert back to values from indexes
+        [xx.p for p in r]
+
+    shiftLeft(xx) ==
+        empty? xx => return xx
+        concat (rest xx, first xx)
+
+    if T has OrderedSet then
+      minShift(xx) ==
+          empty? xx => return xx
+          empty? rest xx => return xx
+          res := xx
+          xx1 := xx
+          for k in 2..#xx repeat
+              xx1 := shiftLeft xx1
+              if xx1 < res then
+                  res := xx1
+          res
+
+    cartesian(SS:List List T):List List T ==
+        one? (# SS) => return [[s] for s in first SS]
+        res:List List T := empty()
+        for x in cartesian rest SS repeat
+            for s in first SS repeat
+                res:=cons(cons(s,x),res)
+        res
+        
+    cartesianPower(S: List T, n:NonNegativeInteger):List List T ==
+        empty? S or zero? n  => return empty()
+        one? n => return [[s] for s in S]
+        res:List List T := empty()
+        for x in cartesianPower(S, qcoerce(n-1)) repeat
+            for s in S repeat
+                res := cons(cons(s,x),res)
+        res
+)if false
+\section{domain INCMAT IncidenceMatrix}
+At the moment my (Martin Baker) code uses an adjacency matrix for the Rep of
+a poset (with entries being boolean values - so an adjacency array) but the code
+from Franz Lehner uses IncidenceMatrix. I like adjacency matrix because it
+enforces that there is, at most, one edge between any two nodes. I suspect
+this difference should not cause too many problems since I think its relatively
+easy to convert between these two structures.
+
+From \url{http://wiki.axiom-developer.org/SandBoxCategoryOfGraphs2}.
+Notes: \axiom{S:Type} does not work because 
+\verb|position(i,V)$OneDimensionalArray S|
+requires \axiom{SetCategory}.
+
+)endif
+)abbrev domain INCMAT IncidenceMatrix
+++ Author: Franz Lehner lehner@math.tugraz.at
+++ Date Created: 30 April 2013
+++ Date Last Updated: 
+++ Fix History: 
+++ Basic Functions:
+++ Related Constructors:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ Description:
+++   A domain for incidence matrices of finite posets.
+IncidenceMatrix(R:Ring, S:SetCategory): Decl == Impl where
+    IND ==> OneDimensionalArray S
+    Decl ==> SetCategory with
+      -- IncidenceMatrix declarations
+      --constructor
+      incidenceMatrix:(Matrix R, List S) -> %
+      ++ \spad{incidenceMatrix(A, ss)}
+      ++ constructs an adjacency matrix with with indices ss and Matrix A
+      incidenceMatrix:(Matrix R, OneDimensionalArray S) -> %
+      ++ \spad{incidenceMatrix(A, ss)}
+      ++ constructs an adjacency matrix with with indices ss and Matrix A
+      --access
+      indices:% -> OneDimensionalArray S
+      ++ \spad{indices(A)} returns the indices of the incidence matrix A
+      matrix:% -> Matrix R
+      ++ \spad{matrix(A)} returns the underlying matrix
+      ++ of the incidence matrix A        
+      apply:(%,Integer,Integer)-> R
+      ++ \spad{A(i,j)} returns $A_{i,j}$
+      apply:(%,S,S)-> R
+      ++ \spad{A(s,t)} returns $A_{i,j}$, where $i$, $j$ are the positions
+      ++ of $s$ and $t$ in the index list.
+      -- output
+      coerce:% -> OutputForm
+      -- manipulations
+      _*:(Permutation Integer,%)->%
+      ++ \spad{\pi * A} permutes the indices and the matrix according to the
+      ++ permutation \spad{\pi}.
+      -- _*:(Permutation S,%)->%;
+      -- arithmetics
+      "+": (%,%) -> %
+        ++ \spad{x + y} is the sum of the matrices x and y.
+        ++ Error: if the dimensions are incompatible.
+      "*": (%,%) -> %
+        ++ \spad{x * y} is the product of the matrices x and y.
+        ++ Error: if the dimensions are incompatible.
+      "*": (R,%) -> %
+        ++ \spad{r*x} is the left scalar multiple of the scalar r and the
+        ++ matrix x.
+      "*": (%,R) -> %
+        ++ \spad{r*x} is the left scalar multiple of the scalar r and the
+        ++ matrix x.
+      "^": (%, NonNegativeInteger) -> %
+        ++ \spad{x ^ n} computes a non-negative integral power of the
+        ++ matrix x.  Error: if the matrix is not square.
+    Impl ==> add 
+      Rep := Record(matrix:Matrix R, indices:IND)
+      Ai,Bi,Ci:Matrix R
+      r: R
+      A,B: %
+      ss: List S
+      i,j: Integer
+      u,v: S
+
+-- IncidenceMatrix implementation
+
+      incidenceMatrix(Ai:Matrix R, ssa:OneDimensionalArray S):% ==
+          if (nrows Ai ~= #ssa) or (ncols Ai ~= #ssa) then
+              error "Sizes not compatible"
+          [Ai, ssa]
+
+      incidenceMatrix(Ai, ss) == incidenceMatrix(Ai, oneDimensionalArray ss)
+      --    if (nrows Ai ~= #ss) or (ncols Ai ~= #ss) then
+      --        error "Sizes not compatible"
+      --    [Ai,oneDimensionalArray ss]
+
+      indices A == A.indices
+
+      matrix A == A.matrix
+
+      apply(A, i, j) == (A.matrix)(i,j)
+
+      apply(A,u,v) == 
+          i := position(u,indices A)
+          zero? i => error "First index is not a vertex"
+          j := position(v,indices A)
+          zero? j => error "Second index is not a vertex"
+          (A.matrix)(i,j)
+
+      (p:Permutation Integer) * (A) == 
+          mp:Set Integer:= movedPoints p
+          n:Integer := # indices A
+          if (min mp) < 1 or (max mp) > n then 
+                  error "Permutation out of range"
+          -- permute the indices
+          newindices:OneDimensionalArray S := oneDimensionalArray [ (indices A)(eval(p,i)) for i in 1..n]
+          -- permutation matrix
+          indic:List Integer := [eval(p,i) for i in 1..n]
+          newA:Matrix R:= (matrix A)(indic,indic)
+          [newA, newindices]
+
+      coerce(A):OutputForm == 
+        bracket commaSeparate [(matrix A)::OutputForm , (indices A)::OutputForm]
+
+      _=(A1:%,A2:%):Boolean == (indices A1 = indices A2) and (matrix A1 = matrix A2)
+
+      -- Arithmetics
+
+      A + B ==
+         Aind := indices A
+         Bind := indices B
+         if Aind ~= Bind then
+             error "incompatible indices"
+         Ci := matrix A + matrix B
+         incidenceMatrix(Ci, Aind)
+   
+      A * B ==
+         Aind := indices A
+         Bind := indices B
+         if Aind ~= Bind then
+             error "incompatible indices"
+         Ci := matrix A * matrix B
+         incidenceMatrix(Ci, Aind)
+
+      r * A ==
+         Aind := indices A
+         Ci := r*matrix A
+         incidenceMatrix(Ci, Aind)   
+   
+      A * r ==
+         Aind := indices A
+         Ci := (matrix A) * r
+         incidenceMatrix(Ci, Aind)   
+
+      A^n ==
+         Aind := indices A
+         Ci := (matrix A)^n
+         incidenceMatrix(Ci, Aind)   
+
+)if false
+\section{domain FMOEBF FiniteMoebiusFunction}
+This domain computes Moebius functions of finite subposets
+of infinite posets given by lists of elements.
+It computes the zeta matrix and stores its inverse.
+
+)endif
+)abbrev domain FMOEBF FiniteMoebiusFunction
+++ Author: Franz Lehner
+++ Date Created: 06.03.2011
+++ Date Last Updated:
+++ Basic Functions:
+++ Related Constructors:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ Description:
+++ A domain for Moebius functions of explicit subposets
+++ of infinite posets.
+FiniteMoebiusFunction(P:Join(PartialOrder, SetCategory)):Exports == Implementation where
+  R ==> Integer
+  NNI ==> NonNegativeInteger
+  MATL ==> Record(matrix:Matrix R, indices:List P)
+  TRIMATI==> TriangularMatrixOperations(R, Vector R, Vector R, Matrix R) 
+
+  Exports ==> SetCategory with
+    moebiusFunction:List P -> %
+    ++ \spad{moebiusFunction(pp)} creates the canonical
+    ++ zeta matrix and inverts it.
+    moebiusMu:(mf:%, pi:P, si:P) -> R
+    ++ \spad{moebiusMu(mf, pi, si)} evaluates the Moebius function
+    apply:(mf:%, pi:P, si:P) -> R
+    ++ \spad{mf(pi, si)} evaluates the Moebius function mf at pi and si
+    members:% -> List P
+    ++ \spad{members(mf)} returns the elements of the subposet
+    moebiusMatrix:% -> Matrix R
+    ++ \spad{moebiusMatrix(P)} returns the Moebius matrix
+
+  Implementation ==> add
+    Rep:=  MATL
+    rep(x:%):Rep == x :: Rep
+    per(r:Rep):% == r :: %
+
+    members(mf:%):List P == rep(mf).indices
+        
+    moebiusFunction(xx:List P):% ==
+        xxo:List P:= removeDuplicates topologicalSort("<=", xx)$(ListPackage P)
+        zf:Matrix R:= matrix [[(if x <= y then 1 else 0) for y in xxo] _
+            for x in xxo]
+        mf:Matrix R:= UpTriBddDenomInv(zf, 1)$TRIMATI
+        per ([mf, xxo]$Rep)
+
+    canonicalZeta:(P, P) -> R
+    canonicalZeta(pi, si) ==
+        if pi <= si then
+            return 1
+        0
+        
+    moebiusMu(mf:%, x:P, y:P) ==
+        mfn:Matrix R:= (rep mf) matrix
+        kx:=position(x, members mf)
+        ky:=position(y, members mf)
+        zero? kx or zero? ky =>
+            error "not members"
+        return (mfn)(kx, ky)
+        
+    apply(mf:%, x:P, y:P) ==
+        mfn:Matrix R:= (rep mf) matrix
+        kx:=position(x, members mf)
+        ky:=position(y, members mf)
+        zero? kx or zero? ky =>
+            error "not members"
+        return (mfn)(kx, ky)
+        
+    moebiusMatrix(mf:%):Matrix R == rep(mf) matrix
+
+    coerce(mf:%):OutputForm == hconcat("Moebius Function"::OutputForm, coerce(members(mf)))
+)if false
+\section{domain GENMOEBF GeneralizedFiniteMoebiusFunction}
+A \emph{generalized Moebius function} is the inverse
+of an upper triangular matrix on a poset
+which is not necessarily the zeta matrix.
+It works similar to the domain \axiom{FiniteMoebiusFunction}.
+)endif
+)abbrev domain GENMOEBF GeneralizedFiniteMoebiusFunction
+++ Author: Franz Lehner
+++ Date Created: 06.03.2011
+++ Date Last Updated:
+++ Basic Functions:
+++ Related Constructors:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ References:
+++ Description:
+++ A domain for generalized Moebius functions of explicit subposets.
+GeneralizedFiniteMoebiusFunction(P:Join(PartialOrder, SetCategory), R: Field):Exports == Implementation where
+  NNI ==> NonNegativeInteger
+  MATL ==> Record(zmatrix:Matrix R, mmatrix:Matrix R, indices:List P)
+  TRIMATI==> TriangularMatrixOperations(R, Vector R, Vector R, Matrix R) 
+
+  Exports ==> with
+    generalizedMoebiusFunction:(List P, (P, P) -> R) -> %
+    ++ \spad{generalizedMoebiusFunction(pp, zeta)} inverts the given zeta function
+    canonicalMoebiusFunction:(List P) -> %
+    ++ \spad{canonicalMoebiusFunction(pp)} inverts the canonical zeta function
+    apply:(mf:%, pi:P, si:P) -> R
+    ++ \spad{mf(pi, si)} evaluates the Moebius function mf at pi and si
+    members:% -> List P
+    ++ \spad{members(mf)} returns the elements of the subposet
+    moebiusMatrix:% -> Matrix R
+    ++ \spad{moebiusMatrix()} returns the Moebius matrix
+  Implementation ==> add
+    Rep:=  MATL
+    rep(x:%):Rep == x :: Rep
+    per(r:Rep):% == r :: %
+
+    members(mf:%):List P == rep(mf).indices
+        
+    generalizedMoebiusFunction(xx:List P, z:(P, P) -> R):% ==
+        xxo:List P:= removeDuplicates topologicalSort("<=", xx)$(ListPackage P)
+        zf:Matrix R:= matrix [[(if y<=x then z(x, y) else 0) for x in xxo] _
+            for y in xxo]
+        mf:Union(Matrix R, "failed"):=inverse zf 
+        mf case "failed" => error "zeta not invertible"
+        return per ([zf, mf, xxo]$Rep)
+
+    canonicalZeta:(P, P) -> R
+    canonicalZeta(pi, si) ==
+        if pi <= si then
+            return 1
+        0
+        
+    apply(mf:%, x:P, y:P) ==
+        mfn:Matrix R:= (rep mf) mmatrix
+        kx:=position(x, members mf)
+        ky:=position(y, members mf)
+        zero? kx or zero? ky =>
+            error "not members"
+        return (mfn)(ky, kx)
+        
+    moebiusMatrix(mf:%):Matrix R == rep(mf) mmatrix
+
+    zetaMatrix(mf:%):Matrix R == rep(mf) zmatrix
+
+    coerce(mf:%):OutputForm == "m"::OutputForm
+)if false
 \section{Poset Code}
 As already described, the representation in the following categories contains
 the whole order and not just one element (unlike PartialOrder in catdef.spad).
@@ -267,6 +726,9 @@ Poset(S) : Category == Definition where
      isAntiChain?:(s:%) -> Boolean
       ++ is a subset of a partially ordered set such that any two elements
       ++ in the subset are incomparable
+
+     moebius:(s:%) -> Matrix(Integer)
+      ++ moebius incidence matrix for this poset
 
   add
 
@@ -849,6 +1311,18 @@ Poset(S) : Category == Definition where
             if isArrow?(struct2,a,b) and isArrow?(struct2,b,a) then
               if a ~= b then return false
         true
+
+      -- moebius incidence matrix for this poset
+      moebius(s:%):Matrix(Integer) ==
+        xx:List(S) := getVert(s)
+        arr:List(List(Boolean)) := getArr(s)
+        xxo:List(S):=removeDuplicates topologicalSort(arr, xx)$(ListPackage S)
+        -- convert xxo to indexes
+        xxi:List(NNI) := [(position(xxoi,xx)$List(S))::NNI for xxoi in xxo]
+        zf:Matrix Integer:= matrix [[(if qelt(qelt(arr,x)$List(List(Boolean)),y)$List(Boolean)_
+            then 1 else 0) for y in xxi] for x in xxi]
+        TRIMATI==> TriangularMatrixOperations(Integer, Vector Integer, Vector Integer, Matrix Integer) 
+        mf:Matrix Integer:= UpTriBddDenomInv(zf, 1)$TRIMATI
 
       -- start of SetCategory definitions --
 
@@ -3786,11 +4260,11 @@ For more details see:
      theory. Although this is not used in the current code, it suggests
      a promising generalisation.
 [3] I have put a fuller explanation of this code here:
-\url{http://http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm}
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm}
 [4] Waldeks initial comments
 https://groups.google.com/forum/?hl=en#!topic/fricas-devel/Cy-RHn_g6RY
 [5] Blog about semi-decidable logic
-\url{http://http://xorshammer.com/2011/07/09/a-logical-interpretation-of-some-bits-of-topology/}
+\url{http://xorshammer.com/2011/07/09/a-logical-interpretation-of-some-bits-of-topology/}
 \end{thebibliography}
 \end{document}
 )endif
