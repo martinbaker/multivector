@@ -416,6 +416,10 @@ IncidenceMatrix(R:Ring, S:SetCategory): Decl == Impl where
 
 )if false
 \section{domain FMOEBF FiniteMoebiusFunction}
+Franz Lehner did not provide examples so I (Martin Baker) have tried to work out a
+tutorial on the webpage here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
+
 This domain computes Moebius functions of finite subposets
 of infinite posets given by lists of elements.
 It computes the zeta matrix and stores its inverse.
@@ -494,6 +498,10 @@ FiniteMoebiusFunction(P:Join(PartialOrder, SetCategory)):Exports == Implementati
     coerce(mf:%):OutputForm == hconcat("Moebius Function"::OutputForm, coerce(members(mf)))
 )if false
 \section{domain GENMOEBF GeneralizedFiniteMoebiusFunction}
+Franz Lehner did not provide examples so I (Martin Baker) have tried to work out a
+tutorial on the webpage here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
+
 A \emph{generalized Moebius function} is the inverse
 of an upper triangular matrix on a poset
 which is not necessarily the zeta matrix.
@@ -620,10 +628,12 @@ Poset(S) : Category == Definition where
  
  Definition ==> Preorder(S) with
 
-     finitePoset : (set1:List S,struct1:List List Boolean) -> %
-      ++ constructor where the set and structure is supplied
-      ++ NOTE: does it make sense to include constructor in category?
-      ++ because all implementing domains will have to use the same constructor.
+     finitePoset : (carrier:List S,struct1:List List Boolean) -> %
+      ++ constructor where the set and structure is supplied.
+
+     finitePoset : (carrier:List S,pred:((S, S) -> Boolean)) -> %
+      ++ constructor where the set and structure is supplied.
+      ++ The structure is supplied as a predicate function.
 
      getVert : (s : %) -> List S
       ++ getVert(s) returns a list of all the vertices (or objects)
@@ -729,6 +739,10 @@ Poset(S) : Category == Definition where
 
      moebius:(s:%) -> Matrix(Integer)
       ++ moebius incidence matrix for this poset
+      ++ Franz Lehner did not provide examples so I (Martin Baker) have tried to
+      ++ work out a tutorial on the webpage here:
+      ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
+
 
   add
 
@@ -1313,6 +1327,9 @@ Poset(S) : Category == Definition where
         true
 
       -- moebius incidence matrix for this poset
+      -- Franz Lehner did not provide examples so I (Martin Baker) have tried
+      -- to work out a tutorial on the webpage here:
+      -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
       moebius(s:%):Matrix(Integer) ==
         xx:List(S) := getVert(s)
         arr:List(List(Boolean)) := getArr(s)
@@ -1398,9 +1415,7 @@ FinitePoset(S) : Exports == Impl where
     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
            toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
 
-    Exports ==> Poset(S) with
-     finitePoset : (set1:List S,struct1:List List Boolean) -> %
-      ++ constructor where the set and structure is supplied
+    Exports ==> Poset(S)
 
     Impl ==> add
 
@@ -1412,8 +1427,15 @@ FinitePoset(S) : Exports == Impl where
       Rep := Record(set1:List S,struct1:List List Boolean)
 
       -- constructor where the set and structure is supplied
-      finitePoset(set1:List S,struct1:List List Boolean) : % ==
-        [set1,struct1]
+      finitePoset(carrier:List S,struct1:List List Boolean) : % ==
+        [carrier,struct1]
+
+      -- constructor where the set and structure is supplied.
+      -- The structure is supplied as a predicate function.
+      finitePoset(carrier:List S,pred:((S, S) -> Boolean)) : % ==
+        struct1:List(List(Boolean)) := _
+          [[pred(x,y) for x in carrier] for y in carrier]
+        [carrier,struct1]
 
       -- returns a list of all the vertices (or objects)
       getVert(s : %) : List S ==
