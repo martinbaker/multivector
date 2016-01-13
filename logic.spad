@@ -737,12 +737,25 @@ Poset(S) : Category == Definition where
       ++ is a subset of a partially ordered set such that any two elements
       ++ in the subset are incomparable
 
-     moebius:(s:%) -> Matrix(Integer)
+     moebius:(s:%) -> IncidenceMatrix(Integer,S)
       ++ moebius incidence matrix for this poset
-      ++ Franz Lehner did not provide examples so I (Martin Baker) have tried to
-      ++ work out a tutorial on the webpage here:
+      ++ This is based on code by Franz Lehner. He did not provide examples
+      ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
+     zetaMatrix:(s:%) -> IncidenceMatrix(Integer,S)
+      ++ \spad{zetaMatrix(P)} returns the matrix of the zeta function
+      ++ This is based on code by Franz Lehner. He did not provide examples
+      ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
+
+     coverMatrix:(s:%) -> IncidenceMatrix(Integer,S)
+      ++ the covering matrix of a list of elements from a comparison function
+      ++ the list is assumed to be topologically sorted (i.e., w.r. to
+      ++ a linear extension of the comparison function f
+      ++ This is based on code by Franz Lehner. He did not provide examples
+      ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
   add
 
@@ -1326,20 +1339,53 @@ Poset(S) : Category == Definition where
               if a ~= b then return false
         true
 
-      -- moebius incidence matrix for this poset
-      -- Franz Lehner did not provide examples so I (Martin Baker) have tried
-      -- to work out a tutorial on the webpage here:
+      -- \spad{zetaMatrix(P)} returns the matrix of the zeta function
+      -- This is based on code by Franz Lehner. He did not provide examples
+      -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
-      moebius(s:%):Matrix(Integer) ==
+      zetaMatrix(s:%):IncidenceMatrix(Integer,S) ==
         xx:List(S) := getVert(s)
         arr:List(List(Boolean)) := getArr(s)
         xxo:List(S):=removeDuplicates topologicalSort(arr, xx)$(ListPackage S)
         -- convert xxo to indexes
         xxi:List(NNI) := [(position(xxoi,xx)$List(S))::NNI for xxoi in xxo]
         zf:Matrix Integer:= matrix [[(if qelt(qelt(arr,x)$List(List(Boolean)),y)$List(Boolean)_
-            then 1 else 0) for y in xxi] for x in xxi]
-        TRIMATI==> TriangularMatrixOperations(Integer, Vector Integer, Vector Integer, Matrix Integer) 
-        mf:Matrix Integer:= UpTriBddDenomInv(zf, 1)$TRIMATI
+          then 1 else 0) for y in xxi] for x in xxi]
+        incidenceMatrix(zf,xxo)
+
+      -- moebius incidence matrix for this poset
+      -- This is based on code by Franz Lehner. He did not provide examples
+      -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
+      moebius(s:%):IncidenceMatrix(Integer,S) ==
+        TRIMATI==> TriangularMatrixOperations(Integer, Vector Integer, Vector Integer,_
+          Matrix Integer)
+        z:IncidenceMatrix(Integer,S) := zetaMatrix(s)
+        mf:Matrix(Integer) := UpTriBddDenomInv(matrix(z), 1)$TRIMATI
+        incidenceMatrix(mf,indices(z))
+
+      -- the covering matrix of a list of elements from a comparison function
+      -- the list is assumed to be topologically sorted (i.e., w.r. to
+      -- a linear extension of the comparison function f
+      -- This is based on code by Franz Lehner. He did not provide examples
+      -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
+      coverMatrix(s:%):IncidenceMatrix(Integer,S) ==
+        z := zetaMatrix(s)
+        zf:Matrix(Integer) := matrix(z)
+        n := nrows zf
+        res:Matrix Integer := zero(n, n)
+        -- we assume that the matrix is upper triangular
+        ni:Integer  := n::Integer
+        for i in 1..ni-1 repeat
+            -- list of elements larger than x_i found so far
+            tabx:List Integer:=empty()
+            for j in i+1..ni repeat
+                if one? zf(i, j) and _
+                      not any?((u:Integer):Boolean +-> one? zf(u, j), tabx) then
+                    tabx:=cons(j, tabx)
+                    res(i, j):= 1
+        incidenceMatrix(res,indices(z))
 
       -- start of SetCategory definitions --
 
