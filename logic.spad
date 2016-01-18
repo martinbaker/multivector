@@ -258,13 +258,18 @@ ListPackage(T:BasicType): Exports == Implementation where
                 res := cons(cons(s,x),res)
         res
 )if false
-\section{domain INCMAT IncidenceMatrix}
-At the moment my (Martin Baker) code uses an adjacency matrix for the Rep of
-a poset (with entries being boolean values - so an adjacency array) but the code
-from Franz Lehner uses IncidenceMatrix. I like adjacency matrix because it
-enforces that there is, at most, one edge between any two nodes. I suspect
-this difference should not cause too many problems since I think its relatively
-easy to convert between these two structures.
+\section{domain INCMAT IncidenceAlgebra}
+At the moment my (Martin Baker) poset code uses an adjacency matrix for the Rep
+of a poset (with entries being boolean values - so an adjacency array).
+See FinitePoset below.
+
+The code here implements the incidence algebra of posets.
+
+Franz Lehner originally used the name IncidenceMatrix for this. I found this
+confusing because it tends to be used for matrix where: rows are vertices and
+columns are edges as described here:
+\url{https://en.wikipedia.org/wiki/Incidence_matrix}
+So I changed the name IncidenceMatrix to IncidenceAlgebra.
 
 From \url{http://wiki.axiom-developer.org/SandBoxCategoryOfGraphs2}.
 Notes: \axiom{S:Type} does not work because 
@@ -272,11 +277,11 @@ Notes: \axiom{S:Type} does not work because
 requires \axiom{SetCategory}.
 
 )endif
-)abbrev domain INCMAT IncidenceMatrix
+)abbrev domain INCMAT IncidenceAlgebra
 ++ Author: Franz Lehner lehner@math.tugraz.at
 ++ Date Created: 30 April 2013
-++ Date Last Updated: 
-++ Fix History: 
+++ Date Last Updated: 16 Jan 2016
+++ Fix History: Martin Baker - changed name from IncidenceMatrix to IncidenceAlgebra
 ++ Basic Functions:
 ++ Related Constructors:
 ++ Also See:
@@ -285,16 +290,16 @@ requires \axiom{SetCategory}.
 ++ References:
 ++ Description:
 ++   A domain for incidence matrices of finite posets.
-IncidenceMatrix(R:Ring, S:SetCategory): Decl == Impl where
+IncidenceAlgebra(R:Ring, S:SetCategory): Decl == Impl where
     IND ==> OneDimensionalArray S
     Decl ==> SetCategory with
-      -- IncidenceMatrix declarations
+      -- IncidenceAlgebra declarations
       --constructor
-      incidenceMatrix:(Matrix R, List S) -> %
-      ++ \spad{incidenceMatrix(A, ss)}
+      incidenceAlgebra:(Matrix R, List S) -> %
+      ++ \spad{incidenceAlgebra(A, ss)}
       ++ constructs an adjacency matrix with with indices ss and Matrix A
-      incidenceMatrix:(Matrix R, OneDimensionalArray S) -> %
-      ++ \spad{incidenceMatrix(A, ss)}
+      incidenceAlgebra:(Matrix R, OneDimensionalArray S) -> %
+      ++ \spad{incidenceAlgebra(A, ss)}
       ++ constructs an adjacency matrix with with indices ss and Matrix A
       --access
       indices:% -> OneDimensionalArray S
@@ -339,14 +344,14 @@ IncidenceMatrix(R:Ring, S:SetCategory): Decl == Impl where
       i,j: Integer
       u,v: S
 
--- IncidenceMatrix implementation
+-- IncidenceAlgebra implementation
 
-      incidenceMatrix(Ai:Matrix R, ssa:OneDimensionalArray S):% ==
+      incidenceAlgebra(Ai:Matrix R, ssa:OneDimensionalArray S):% ==
           if (nrows Ai ~= #ssa) or (ncols Ai ~= #ssa) then
               error "Sizes not compatible"
           [Ai, ssa]
 
-      incidenceMatrix(Ai, ss) == incidenceMatrix(Ai, oneDimensionalArray ss)
+      incidenceAlgebra(Ai, ss) == incidenceAlgebra(Ai, oneDimensionalArray ss)
       --    if (nrows Ai ~= #ss) or (ncols Ai ~= #ss) then
       --        error "Sizes not compatible"
       --    [Ai,oneDimensionalArray ss]
@@ -389,7 +394,7 @@ IncidenceMatrix(R:Ring, S:SetCategory): Decl == Impl where
          if Aind ~= Bind then
              error "incompatible indices"
          Ci := matrix A + matrix B
-         incidenceMatrix(Ci, Aind)
+         incidenceAlgebra(Ci, Aind)
    
       A * B ==
          Aind := indices A
@@ -397,26 +402,26 @@ IncidenceMatrix(R:Ring, S:SetCategory): Decl == Impl where
          if Aind ~= Bind then
              error "incompatible indices"
          Ci := matrix A * matrix B
-         incidenceMatrix(Ci, Aind)
+         incidenceAlgebra(Ci, Aind)
 
       r * A ==
          Aind := indices A
          Ci := r*matrix A
-         incidenceMatrix(Ci, Aind)   
+         incidenceAlgebra(Ci, Aind)   
    
       A * r ==
          Aind := indices A
          Ci := (matrix A) * r
-         incidenceMatrix(Ci, Aind)   
+         incidenceAlgebra(Ci, Aind)   
 
       A^n ==
          Aind := indices A
          Ci := (matrix A)^n
-         incidenceMatrix(Ci, Aind)   
+         incidenceAlgebra(Ci, Aind)   
 
 )if false
 \section{domain FMOEBF FiniteMoebiusFunction}
-Franz Lehner did not provide examples so I (Martin Baker) have tried to work out a
+Franz Lehner did not provide tutorial examples so I (Martin Baker) have tried to work out a
 tutorial on the webpage here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
@@ -737,19 +742,19 @@ Poset(S) : Category == Definition where
       ++ is a subset of a partially ordered set such that any two elements
       ++ in the subset are incomparable
 
-     moebius:(s:%) -> IncidenceMatrix(Integer,S)
+     moebius:(s:%) -> IncidenceAlgebra(Integer,S)
       ++ moebius incidence matrix for this poset
       ++ This is based on code by Franz Lehner. He did not provide examples
       ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
-     zetaMatrix:(s:%) -> IncidenceMatrix(Integer,S)
+     zetaMatrix:(s:%) -> IncidenceAlgebra(Integer,S)
       ++ \spad{zetaMatrix(P)} returns the matrix of the zeta function
       ++ This is based on code by Franz Lehner. He did not provide examples
       ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
-     coverMatrix:(s:%) -> IncidenceMatrix(Integer,S)
+     coverMatrix:(s:%) -> IncidenceAlgebra(Integer,S)
       ++ the covering matrix of a list of elements from a comparison function
       ++ the list is assumed to be topologically sorted (i.e., w.r. to
       ++ a linear extension of the comparison function f
@@ -1343,7 +1348,7 @@ Poset(S) : Category == Definition where
       -- This is based on code by Franz Lehner. He did not provide examples
       -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
-      zetaMatrix(s:%):IncidenceMatrix(Integer,S) ==
+      zetaMatrix(s:%):IncidenceAlgebra(Integer,S) ==
         xx:List(S) := getVert(s)
         arr:List(List(Boolean)) := getArr(s)
         xxo:List(S):=removeDuplicates topologicalSort(arr, xx)$(ListPackage S)
@@ -1351,18 +1356,18 @@ Poset(S) : Category == Definition where
         xxi:List(NNI) := [(position(xxoi,xx)$List(S))::NNI for xxoi in xxo]
         zf:Matrix Integer:= matrix [[(if qelt(qelt(arr,x)$List(List(Boolean)),y)$List(Boolean)_
           then 1 else 0) for y in xxi] for x in xxi]
-        incidenceMatrix(zf,xxo)
+        incidenceAlgebra(zf,xxo)
 
       -- moebius incidence matrix for this poset
       -- This is based on code by Franz Lehner. He did not provide examples
       -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
-      moebius(s:%):IncidenceMatrix(Integer,S) ==
+      moebius(s:%):IncidenceAlgebra(Integer,S) ==
         TRIMATI==> TriangularMatrixOperations(Integer, Vector Integer, Vector Integer,_
           Matrix Integer)
-        z:IncidenceMatrix(Integer,S) := zetaMatrix(s)
+        z:IncidenceAlgebra(Integer,S) := zetaMatrix(s)
         mf:Matrix(Integer) := UpTriBddDenomInv(matrix(z), 1)$TRIMATI
-        incidenceMatrix(mf,indices(z))
+        incidenceAlgebra(mf,indices(z))
 
       -- the covering matrix of a list of elements from a comparison function
       -- the list is assumed to be topologically sorted (i.e., w.r. to
@@ -1370,7 +1375,7 @@ Poset(S) : Category == Definition where
       -- This is based on code by Franz Lehner. He did not provide examples
       -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
-      coverMatrix(s:%):IncidenceMatrix(Integer,S) ==
+      coverMatrix(s:%):IncidenceAlgebra(Integer,S) ==
         z := zetaMatrix(s)
         zf:Matrix(Integer) := matrix(z)
         n := nrows zf
@@ -1385,7 +1390,7 @@ Poset(S) : Category == Definition where
                       not any?((u:Integer):Boolean +-> one? zf(u, j), tabx) then
                     tabx:=cons(j, tabx)
                     res(i, j):= 1
-        incidenceMatrix(res,indices(z))
+        incidenceAlgebra(res,indices(z))
 
       -- start of SetCategory definitions --
 
