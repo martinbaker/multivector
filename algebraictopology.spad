@@ -76,21 +76,27 @@ HomotopyGroup() : Exports == Impl where
 
   Impl ==> add
 
-   -- Representation holds the vertex set, represented as a
-   -- vertex list so that we can index it.
-   Rep := PrimitiveArray(NNI)
+   -- Representation holds the group as a set of generators and a set of
+   -- relations
+   -- Each generator is a NNI
+   -- Each relation is a list of indexes to generators. Negative values indicate
+   -- reversal of direction.
+   Rep := Record(gens:PrimitiveArray(NNI),rels: List(List(Integer)))
 
    -- constructor where the vertex set is supplied
    homotopyGroup(v:List(NNI)):% ==
-     construct(v)$PrimitiveArray(NNI)
+     g:PrimitiveArray(NNI) := construct(v)$PrimitiveArray(NNI)
+     r:List(List(Integer)) := empty()$List(List(Integer))
+     [g,r]
 
-   -- Returns true if x equals y.
+   -- Hard/impossible to determine if finitely presented groups are
+   -- isomorphic so just test exact equality for now
    _=(a : %, b : %) : Boolean ==
-     a=b
+     a.gens=b.gens
 
    -- output
    coerce(s : %) : OutputForm ==
-     ps:List(NNI) := parts(s pretend PrimitiveArray(NNI))
+     ps:List(NNI) := parts((s.gens) pretend PrimitiveArray(NNI))
      res:List(OutputForm) := empty()$List(OutputForm)
      for p in ps repeat
        res := concat(res,p::OutputForm)
@@ -696,6 +702,7 @@ SimplicialComplexFactory() : with
     ++ generate a minimal triangulation of the surface of an 3-dimensional torus.
   projectivePlane:() -> FiniteSimplicialComplex(VertexSetAbstract)
     ++ generate a minimal triangulation of the surface of a projective plane.
+    ++ (A punctured projective plane is equivalent to a moebius band)
   kleinBottle:() -> FiniteSimplicialComplex(VertexSetAbstract)
     ++ generate a minimal triangulation of the surface of a Klein bottle.
 
@@ -735,6 +742,7 @@ SimplicialComplexFactory() : with
     simplicialComplex(vs1,v1)$ASIMP
 
   -- generate a minimal triangulation of the surface of a projective plane.
+  -- (A punctured projective plane is equivalent to a moebius band)
   projectivePlane():FiniteSimplicialComplex(VertexSetAbstract) ==
     ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
     v1:List(List(NNI)) := [[1,2,3],[1,3,4],[1,2,6],[1,5,6],[1,4,5],[2,3,5],_
