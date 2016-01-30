@@ -86,6 +86,7 @@ TODO
 There is a lot more work to be done on this code but I think it is in a state where it can be of some use to others. If it is included in the FriCAS library then there is always a chance that someone else may be able to help. I would welcome as much help as I can get.
 
 Some improvements I would like to make at some time in the future are:
+
 1) I would like to fully implement the geometric version of simplicial complex. One reason is that I would like to make it the standard way to represent 2D, 3D and n-dimensional shapes in code such as scene.spad. So the shapes can be transformed and output in various ways however they would have better mathematical properties than the structures usually used to represent shapes in computer science. This would involve writing code to test for overlapping simplexes and so on.
 
 2) The code that Franz Lehner sent to me also included isomorphism testing and drawing (using algorithms from Freese's book on "Free Lattices"). I would like to merge this with my code. (it may not all be generalisable to graphs/complexes but parts of it may be and the remainder can still be used for posets).
