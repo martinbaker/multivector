@@ -8,11 +8,12 @@ I have made some changes and additions to some of my code. Would you be interest
 
 The changed/new files are:
 
-logic.spad
-graph.spad
-algebraictopology.spad
-computation.spad
-
+<ul>
+  <li>logic.spad</li>
+  <li>graph.spad</li>
+  <li>algebraictopology.spad</li>
+  <li>computation.spad</li>
+</ul>
 These files are available here:
 https://github.com/martinbaker/multivector
 
@@ -36,10 +37,10 @@ category in Boolean.spad as it is intended to replace it. Since this
 category is more general than just Boolean I thought it more appropriate
 to put it in logic.spad. 
 
-For further information see the documentation here:
-http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/
-http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/
-
+For further information see the documentation here:<ul>
+  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/</li>
+  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/</li>
+</ul>
 graph.spad
 ----------
 There are some updates to existing code, this includes:
@@ -53,6 +54,7 @@ There are some updates to existing code, this includes:
 4) Improve output code.
 
 For further information see the documentation here:
+
 http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
 algebraictopology.spad
