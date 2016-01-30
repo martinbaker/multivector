@@ -691,21 +691,25 @@ x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
 SimplicialComplexFactory() : with
   sphereSolid:(dim:NNI) -> FiniteSimplicialComplex(VertexSetAbstract)
-    ++ generate a simplicial complex equivalent to a solid hyper-sphere. That
+    ++ Generate a simplicial complex equivalent to a solid hyper-sphere. That
     ++ is, a solid volume with no holes in it, so we use a single n-dimensional
     ++ simplex.
   sphereSurface:(dim:NNI) -> FiniteSimplicialComplex(VertexSetAbstract)
-    ++ generate a simplicial complex equivalent to the surface of a hyper-sphere.
+    ++ Generate a simplicial complex equivalent to the surface of a hyper-sphere.
     ++ That is, the surface of a volume with no holes in it, so we use a minimal
     ++ triangulation of the faces of a single simplex.
   torusSurface:() -> FiniteSimplicialComplex(VertexSetAbstract)
     ++ generate a minimal triangulation of the surface of an 3-dimensional torus.
   band:() -> FiniteSimplicialComplex(VertexSetAbstract)
-    ++ generate a minimal triangulation of the surface of a cylinder without ends
+    ++ Generate a minimal triangulation of the surface of a cylinder without ends
   moebiusBand:() -> FiniteSimplicialComplex(VertexSetAbstract)
-    ++ generate a minimal triangulation of the surface of a Moebius band.
+    ++ Generate a minimal triangulation of the surface of a Moebius band.
+    ++ A one sided surface with a single external boundary line.
   projectivePlane:() -> FiniteSimplicialComplex(VertexSetAbstract)
-    ++ generate a minimal triangulation of the surface of a projective plane.
+    ++ Generate a minimal triangulation of the surface of a projective plane.
+    ++ A one sided surface which cannot be embedded in 3D space without
+    ++ intersecting itself. There are no external boundaries, every edge
+    ++ connects two faces.
     ++ (A punctured projective plane is equivalent to a Moebius band)
   kleinBottle:() -> FiniteSimplicialComplex(VertexSetAbstract)
     ++ generate a minimal triangulation of the surface of a Klein bottle.
@@ -755,8 +759,8 @@ SimplicialComplexFactory() : with
   -- generate a minimal triangulation of the surface of a Moebius band.
   moebiusBand() : FiniteSimplicialComplex(VertexSetAbstract) ==
     ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
-    v1:List(List(NNI)) := [[1,2,3],[2,3,4],[3,4,5],[4,5,6],[1,4,6],[1,2,6]]
-    vs1:VertexSetAbstract := vertexSeta(6::NNI)
+    v1:List(List(NNI)) := [[1,2,3],[2,3,4],[3,4,5],[1,4,5],[1,2,5]]
+    vs1:VertexSetAbstract := vertexSeta(5::NNI)
     simplicialComplex(vs1,v1)$ASIMP
 
   -- generate a minimal triangulation of the surface of a projective plane.

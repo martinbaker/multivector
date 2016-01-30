@@ -265,8 +265,8 @@ See FinitePoset below.
 
 The code here implements the incidence algebra of posets.
 
-Franz Lehner originally used the name IncidenceMatrix for this. I found this
-confusing because it tends to be used for matrix where: rows are vertices and
+Franz Lehner originally used the name IncidenceMatrix for this. I changed this
+because it tends to be used for matrix where: rows are vertices and
 columns are edges as described here:
 \url{https://en.wikipedia.org/wiki/Incidence_matrix}
 So I changed the name IncidenceMatrix to IncidenceAlgebra.
@@ -421,8 +421,7 @@ IncidenceAlgebra(R:Ring, S:SetCategory): Decl == Impl where
 
 )if false
 \section{domain FMOEBF FiniteMoebiusFunction}
-Franz Lehner did not provide tutorial examples so I (Martin Baker) have tried to work out a
-tutorial on the webpage here:
+Code for FiniteMoebiusFunction by Franz Lehner. Notes by Martin Baker are here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
 This domain computes Moebius functions of finite subposets
@@ -503,8 +502,7 @@ FiniteMoebiusFunction(P:Join(PartialOrder, SetCategory)):Exports == Implementati
     coerce(mf:%):OutputForm == hconcat("Moebius Function"::OutputForm, coerce(members(mf)))
 )if false
 \section{domain GENMOEBF GeneralizedFiniteMoebiusFunction}
-Franz Lehner did not provide examples so I (Martin Baker) have tried to work out a
-tutorial on the webpage here:
+Code for GeneralizedFiniteMoebiusFunction by Franz Lehner. Notes by Martin Baker are here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
 A \emph{generalized Moebius function} is the inverse
@@ -744,22 +742,22 @@ Poset(S) : Category == Definition where
 
      moebius:(s:%) -> IncidenceAlgebra(Integer,S)
       ++ moebius incidence matrix for this poset
-      ++ This is based on code by Franz Lehner. He did not provide examples
-      ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      ++ This function is based on code by Franz Lehner.
+      ++ Notes by Martin Baker on the webpage here:
       ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
      zetaMatrix:(s:%) -> IncidenceAlgebra(Integer,S)
       ++ \spad{zetaMatrix(P)} returns the matrix of the zeta function
-      ++ This is based on code by Franz Lehner. He did not provide examples
-      ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      ++ This function is based on code by Franz Lehner.
+      ++ Notes by Martin Baker on the webpage here:
       ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
      coverMatrix:(s:%) -> IncidenceAlgebra(Integer,S)
       ++ the covering matrix of a list of elements from a comparison function
       ++ the list is assumed to be topologically sorted (i.e., w.r. to
       ++ a linear extension of the comparison function f
-      ++ This is based on code by Franz Lehner. He did not provide examples
-      ++ so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      ++ This function is based on code by Franz Lehner.
+      ++ Notes by Martin Baker on the webpage here:
       ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
 
   add
@@ -1345,8 +1343,8 @@ Poset(S) : Category == Definition where
         true
 
       -- \spad{zetaMatrix(P)} returns the matrix of the zeta function
-      -- This is based on code by Franz Lehner. He did not provide examples
-      -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      -- This function is based on code by Franz Lehner.
+      -- Notes by Martin Baker on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
       zetaMatrix(s:%):IncidenceAlgebra(Integer,S) ==
         xx:List(S) := getVert(s)
@@ -1359,8 +1357,8 @@ Poset(S) : Category == Definition where
         incidenceAlgebra(zf,xxo)
 
       -- moebius incidence matrix for this poset
-      -- This is based on code by Franz Lehner. He did not provide examples
-      -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      -- This function is based on code by Franz Lehner.
+      -- Notes by Martin Baker on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
       moebius(s:%):IncidenceAlgebra(Integer,S) ==
         TRIMATI==> TriangularMatrixOperations(Integer, Vector Integer, Vector Integer,_
@@ -1372,8 +1370,8 @@ Poset(S) : Category == Definition where
       -- the covering matrix of a list of elements from a comparison function
       -- the list is assumed to be topologically sorted (i.e., w.r. to
       -- a linear extension of the comparison function f
-      -- This is based on code by Franz Lehner. He did not provide examples
-      -- so I (Martin Baker) have tried to work out a tutorial on the webpage here:
+      -- This function is based on code by Franz Lehner.
+      -- Notes by Martin Baker on the webpage here:
       -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/}
       coverMatrix(s:%):IncidenceAlgebra(Integer,S) ==
         z := zetaMatrix(s)
