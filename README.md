@@ -1,6 +1,6 @@
 Multivector
 -----------
-Code to use with FriCAS program
+Code to use with FriCAS program - I shold really change the name from 'Multivector' becaulse its no longer just about Clifford algebra but is a place to publish my new FriCAS code on any subject.
 
 Changes Jan 2016
 ----------------
