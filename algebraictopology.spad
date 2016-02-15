@@ -46,16 +46,30 @@ UnitGaussianElimination
 \section{Introduction}
 
 \section{Homotopy Group}
+The homotopy group is finitely presented by generators and relations.
+This representation of a group is not, in general, algorithmically computable
+into other representations of a group.
+
+We can therefore compute 'a' (not 'the') homotopy group for a given simplicial
+complex. We may also be able to apply some simplifications to this group.
+However, in the general case, we cannot determine if this is the simplest
+representation or determine if two such groups are isomophic (their corresponding
+simplicial complexes are homeomorphic).
+
+Despite these fundamental limits on what is theoretically possible I still
+believe it is worthwhile to have the capability to generate 'a' homotopy
+group for a given structure.
 )endif
 
-)abbrev domain HOMTYG HomotopyGroup
+)abbrev domain GROUPP GroupPresentation
 ++ Author: Martin Baker
 ++ Description: 
-++   Homotopy group represented by its generators.
+++   Group represented by its generators and relations.
+++   Here we use it to hold homotopy group such as fundamental group.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/
 ++ Date Created: Jan 2016
-++ Date Last Updated: Jan 2016
+++ Date Last Updated: Feb 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
@@ -66,7 +80,7 @@ UnitGaussianElimination
 ++ Examples: 
 ++ References:
 
-HomotopyGroup() : Exports == Impl where
+GroupPresentation() : Exports == Impl where
   NNI==> NonNegativeInteger
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
@@ -168,7 +182,7 @@ each type.
 )abbrev category VERTS VertexSet
 ++ Author: Martin Baker
 ++ Description:
-++   An indexed set of verticies
+++   An indexed set of vertices
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Related Domains:
@@ -323,7 +337,11 @@ VertexSetAbstract() : Exports == Impl where
    coerce(s : %) : OutputForm == outputForm(s pretend NNI)$OutputForm
  
 )if false
-
+This representation defines faces, of any dimension, by their vertices. This is an
+efficient way to define them.
+As an example consider the representation for a single tetrahedron:
+The representation would be: (1,2,3,4)
+There is and alternative representation later.
 )endif
 
 )abbrev domain SIMPC FiniteSimplicialComplex
@@ -340,8 +358,8 @@ VertexSetAbstract() : Exports == Impl where
 ++ Related Domains:
 ++ Also See:
 ++ AMS Classifications:
-++ Keywords: 
-++ Examples: 
+++ Keywords:
+++ Examples:
 ++ References:
 
 FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
@@ -374,7 +392,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ Forms product of two simplicial complexes.
     oneSkeleton:(s:%) -> DirectedGraph(NNI)
      ++ generates graph AKA 1-skeleton
-    fundamentalGroup:(s:%) -> HomotopyGroup
+    fundamentalGroup:(s:%) -> GroupPresentation
      ++ Generates fundamental group from this simplicial complex.
      ++ under construction
 
@@ -386,6 +404,11 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- Also a list of simplices (that is n-dimensional faces). each
    -- simplice is an array of vertex indexes.
    -- So each simplice is a subset of the vertex set.
+   --where:
+   -- VS is a list of verticies in whatever form we are using.
+   -- NNI is an index.
+   -- The inner list represents an individual simplex.
+   -- The outer list holds a list of simplexes.
    Rep := Record(VERTS:VS,SIMP:List(List(NNI)))
 
    -- constructor where the vertex set and simplices are supplied
@@ -540,7 +563,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- Generates fundamental group from this simplicial complex.
    -- under construction
-   fundamentalGroup(s:%):HomotopyGroup ==
+   fundamentalGroup(s:%):GroupPresentation ==
      print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
      -- under construction
      -- compute edge-path group
@@ -554,7 +577,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      --                   e0 e1^-1 e2
      --                   (e0,e1,e2 are edges)
      generators:List(NNI) := [0::NNI]
-     homotopyGroup(generators)$HomotopyGroup
+     homotopyGroup(generators)$GroupPresentation
 
    -- local function used by simplexProduct.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
@@ -620,6 +643,194 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      if len ~= #b then return false
      if len = 0 then return true
      fst:NNI := first a
+     offset:Integer := position(fst,b)
+     if offset <1 then return false
+     for n in 1..#a repeat
+       if a.n ~= b.offset then return false
+       offset := offset+1
+       if offset > #b then offset := 1
+     true
+
+   -- Returns true if x equals y.
+   -- That is, they contain the same simplexes, although not necessarily in the
+   -- same order.
+   -- TODO - Assumes point set is exactly the same, for more generality we should allow
+   -- the points to be defined in a different order.
+   _=(a : %, b : %) : Boolean ==
+     as := a.SIMP
+     bs := b.SIMP
+     --print("equal:"::Symbol << as << ","::Symbol << bs)
+     len:NNI := #as
+     if len ~= #bs then return false
+     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+     --print("empty flags "::Symbol << flags)
+     for a1 in as repeat
+       x:NNI := 1
+       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
+         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+         x:=x+1
+         if x > #as then return false
+       flags.x := true
+       --print("flags."::Symbol << x << "=true "::Symbol << flags)
+     --print("final flags "::Symbol << flags)
+     for f in flags repeat
+       if f=false then return false
+     true
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     if empty?(s.SIMP) then return bracket(empty()$OutputForm)
+     mat:List List OutputForm := empty()$List(List(OutputForm))
+     -- matrix does not like different row widths so we need to
+     -- know the maximum width so we can pad to that width.
+     maxWidth:NNI := 0
+     for a in s.SIMP repeat
+       if #a > maxWidth then maxWidth := #a
+     if maxWidth = 0 then return empty()$OutputForm
+     for a in s.SIMP repeat
+       row:List OutputForm := empty()$List(OutputForm)
+       for b in a repeat
+         row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
+       w:NNI := #a
+       while w < maxWidth repeat
+         row := concat(row,empty()$OutputForm)$List(OutputForm)
+         w:= w+1
+       mat := concat(mat,row)
+     matrix(mat)
+
+)if false
+The above representation defines faces, of any dimension, by their
+vertices. This is an efficient way to define them, the only disadvantage
+is that intermediate parts, such as edges, are not indexed. It is
+sometimes useful to be able to do this, for example, when generating
+homotopy groups such as the fundamental group.
+)endif
+
+)abbrev domain SIMPI IndexedSimplicialComplex
+++ Author: Martin Baker
+++ Description: 
+++   A Finite Simplicial Complex where edges, tringles, etc. are indexed.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+++ Date Created: Feb 2016
+++ Date Last Updated: Feb 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ Examples:
+++ References:
+
+IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    simplicialComplex: (v:VS,f:List(List(Integer))) -> %
+     ++ constructor where the simplices are supplied
+    oneSkeleton:(s:%) -> DirectedGraph(NNI)
+     ++ generates graph AKA 1-skeleton
+    fundamentalGroup:(s:%) -> GroupPresentation
+     ++ Generates fundamental group from this simplicial complex.
+     ++ under construction
+
+  Impl ==> add
+
+   -- Representation holds whole Simplicial Complex. This consists of
+   -- a vertex set, here represented as a vertex list so that we can
+   -- index it.
+   -- Also a sequence of tables representing edges, triangles,
+   -- tetrahedrons, etc.
+   -- Since edges, triangles, tetrahedrons, etc. are oriented we use
+   -- a positive or negative index to indicate winding direction. 
+   Rep := Record(VERTS:VS,SIMP:List(List(Integer)))
+
+   -- constructor where the vertex set and simplices are supplied
+   simplicialComplex(v:VS,f:List(List(Integer))):% == [v,f]
+
+   -- local function used in oneSkeleton
+   concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
+         List(Record(value : NNI, posX : NNI, posY : NNI)) ==
+     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
+     if member?([b,0::NNI,0::NNI],a)$List(OBJT) then return a
+     concat(a,[b,0::NNI,0::NNI])$List(OBJT)
+
+   -- local function used in oneSkeleton
+   concatIfNewArrow(a:List(Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)),_
+           p:NNI,m:NNI):_
+           List(Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)) ==
+     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+     if member?(["x",0::NNI,p,m,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
+     if member?(["x",0::NNI,m,p,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
+     concat(a,["x",0::NNI,p,m,0::Integer,0::Integer,[]])$List(ARROW)
+
+   -- Generates graph AKA 1-skeleton.
+   -- Used to generate fundamental group
+   oneSkeleton(s:%):DirectedGraph(NNI) ==
+     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
+     GS := DirectedGraph(NNI)
+     nodes:List(OBJT) := empty()$List(OBJT)
+     edges:List(ARROW) := empty()$List(ARROW)
+     for x in s.SIMP repeat
+       n:NNI := #x
+       if n=2 then
+         nodes := concatIfNew(nodes,abs(x.1) pretend NNI)
+         nodes := concatIfNew(nodes,abs(x.2) pretend NNI)
+         y:ARROW := ["x",0::NNI,abs(x.1) pretend NNI,abs(x.2) pretend NNI,0::Integer,0::Integer,[]]
+         edges := concat(edges,y)$List(ARROW)
+         --print ("nodes="::Symbol << nodes << " edges="::Symbol << edges)
+       if n>2 then
+         for m in x repeat
+           nodes := concatIfNew(nodes,abs(m) pretend NNI)
+           for p in x repeat
+             if p<m then
+               edges := concatIfNewArrow(edges,abs(p) pretend NNI,abs(m) pretend NNI)
+     directedGraph(nodes,edges)$GS
+
+   -- Generates fundamental group from this simplicial complex.
+   -- under construction
+   fundamentalGroup(s:%):GroupPresentation ==
+     print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
+     -- under construction
+     -- compute edge-path group
+     graph:DirectedGraph(NNI) := oneSkeleton(s)
+     print("fundamentalGroup graph="::Symbol << graph )
+     -- choose a spanning tree for the 1-skeleton
+     span := spanningTreeNode(graph,1::NNI)$DirectedGraph(NNI)
+     print("fundamentalGroup span="::Symbol << span )
+     -- groups generators: edges in 1-skeleton
+     -- groups relations: for every 2-simplex
+     --                   e0 e1^-1 e2
+     --                   (e0,e1,e2 are edges)
+     generators:List(NNI) := [0::NNI]
+     homotopyGroup(generators)$GroupPresentation
+
+   -- local function used by simplexProduct.
+   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
+     if indexA<1 then error "productIndex out of range"
+     if indexB<1 then error "productIndex out of range"
+     ia:Integer := indexA -1
+     ib:Integer := indexB -1
+     res := ia + ib*maxA
+     (res+1)::NNI
+
+   -- Local function used by '=' to check if two simplexes are equal.
+   -- To be equal they must contain the same indexes, wound in the same
+   -- direction but not necessarily starting at the same value.
+   equalSimplex(a:List(Integer),b:List(Integer)):Boolean ==
+     --print("equalSimplex:"::Symbol << a << ","::Symbol << b)
+     len:NNI := #a
+     if len ~= #b then return false
+     if len = 0 then return true
+     fst:Integer := first a
      offset:Integer := position(fst,b)
      if offset <1 then return false
      for n in 1..#a repeat
