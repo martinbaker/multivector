@@ -28,7 +28,11 @@ I will implement coercions from graphs to simplicial complexes.
 
 I have not yet investigated whether this code can be linked to existing code such as:
 
-Zariski topology
+Smith normal form and unit Gaussian elimination:
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/smith.spad}
+\url{https://github.com/fricas/fricas/blob/master/src/algebra/smith2.spad}
+
+Zariski topology:
 The Zariski topology of an algebraic variety is the topology whose closed sets
 are the algebraic subsets of the variety.
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/zerodim.spad}
@@ -39,9 +43,6 @@ DeRhamComplex
 
 DifferentialGeometry
 \url{http://axiom-wiki.newsynthesis.org/SandBoxDifferentialGeometry}
-
-UnitGaussianElimination
-\url{https://github.com/fricas/fricas/blob/master/src/algebra/smith2.spad}
 
 \section{Introduction}
 
@@ -352,13 +353,14 @@ There is and alternative representation later.
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Date Created: Dec 2015
 ++ Date Last Updated: Jan 2016
-++ Basic Operations:
+++ Basic Operations: star, link, cone, product
 ++ Related packages:
 ++ Related categories:
-++ Related Domains:
+++ Related Domains: IndexedSimplicialComplex is an alternative representation
+++    which is less compact but allows edges, triangles, etc to be indexed.
 ++ Also See:
 ++ AMS Classifications:
-++ Keywords:
+++ Keywords: topology, finite, simplicial, complex, edge, triangle
 ++ Examples:
 ++ References:
 
@@ -409,7 +411,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- NNI is an index.
    -- The inner list represents an individual simplex.
    -- The outer list holds a list of simplexes.
-   Rep := Record(VERTS:VS,SIMP:List(List(NNI)))
+   Rep := Record(VERTSET:VS,SIMP:List(List(NNI)))
 
    -- constructor where the vertex set and simplices are supplied
    simplicialComplex(v:VS,f:List(List(NNI))):% == [v,f]
@@ -446,7 +448,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
                cancel := concat(cancel,rev)$List(PAIR)
              else
                res := concat(res,pair)$List(List(NNI))
-     simplicialComplex(s.VERTS,res)
+     simplicialComplex(s.VERTSET,res)
 
    -- local function, used by isFaceOf and subtract, which returns true if
    -- vertex 'b' is contained in face 'a'.
@@ -479,7 +481,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      for simp in s.SIMP repeat
        if isFaceOf(simp,simplex) then
          res:=concat(res,simp)
-     simplicialComplex(s.VERTS,res)
+     simplicialComplex(s.VERTSET,res)
 
    -- The 'link' of a simplicial complex and a simplex contains the boundary of the
    -- simplexes of s which include simplex.
@@ -490,7 +492,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        if isFaceOf(facet,simplex) then
          x:SIMPLEX := subtract(simplex,facet)
          res:=concat(res,x)
-     simplicialComplex(s.VERTS,res)
+     simplicialComplex(s.VERTSET,res)
 
    -- The 'cone' of a simplicial complex is formed by adding the vertex to every
    -- facet.
@@ -501,12 +503,12 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      for facet in s.SIMP repeat
        x:SIMPLEX := concat(facet,vertex)
        res:=concat(res,x)
-     simplicialComplex(s.VERTS,res)
+     simplicialComplex(s.VERTSET,res)
 
    -- Forms disjoint union of two simplicial complexes.
    simplicialJoin(a:%,b:%):% ==
-     c:VS := join(a.VERTS,b.VERTS)
-     offset:NNI := maxFaces(a.VERTS)
+     c:VS := join(a.VERTSET,b.VERTSET)
+     offset:NNI := maxFaces(a.VERTSET)
      res:List(List(NNI)) := copy(a.SIMP)
      for x in b.SIMP repeat
        thisSimp:List(NNI) := empty()$List(NNI)
@@ -625,9 +627,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    product(a:%,b:%):% ==
      simpsa:List(SIMPLEX) := a.SIMP
      simpsb:List(SIMPLEX) := b.SIMP
-     dima:NNI := maxFaces(a.VERTS)$VS
-     dimb:NNI := maxFaces(b.VERTS)$VS
-     vs:VS := prod(a.VERTS,b.VERTS)
+     dima:NNI := maxFaces(a.VERTSET)$VS
+     dimb:NNI := maxFaces(b.VERTSET)$VS
+     vs:VS := prod(a.VERTSET,b.VERTSET)
      res:List(SIMPLEX) := [empty()$SIMPLEX]
      for simpa in simpsa repeat
        for simpb in simpsb repeat
@@ -704,6 +706,8 @@ vertices. This is an efficient way to define them, the only disadvantage
 is that intermediate parts, such as edges, are not indexed. It is
 sometimes useful to be able to do this, for example, when generating
 homotopy groups such as the fundamental group.
+
+Therefore the following alternative representation can be used instead.
 )endif
 
 )abbrev domain SIMPI IndexedSimplicialComplex
@@ -717,10 +721,12 @@ homotopy groups such as the fundamental group.
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
-++ Related Domains:
+++ Related Domains: FiniteSimplicialComplex is a simpler and more compact
+++    representation which can be used if edges, triangles, etc. don't need
+++    to be indexed.
 ++ Also See:
 ++ AMS Classifications:
-++ Keywords:
+++ Keywords: topology, finite, simplicial, complex, edge, triangle
 ++ Examples:
 ++ References:
 
@@ -729,8 +735,15 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    simplicialComplex: (v:VS,f:List(List(Integer))) -> %
+    indexedSimplicialComplex: (v:VS,f:List(List(List(Integer)))) -> %
      ++ constructor where the simplices are supplied
+    indexedSimplicialComplex:(fsc:FiniteSimplicialComplex(VS)) -> %
+     ++ construct from FiniteSimplicialComplex. This builds indexes of
+     ++ edges, triangles and so on.
+    link:(a:NNI,b:NNI) -> %
+     ++ a simplical complex with one link
+    triangle:(a:NNI,b:NNI,c:NNI) -> %
+     ++ a simplical complex with one triangle
     oneSkeleton:(s:%) -> DirectedGraph(NNI)
      ++ generates graph AKA 1-skeleton
     fundamentalGroup:(s:%) -> GroupPresentation
@@ -746,10 +759,44 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- tetrahedrons, etc.
    -- Since edges, triangles, tetrahedrons, etc. are oriented we use
    -- a positive or negative index to indicate winding direction. 
-   Rep := Record(VERTS:VS,SIMP:List(List(Integer)))
+   Rep := Record(VERTSET2:VS,SIMP2:List(List(List(Integer))))
 
    -- constructor where the vertex set and simplices are supplied
-   simplicialComplex(v:VS,f:List(List(Integer))):% == [v,f]
+   indexedSimplicialComplex(v:VS,f:List(List(List(Integer)))):% == [v,f]
+
+   -- a simplical complex with one link
+   link(a:NNI,b:NNI):% ==
+     vs:VS := (vertexSeta(2::NNI)$VertexSetAbstract) pretend VS
+     simp:List(List(List(Integer))) := [[[a,b]]]
+     [vs,simp]
+
+   -- a simplical complex with one triangle
+   triangle(a:NNI,b:NNI,c:NNI):% ==
+     vs:VS := (vertexSeta(3::NNI)$VertexSetAbstract) pretend VS
+     edges:List(List(Integer)) := [[a,b],[a,c],[b,c]]
+     triangles:List(List(Integer)) := [[a,-b,c]]
+     simp:List(List(List(Integer))) := [edges,triangles]
+     [vs,simp]
+
+   -- a local function which returns the maximum grade (length) of a
+   -- list of lists
+   maxGrade(a:List(List(NNI))):NNI ==
+     res:NNI := 0::NNI
+     for lst in a repeat
+       if #lst > res then res := #lst
+     res
+
+   -- construct from FiniteSimplicialComplex. This builds indexes of
+   -- edges, triangles and so on.
+   indexedSimplicialComplex(fsc:FiniteSimplicialComplex(VS)):% ==
+     emptySimp:List(List(List(Integer))) := [[empty()$List(Integer)]]
+     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
+     simp:List(List(NNI)) := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).SIMP
+     maxGr:NNI := maxGrade(simp)
+     if maxGr < 3 then return [vs ,emptySimp]
+     for outer in simp repeat
+       outer
+     [vs ,emptySimp]
 
    -- local function used in oneSkeleton
    concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
@@ -779,20 +826,20 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
      GS := DirectedGraph(NNI)
      nodes:List(OBJT) := empty()$List(OBJT)
      edges:List(ARROW) := empty()$List(ARROW)
-     for x in s.SIMP repeat
-       n:NNI := #x
-       if n=2 then
-         nodes := concatIfNew(nodes,abs(x.1) pretend NNI)
-         nodes := concatIfNew(nodes,abs(x.2) pretend NNI)
-         y:ARROW := ["x",0::NNI,abs(x.1) pretend NNI,abs(x.2) pretend NNI,0::Integer,0::Integer,[]]
-         edges := concat(edges,y)$List(ARROW)
-         --print ("nodes="::Symbol << nodes << " edges="::Symbol << edges)
-       if n>2 then
-         for m in x repeat
-           nodes := concatIfNew(nodes,abs(m) pretend NNI)
-           for p in x repeat
-             if p<m then
-               edges := concatIfNewArrow(edges,abs(p) pretend NNI,abs(m) pretend NNI)
+--     for x in s.SIMP2 repeat
+--       n:NNI := #x
+--       if n=2 then
+--         nodes := concatIfNew(nodes,abs(x.1) pretend NNI)
+--         nodes := concatIfNew(nodes,abs(x.2) pretend NNI)
+--         y:ARROW := ["x",0::NNI,abs(x.1) pretend NNI,abs(x.2) pretend NNI,0::Integer,0::Integer,[]]
+--         edges := concat(edges,y)$List(ARROW)
+--         --print ("nodes="::Symbol << nodes << " edges="::Symbol << edges)
+--       if n>2 then
+--         for m in x repeat
+--           nodes := concatIfNew(nodes,abs(m) pretend NNI)
+--           for p in x repeat
+--             if p<m then
+--               edges := concatIfNewArrow(edges,abs(p) pretend NNI,abs(m) pretend NNI)
      directedGraph(nodes,edges)$GS
 
    -- Generates fundamental group from this simplicial complex.
@@ -812,15 +859,6 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
      --                   (e0,e1,e2 are edges)
      generators:List(NNI) := [0::NNI]
      homotopyGroup(generators)$GroupPresentation
-
-   -- local function used by simplexProduct.
-   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
-     if indexA<1 then error "productIndex out of range"
-     if indexB<1 then error "productIndex out of range"
-     ia:Integer := indexA -1
-     ib:Integer := indexB -1
-     res := ia + ib*maxA
-     (res+1)::NNI
 
    -- Local function used by '=' to check if two simplexes are equal.
    -- To be equal they must contain the same indexes, wound in the same
@@ -845,46 +883,39 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- TODO - Assumes point set is exactly the same, for more generality we should allow
    -- the points to be defined in a different order.
    _=(a : %, b : %) : Boolean ==
-     as := a.SIMP
-     bs := b.SIMP
+     as := a.SIMP2
+     bs := b.SIMP2
      --print("equal:"::Symbol << as << ","::Symbol << bs)
      len:NNI := #as
      if len ~= #bs then return false
-     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+--     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
      --print("empty flags "::Symbol << flags)
-     for a1 in as repeat
-       x:NNI := 1
-       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
-         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
-         x:=x+1
-         if x > #as then return false
-       flags.x := true
+--     for a1 in as repeat
+--       x:NNI := 1
+--       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
+--         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+--         x:=x+1
+--         if x > #as then return false
+--       flags.x := true
        --print("flags."::Symbol << x << "=true "::Symbol << flags)
      --print("final flags "::Symbol << flags)
-     for f in flags repeat
-       if f=false then return false
+--     for f in flags repeat
+--       if f=false then return false
      true
 
    -- output
    coerce(s : %) : OutputForm ==
-     if empty?(s.SIMP) then return bracket(empty()$OutputForm)
-     mat:List List OutputForm := empty()$List(List(OutputForm))
-     -- matrix does not like different row widths so we need to
-     -- know the maximum width so we can pad to that width.
-     maxWidth:NNI := 0
-     for a in s.SIMP repeat
-       if #a > maxWidth then maxWidth := #a
-     if maxWidth = 0 then return empty()$OutputForm
-     for a in s.SIMP repeat
-       row:List OutputForm := empty()$List(OutputForm)
-       for b in a repeat
-         row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
-       w:NNI := #a
-       while w < maxWidth repeat
-         row := concat(row,empty()$OutputForm)$List(OutputForm)
-         w:= w+1
-       mat := concat(mat,row)
-     matrix(mat)
+     res:OutputForm :=empty()$OutputForm -- holds result
+     if empty?(s.SIMP2) then return res
+     tabNum:NNI := 1::NNI
+     for a in s.SIMP2 repeat
+       if tabNum = 1::NNI then res := hconcat(res,message("edge:"))
+       if tabNum = 2::NNI then res := hconcat(res,message(" triangle:"))
+       if tabNum = 3::NNI then res := hconcat(res,message(" tetrahedron:"))
+       if tabNum > 3::NNI then res := hconcat(res,message(" higher:"))
+       res := hconcat(res,a::OutputForm)
+       tabNum := tabNum+1
+     res
 
 )if false
 SimplicialComplexFactory contructs example simplicial complexes for us.
