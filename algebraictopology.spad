@@ -786,6 +786,47 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
        if #lst > res then res := #lst
      res
 
+   -- a local function which returns the index of a list in a
+   -- list of lists. If the list is not there then add it.
+   getIndex!(a:List(Integer),b1:Reference(List(List(Integer)))):Integer ==
+     res:Integer := 1::Integer
+     b:List(List(Integer)) := deref(b1)
+     print ("getIndex! in a="::Symbol << a << " b="::Symbol << b)
+     if empty?(b) then b := [a]
+     for lst in b repeat
+       if a=lst then
+         setref(b1,b)
+         print ("getIndex! old a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
+         return res
+       res := res+1
+     b := concat(b,a)
+     setref(b1,b)
+     print ("getIndex! new a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
+     res
+
+   -- a local function to return a list where each entry:
+   -- i) is a permutation of the input list
+   -- ii) contains integers in ascending order
+   -- iii) is of the specified length
+   orderedPermutation(lst:List(Integer),len: NNI):List(List(Integer)) ==
+     if len < 1 then return empty()$List(List(Integer))
+     if len > #lst then return empty()$List(List(Integer))
+     if len = #lst then return [lst]
+     fst:Integer := lst.first
+     rst:List(Integer) := lst.rest
+     reslt:List(List(Integer)) := empty()$List(List(Integer))
+     -- in the next line I probably should use 'subtractifcan' rather
+     -- than using pretend but it can never be negative due to the tests
+     -- at the start of this function.
+     for x in orderedPermutation(rst,(len-1) pretend NNI) repeat
+       r1:List(Integer) := concat(fst,x)
+       -- r1 holds a permutations starting with fst
+       reslt := concat(reslt,r1)
+     -- now we have combinations staring with fst
+     -- so we just have to add the rest
+     reslt := concat(reslt,orderedPermutation(rst,len))
+     reslt
+
    -- construct from FiniteSimplicialComplex. This builds indexes of
    -- edges, triangles and so on.
    indexedSimplicialComplex(fsc:FiniteSimplicialComplex(VS)):% ==
@@ -794,9 +835,30 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
      simp:List(List(NNI)) := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).SIMP
      maxGr:NNI := maxGrade(simp)
      if maxGr < 3 then return [vs ,emptySimp]
-     for outer in simp repeat
-       outer
-     [vs ,emptySimp]
+     gradedLists:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     -- constuct an empty list for each grade
+     for a in 2..maxGr repeat
+       gradedLists := concat(gradedLists,empty()$List(List(Integer)))
+     for lst in simp repeat
+       grade:NNI := ((#lst)-1) pretend NNI
+       if grade=2 then
+        edgeRef:Reference(List(List(Integer))) := ref(gradedLists.1)
+        edges:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),2)
+        print ("indexedSimplicialComplex edges="::Symbol << edges)
+        edge1:List(Integer) := [lst.1,lst.2]
+        edge2:List(Integer) := [lst.1,lst.3]
+        edge3:List(Integer) := [lst.2,lst.3]
+        x1:Integer := getIndex!(edge1,edgeRef)
+        print ("indexedSimplicialComplex x1="::Symbol << x1 << " gradedLists.1="::Symbol << deref(edgeRef))
+        x2:Integer := getIndex!(edge2,edgeRef)
+        print ("indexedSimplicialComplex x2="::Symbol << x2 << " gradedLists.1="::Symbol << deref(edgeRef))
+        x3:Integer := getIndex!(edge3,edgeRef)
+        print ("indexedSimplicialComplex x3="::Symbol << x3 << " gradedLists.1="::Symbol << deref(edgeRef))
+        gradedLists.1 := deref(edgeRef)
+        gradedLists.2 := concat(gradedLists.2,[x1,-x2,x3])$List(List(Integer))
+       if grade>2 then
+        gradedLists.grade := concat(gradedLists.grade,lst pretend List(Integer))$List(List(Integer))
+     [vs ,gradedLists]
 
    -- local function used in oneSkeleton
    concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
