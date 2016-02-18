@@ -356,7 +356,7 @@ There is and alternative representation later.
 ++ Basic Operations: star, link, cone, product
 ++ Related packages:
 ++ Related categories:
-++ Related Domains: IndexedSimplicialComplex is an alternative representation
+++ Related Domains: DeltaComplex is an alternative representation
 ++    which is less compact but allows edges, triangles, etc to be indexed.
 ++ Also See:
 ++ AMS Classifications:
@@ -701,6 +701,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      matrix(mat)
 
 )if false
+\section{Delta Complex}
+
 The above representation defines faces, of any dimension, by their
 vertices. This is an efficient way to define them, the only disadvantage
 is that intermediate parts, such as edges, are not indexed. It is
@@ -710,7 +712,7 @@ homotopy groups such as the fundamental group.
 Therefore the following alternative representation can be used instead.
 )endif
 
-)abbrev domain SIMPI IndexedSimplicialComplex
+)abbrev domain DELTAC DeltaComplex
 ++ Author: Martin Baker
 ++ Description: 
 ++   A Finite Simplicial Complex where edges, tringles, etc. are indexed.
@@ -730,7 +732,7 @@ Therefore the following alternative representation can be used instead.
 ++ Examples:
 ++ References:
 
-IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
+DeltaComplex(VS:VertexSet) : Exports == Impl where
   NNI==> NonNegativeInteger
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
@@ -752,7 +754,7 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
   Impl ==> add
 
-   -- Representation holds whole Simplicial Complex. This consists of
+   -- Representation holds whole Complex. This consists of
    -- a vertex set, here represented as a vertex list so that we can
    -- index it.
    -- Also a sequence of tables representing edges, triangles,
@@ -812,9 +814,13 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
      if len < 1 then return empty()$List(List(Integer))
      if len > #lst then return empty()$List(List(Integer))
      if len = #lst then return [lst]
+     reslt:List(List(Integer)) := empty()$List(List(Integer))
+     if len=1 then
+       for y in lst repeat
+         reslt := concat(reslt,[y])
+       return reslt  
      fst:Integer := lst.first
      rst:List(Integer) := lst.rest
-     reslt:List(List(Integer)) := empty()$List(List(Integer))
      -- in the next line I probably should use 'subtractifcan' rather
      -- than using pretend but it can never be negative due to the tests
      -- at the start of this function.
@@ -844,18 +850,10 @@ IndexedSimplicialComplex(VS:VertexSet) : Exports == Impl where
        if grade=2 then
         edgeRef:Reference(List(List(Integer))) := ref(gradedLists.1)
         edges:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),2)
-        print ("indexedSimplicialComplex edges="::Symbol << edges)
-        edge1:List(Integer) := [lst.1,lst.2]
-        edge2:List(Integer) := [lst.1,lst.3]
-        edge3:List(Integer) := [lst.2,lst.3]
-        x1:Integer := getIndex!(edge1,edgeRef)
-        print ("indexedSimplicialComplex x1="::Symbol << x1 << " gradedLists.1="::Symbol << deref(edgeRef))
-        x2:Integer := getIndex!(edge2,edgeRef)
-        print ("indexedSimplicialComplex x2="::Symbol << x2 << " gradedLists.1="::Symbol << deref(edgeRef))
-        x3:Integer := getIndex!(edge3,edgeRef)
-        print ("indexedSimplicialComplex x3="::Symbol << x3 << " gradedLists.1="::Symbol << deref(edgeRef))
+        indexList := [getIndex!(ed,edgeRef) for ed in edges]
+        print ("indexedSimplicialComplex edges="::Symbol << edges << " indexList="::Symbol << indexList)
         gradedLists.1 := deref(edgeRef)
-        gradedLists.2 := concat(gradedLists.2,[x1,-x2,x3])$List(List(Integer))
+        gradedLists.2 := concat(gradedLists.2,[indexList.1,-indexList.2,indexList.3])$List(List(Integer))
        if grade>2 then
         gradedLists.grade := concat(gradedLists.grade,lst pretend List(Integer))$List(List(Integer))
      [vs ,gradedLists]
