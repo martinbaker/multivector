@@ -9,7 +9,7 @@
 \begin{abstract}
 
 I would like to code topological spaces in a finite way, simplicial
-complexes allow us to do this in a systematic way.
+complexes and delta complexes allow us to do this in a systematic way.
 
 Simplicial Complexes may not be the most efficient tool, for cutting
 edge topology, in terms the most economical representation. However,
@@ -86,7 +86,7 @@ GroupPresentation() : Exports == Impl where
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    homotopyGroup: (v:List(NNI)) -> %
+    groupPresentation: (v:List(NNI),rels1: List(List(Integer))) -> %
      ++ construct from generators
 
   Impl ==> add
@@ -99,10 +99,9 @@ GroupPresentation() : Exports == Impl where
    Rep := Record(gens:PrimitiveArray(NNI),rels: List(List(Integer)))
 
    -- constructor where the vertex set is supplied
-   homotopyGroup(v:List(NNI)):% ==
-     g:PrimitiveArray(NNI) := construct(v)$PrimitiveArray(NNI)
-     r:List(List(Integer)) := empty()$List(List(Integer))
-     [g,r]
+   groupPresentation(gens1:List(NNI),rels1: List(List(Integer))):% ==
+     g:PrimitiveArray(NNI) := construct(gens1)$PrimitiveArray(NNI)
+     [g,rels1]
 
    -- Hard/impossible to determine if finitely presented groups are
    -- isomorphic so just test exact equality for now
@@ -186,18 +185,20 @@ each type.
 ++   An indexed set of vertices
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
-++ Related Domains:
+++ Related Domains: VertexSetAbstract, VertexSetCoord
 ++ Date Created: Dec 2015
-++ Date Last Updated: Dec 2015
+++ Date Last Updated: Feb 2016
 VertexSet() : Category == Definition where
  NNI==> NonNegativeInteger
  Definition ==> SetCategory() with
    maxFaces:(a:%) -> NNI
      ++ return the maximum number of faces
+   setMaxFaces:(a:%,b:NNI) -> Void
+     ++ set the maximum number of faces
    join:(a:%,b:%) -> %
      ++ disjoint union of two vertex sets
    prod:(a:%,b:%) -> %
-     ++ product of two vertex sets
+     ++ Cartesian product of two vertex sets
 
 )if false
 This is VertexSet for a geometric simplicial complex. In this case each vertex is
@@ -210,15 +211,15 @@ use a list of points.
 )abbrev domain VERTSC VertexSetCoord
 ++ Author: Martin Baker
 ++ Description: 
-++   An indexed set of verticies represented as coordinates.
+++   An indexed set of vertices represented as coordinates.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/geometric/
 ++ Date Created: Dec 2015
-++ Date Last Updated: Dec 2015
+++ Date Last Updated: Feb 2016
 ++ Basic Operations:
 ++ Related packages:
-++ Related categories:
-++ Related Domains:
+++ Related categories: VertexSet
+++ Related Domains: VertexSetAbstract
 ++ Also See:
 ++ AMS Classifications:
 ++ Keywords: 
@@ -258,10 +259,17 @@ VertexSetCoord(F:Field) : Exports == Impl where
    maxFaces(a:%):NNI ==
      #a
 
+   -- set the maximum number of faces
+   setMaxFaces(a:%,b:NNI):Void ==
+     if #a <= b then return void
+     error "too few coordinates"
+     void
+
    -- disjoint union of two vertex sets
    join(a:%,b:%):% ==
      concat(a,b)
 
+   -- Cartesian product of two vertex sets
    prod(a:%,b:%):% ==
      a
 
@@ -289,19 +297,19 @@ represented by an index without any underlying coordinates.
 )abbrev domain VERTSA VertexSetAbstract
 ++ Author: Martin Baker
 ++ Description: 
-++   An indexed set of abstract verticies without real coordinates.
+++   An indexed set of abstract vertices without real coordinates.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Date Created: Dec 2015
-++ Date Last Updated: Dec 2015
+++ Date Last Updated: Feb 2016
 ++ Basic Operations:
 ++ Related packages:
-++ Related categories:
-++ Related Domains:
+++ Related categories: VertexSet
+++ Related Domains: VertexSetCoord
 ++ Also See:
 ++ AMS Classifications:
-++ Keywords: 
-++ Examples: 
+++ Keywords:
+++ Examples:
 ++ References:
 
 VertexSetAbstract() : Exports == Impl where
@@ -314,28 +322,33 @@ VertexSetAbstract() : Exports == Impl where
 
   Impl ==> add
 
-   -- Representation holds the vertex set, represented as a
-   -- vertex list so that we can index it.
-   Rep := NNI
+   -- Representation holds number of vertices, it is wrapped in a Reference
+   -- because, otherwise, it would be immutable.
+   Rep := Reference(NNI)
 
    -- constructor for abstract vertex set
    vertexSeta(d:NNI):% ==
-     d
+     ref(d)
 
    -- return the maximum number of faces
    maxFaces(a:%):NNI ==
-     a pretend NNI
+     deref(a)
+
+   -- set the maximum number of faces
+   setMaxFaces(a:%,b:NNI):Void ==
+     setref(a,b)
+     void
 
    -- disjoint union of two vertex sets
    join(a:%,b:%):% ==
-     a+b
+     ref(deref(a)+deref(b))
 
    -- product of two vertex sets
    prod(a:%,b:%):% ==
-     a*b
+     ref(deref(a)*deref(b))
 
    -- output
-   coerce(s : %) : OutputForm == outputForm(s pretend NNI)$OutputForm
+   coerce(s : %) : OutputForm == outputForm(deref(s) pretend NNI)$OutputForm
  
 )if false
 This representation defines faces, of any dimension, by their vertices. This is an
@@ -579,7 +592,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      --                   e0 e1^-1 e2
      --                   (e0,e1,e2 are edges)
      generators:List(NNI) := [0::NNI]
-     homotopyGroup(generators)$GroupPresentation
+     r:List(List(Integer)) := empty()$List(List(Integer))
+     groupPresentation(generators,r)$GroupPresentation
 
    -- local function used by simplexProduct.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
@@ -704,7 +718,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 \section{Delta Complex}
 
 The above representation defines faces, of any dimension, by their
-vertices. This is an efficient way to define them, the only disadvantage
+vertices. This is an efficient way to define them, a disadvantage
 is that intermediate parts, such as edges, are not indexed. It is
 sometimes useful to be able to do this, for example, when generating
 homotopy groups such as the fundamental group.
@@ -715,9 +729,11 @@ Therefore the following alternative representation can be used instead.
 )abbrev domain DELTAC DeltaComplex
 ++ Author: Martin Baker
 ++ Description: 
-++   A Finite Simplicial Complex where edges, tringles, etc. are indexed.
+++   Similar to Simplicial Complex but faces (edges, tringles, etc.) are
+++   indexed by 'face maps' into the next lower face map until we get
+++   down to the verticies.
 ++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/delta/
 ++ Date Created: Feb 2016
 ++ Date Last Updated: Feb 2016
 ++ Basic Operations:
@@ -737,9 +753,9 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    indexedSimplicialComplex: (v:VS,f:List(List(List(Integer)))) -> %
+    deltaComplex: (v:VS,f:List(List(List(Integer)))) -> %
      ++ constructor where the simplices are supplied
-    indexedSimplicialComplex:(fsc:FiniteSimplicialComplex(VS)) -> %
+    deltaComplex:(fsc:FiniteSimplicialComplex(VS)) -> %
      ++ construct from FiniteSimplicialComplex. This builds indexes of
      ++ edges, triangles and so on.
     link:(a:NNI,b:NNI) -> %
@@ -757,14 +773,15 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- Representation holds whole Complex. This consists of
    -- a vertex set, here represented as a vertex list so that we can
    -- index it.
-   -- Also a sequence of tables representing edges, triangles,
-   -- tetrahedrons, etc.
+   -- Also a sequence of tables (known as 'face maps') representing
+   -- edges, triangles, tetrahedrons, etc. containing indexes into
+   -- the next lower map.
    -- Since edges, triangles, tetrahedrons, etc. are oriented we use
    -- a positive or negative index to indicate winding direction. 
    Rep := Record(VERTSET2:VS,SIMP2:List(List(List(Integer))))
 
    -- constructor where the vertex set and simplices are supplied
-   indexedSimplicialComplex(v:VS,f:List(List(List(Integer)))):% == [v,f]
+   deltaComplex(v:VS,f:List(List(List(Integer)))):% == [v,f]
 
    -- a simplical complex with one link
    link(a:NNI,b:NNI):% ==
@@ -793,17 +810,17 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    getIndex!(a:List(Integer),b1:Reference(List(List(Integer)))):Integer ==
      res:Integer := 1::Integer
      b:List(List(Integer)) := deref(b1)
-     print ("getIndex! in a="::Symbol << a << " b="::Symbol << b)
+     --print ("getIndex! in a="::Symbol << a << " b="::Symbol << b)
      if empty?(b) then b := [a]
      for lst in b repeat
        if a=lst then
          setref(b1,b)
-         print ("getIndex! old a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
+         --print ("getIndex! old a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
          return res
        res := res+1
      b := concat(b,a)
      setref(b1,b)
-     print ("getIndex! new a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
+     --print ("getIndex! new a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
      res
 
    -- a local function to return a list where each entry:
@@ -835,7 +852,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
 
    -- construct from FiniteSimplicialComplex. This builds indexes of
    -- edges, triangles and so on.
-   indexedSimplicialComplex(fsc:FiniteSimplicialComplex(VS)):% ==
+   deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
      emptySimp:List(List(List(Integer))) := [[empty()$List(Integer)]]
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      simp:List(List(NNI)) := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).SIMP
@@ -846,16 +863,14 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      for a in 2..maxGr repeat
        gradedLists := concat(gradedLists,empty()$List(List(Integer)))
      for lst in simp repeat
-       grade:NNI := ((#lst)-1) pretend NNI
-       if grade=2 then
-        edgeRef:Reference(List(List(Integer))) := ref(gradedLists.1)
-        edges:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),2)
-        indexList := [getIndex!(ed,edgeRef) for ed in edges]
-        print ("indexedSimplicialComplex edges="::Symbol << edges << " indexList="::Symbol << indexList)
-        gradedLists.1 := deref(edgeRef)
-        gradedLists.2 := concat(gradedLists.2,[indexList.1,-indexList.2,indexList.3])$List(List(Integer))
-       if grade>2 then
-        gradedLists.grade := concat(gradedLists.grade,lst pretend List(Integer))$List(List(Integer))
+       for grade1 in ((#lst)-1)..2 by -1 repeat
+         grade := grade1 pretend NNI
+         edgeRef:Reference(List(List(Integer))) := ref(gradedLists.1)
+         edges:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),grade)
+         indexList := [getIndex!(ed,edgeRef) for ed in edges]
+         --print ("deltaComplex edges="::Symbol << edges << " indexList="::Symbol << indexList)
+         gradedLists.(grade-1) := deref(edgeRef)
+         gradedLists.grade := concat(gradedLists.grade,indexList)$List(List(Integer))
      [vs ,gradedLists]
 
    -- local function used in oneSkeleton
@@ -886,23 +901,24 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      GS := DirectedGraph(NNI)
      nodes:List(OBJT) := empty()$List(OBJT)
      edges:List(ARROW) := empty()$List(ARROW)
---     for x in s.SIMP2 repeat
---       n:NNI := #x
---       if n=2 then
---         nodes := concatIfNew(nodes,abs(x.1) pretend NNI)
---         nodes := concatIfNew(nodes,abs(x.2) pretend NNI)
---         y:ARROW := ["x",0::NNI,abs(x.1) pretend NNI,abs(x.2) pretend NNI,0::Integer,0::Integer,[]]
---         edges := concat(edges,y)$List(ARROW)
---         --print ("nodes="::Symbol << nodes << " edges="::Symbol << edges)
---       if n>2 then
---         for m in x repeat
---           nodes := concatIfNew(nodes,abs(m) pretend NNI)
---           for p in x repeat
---             if p<m then
---               edges := concatIfNewArrow(edges,abs(p) pretend NNI,abs(m) pretend NNI)
+     m:NNI := maxFaces(s.VERTSET2)
+     edgeIndexes:List(List(Integer)) := first(s.SIMP2)
+     for x in edgeIndexes repeat
+         --print("oneSkeleton x="::Symbol << x)
+         from1:NNI := abs(x.1) pretend NNI
+         if from1>m then m:=from1
+         to1:NNI := abs(x.2) pretend NNI
+         if to1>m then m:=to1
+         y:ARROW := ["x",0::NNI,from1,to1,0::Integer,0::Integer,[]]
+         edges := concat(edges,y)$List(ARROW)
+     setMaxFaces(s.VERTSET2,m)
+     --print("oneSkeleton nodes="::Symbol << nodes << " edges="::Symbol << edges  << _
+     --     " maxVerts="::Symbol << m  << " maxVerts="::Symbol << maxFaces(s.VERTSET2))
+     for m1 in 1..m repeat
+       nodes:= concat(nodes,[m1,0::NNI,0::NNI])$List(OBJT)
      directedGraph(nodes,edges)$GS
 
-   -- Generates fundamental group from this simplicial complex.
+   -- Generates fundamental group from this delta complex.
    -- under construction
    fundamentalGroup(s:%):GroupPresentation ==
      print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
@@ -917,8 +933,10 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      -- groups relations: for every 2-simplex
      --                   e0 e1^-1 e2
      --                   (e0,e1,e2 are edges)
-     generators:List(NNI) := [0::NNI]
-     homotopyGroup(generators)$GroupPresentation
+     m:NNI := maxFaces(s.VERTSET2)
+     generators:List(NNI) := [x::NNI for x in 1..m]
+     r:List(List(Integer)) := empty()$List(List(Integer))
+     groupPresentation(generators,r)$GroupPresentation
 
    -- Local function used by '=' to check if two simplexes are equal.
    -- To be equal they must contain the same indexes, wound in the same
@@ -1128,7 +1146,7 @@ For more details see:
 \url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
 
 [4] I have put a fuller explanation of this code here:
-\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/}
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/}
 
 [5] Finite simplicial complexes in Sage
 \url{http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
