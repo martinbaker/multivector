@@ -111,10 +111,21 @@ GroupPresentation() : Exports == Impl where
    -- output
    coerce(s : %) : OutputForm ==
      ps:List(NNI) := parts((s.gens) pretend PrimitiveArray(NNI))
-     res:List(OutputForm) := empty()$List(OutputForm)
+     gens1:List(OutputForm) := empty()$List(OutputForm)
      for p in ps repeat
-       res := concat(res,p::OutputForm)
-     bracket(res)
+       gens1 := concat(gens1,p::OutputForm)
+     rs:List(List(Integer)) := s.rels
+     rels1:List(OutputForm) := empty()$List(OutputForm)
+     for r in rs repeat
+       eleout: OutputForm := empty()$OutputForm
+       seperator: OutputForm:= outputForm(""::Symbol)
+       for ele in r repeat
+         newterm: OutputForm:=outputForm(ele)
+         eleout := hconcat([eleout,seperator,newterm])$OutputForm
+         seperator:= outputForm("*"::Symbol)
+       rels1 := concat(rels1,eleout)
+     hconcat([message("<"),blankSeparate(gens1),message("|"),_
+       blankSeparate(rels1),message(">")])
 
 )if false
 \section{Simplicial Complexes}
@@ -386,6 +397,15 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   Exports ==> SetCategory() with
     simplicialComplex: (v:VS,f:List(List(NNI))) -> %
      ++ constructor where the simplices are supplied
+    grade: (s:%) -> List(List(List(Integer)))
+     ++ a function to grade simplexes according to their lengths.
+     ++ This nests the lists according to their length.
+     ++ It starts with edges then triangles and so on.
+    addImpliedFaces:(s:%) -> List(List(List(Integer)))
+     ++ a function to take a set of faces and add those that are implied
+     ++ by the simplecicalComplex conventions (if they don't already exist).
+     ++ For example, if the input is a triangle ((1,2,3)) then we would add
+     ++ its edges ((1,2),(1,3), and (2,3)).
     boundaryLine: (s:%) -> %
      ++ returns line around area assuming simplexes are all wound in same direction
      ++ For more information about such topological functions see this page:
@@ -428,6 +448,41 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- constructor where the vertex set and simplices are supplied
    simplicialComplex(v:VS,f:List(List(NNI))):% == [v,f]
+
+   -- A function to grade simplexes according to their lengths.
+   -- This nests the lists according to their length.
+   -- It starts with edges then triangles and so on.
+   grade(s:%):List(List(List(Integer))) ==
+     simp:List(List(Integer)) := (s.SIMP) pretend List(List(Integer))
+     res:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     maxGrade:NNI := 0
+     for face in simp repeat
+       if #face > maxGrade then maxGrade := #face
+     if maxGrade < 2 then return res
+     for a in 2..maxGrade repeat
+       res := concat(res,empty()$List(List(Integer)))
+     for face in simp repeat
+       gr:Integer := #face - 1
+       if gr > 0 then
+         res.gr := concat(res.gr,face)
+     res     
+
+   -- a function to take a set of faces and add those that are implied
+   -- by the simplecicalComplex conventions (if they don't already exist).
+   -- For example, if the input is a triangle ((1,2,3)) then we would add
+   -- its edges ((1,2),(1,3), and (2,3)).
+   addImpliedFaces(s:%):List(List(List(Integer))) ==
+     inputList:List(List(List(Integer))) := reverse(grade(s))
+     res:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     maxGrade:NNI := #inputList
+     if (maxGrade) < 1 then return res
+     for a in 1..(maxGrade) repeat
+       res := concat(res,empty()$List(List(Integer)))
+     if maxGrade < 2 then return res
+     for gr in inputList for grn in 1..(maxGrade) repeat
+       for face in gr repeat
+         res.grn := concat(res.grn,face)
+     reverse(res)
 
    -- returns line around area assuming simplexes are all wound in same direction
    -- TODO try to put the segments on the line in order
@@ -628,8 +683,10 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      diffA:Integer := maxA-minA
      diffB:Integer := maxB-minB
      if diffA = 0 and diffB = 0 then return addToPath(pathList,maxA,maxB,maxA)
-     if diffA = 0 then return simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
-     if diffB = 0 then return simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     if diffA = 0 then
+       return simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     if diffB = 0 then
+       return simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
      --print("["::Symbol::OutputForm)
      path1:List(SIMPLEX) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
      --print(","::Symbol::OutputForm)
@@ -762,6 +819,11 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      ++ a simplical complex with one link
     triangle:(a:NNI,b:NNI,c:NNI) -> %
      ++ a simplical complex with one triangle
+    faceMap:(s:%,n:NNI) -> List(List(Integer))
+     ++ returns an individual face map specified by n.
+     ++ Where 'n' is the dimension required, so n=1 returns
+     ++ one dimentional faces (edges), n=2 returns
+     ++ two dimentional faces (triamgles), and so on.
     oneSkeleton:(s:%) -> DirectedGraph(NNI)
      ++ generates graph AKA 1-skeleton
     fundamentalGroup:(s:%) -> GroupPresentation
@@ -778,7 +840,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- the next lower map.
    -- Since edges, triangles, tetrahedrons, etc. are oriented we use
    -- a positive or negative index to indicate winding direction. 
-   Rep := Record(VERTSET2:VS,SIMP2:List(List(List(Integer))))
+   Rep := Record(VERTSET:VS,MAPS:List(List(List(Integer))))
 
    -- constructor where the vertex set and simplices are supplied
    deltaComplex(v:VS,f:List(List(List(Integer)))):% == [v,f]
@@ -796,6 +858,15 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      triangles:List(List(Integer)) := [[a,-b,c]]
      simp:List(List(List(Integer))) := [edges,triangles]
      [vs,simp]
+
+   -- returns an individual face map specified by n.
+   -- Where 'n' is the dimension required, so n=1 returns
+   -- one dimentional faces (edges), n=2 returns
+   -- two dimentional faces (triamgles), and so on.
+   faceMap(s:%,n:NNI):List(List(Integer)) ==
+     maps1:List(List(List(Integer))) := s.MAPS
+     if n > #maps1 then return empty()$List(List(Integer))
+     maps1.n
 
    -- a local function which returns the maximum grade (length) of a
    -- list of lists
@@ -815,12 +886,14 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      for lst in b repeat
        if a=lst then
          setref(b1,b)
-         --print ("getIndex! old a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
+         --print ("getIndex! old a="::Symbol << a << " b="::Symbol << _
+         -- b << " b1="::Symbol << b1<< " res="::Symbol << res)
          return res
        res := res+1
      b := concat(b,a)
      setref(b1,b)
-     --print ("getIndex! new a="::Symbol << a << " b="::Symbol << b << " b1="::Symbol << b1<< " res="::Symbol << res)
+     --print ("getIndex! new a="::Symbol << a << " b="::Symbol << b << _
+     -- " b1="::Symbol << b1<< " res="::Symbol << res)
      res
 
    -- a local function to return a list where each entry:
@@ -856,22 +929,27 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      emptySimp:List(List(List(Integer))) := [[empty()$List(Integer)]]
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      simp:List(List(NNI)) := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).SIMP
+     print("deltaComplex("::Symbol << simp  <<")"::Symbol)
      maxGr:NNI := maxGrade(simp)
-     if maxGr < 3 then return [vs ,emptySimp]
-     gradedLists:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     if maxGr < 2 then return [vs ,emptySimp]
+     faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
      -- constuct an empty list for each grade
      for a in 2..maxGr repeat
-       gradedLists := concat(gradedLists,empty()$List(List(Integer)))
+       faceMaps := concat(faceMaps,empty()$List(List(Integer)))
      for lst in simp repeat
+       print("  deltaComplex lst="::Symbol << lst)
        for grade1 in ((#lst)-1)..2 by -1 repeat
-         grade := grade1 pretend NNI
-         edgeRef:Reference(List(List(Integer))) := ref(gradedLists.1)
-         edges:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),grade)
-         indexList := [getIndex!(ed,edgeRef) for ed in edges]
-         --print ("deltaComplex edges="::Symbol << edges << " indexList="::Symbol << indexList)
-         gradedLists.(grade-1) := deref(edgeRef)
-         gradedLists.grade := concat(gradedLists.grade,indexList)$List(List(Integer))
-     [vs ,gradedLists]
+         grade:NNI := grade1 pretend NNI
+         -- wrap faces in reference so we can change from within functions
+         faceRef:Reference(List(List(Integer))) := ref(faceMaps.(grade1-1))
+         print("    deltaComplex grade="::Symbol << grade << " faceRef="::Symbol << deref(faceRef))
+         facesBaseIndexed:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),grade)
+         indexList := [getIndex!(ed,faceRef) for ed in facesBaseIndexed]
+         print ("    deltaComplex facesBaseIndexed="::Symbol << facesBaseIndexed << " indexList="::Symbol << indexList_
+              << " faceRef="::Symbol << deref(faceRef))
+         faceMaps.(grade-1) := deref(faceRef)
+         faceMaps.grade := concat(faceMaps.grade,indexList)$List(List(Integer))
+     [vs ,faceMaps]
 
    -- local function used in oneSkeleton
    concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
@@ -901,8 +979,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      GS := DirectedGraph(NNI)
      nodes:List(OBJT) := empty()$List(OBJT)
      edges:List(ARROW) := empty()$List(ARROW)
-     m:NNI := maxFaces(s.VERTSET2)
-     edgeIndexes:List(List(Integer)) := first(s.SIMP2)
+     m:NNI := maxFaces(s.VERTSET)
+     edgeIndexes:List(List(Integer)) := first(s.MAPS)
      for x in edgeIndexes repeat
          --print("oneSkeleton x="::Symbol << x)
          from1:NNI := abs(x.1) pretend NNI
@@ -911,9 +989,9 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
          if to1>m then m:=to1
          y:ARROW := ["x",0::NNI,from1,to1,0::Integer,0::Integer,[]]
          edges := concat(edges,y)$List(ARROW)
-     setMaxFaces(s.VERTSET2,m)
+     setMaxFaces(s.VERTSET,m)
      --print("oneSkeleton nodes="::Symbol << nodes << " edges="::Symbol << edges  << _
-     --     " maxVerts="::Symbol << m  << " maxVerts="::Symbol << maxFaces(s.VERTSET2))
+     --     " maxVerts="::Symbol << m  << " maxVerts="::Symbol << maxFaces(s.VERTSET))
      for m1 in 1..m repeat
        nodes:= concat(nodes,[m1,0::NNI,0::NNI])$List(OBJT)
      directedGraph(nodes,edges)$GS
@@ -922,6 +1000,10 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- under construction
    fundamentalGroup(s:%):GroupPresentation ==
      print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
+     -- fundamental group is about triangles so get face map
+     -- for triangles (2 dimensional)
+     fm:List(List(Integer)) := faceMap(s,2::NNI)
+     print("fundamentalGroup faceMap="::Symbol << fm )
      -- under construction
      -- compute edge-path group
      graph:DirectedGraph(NNI) := oneSkeleton(s)
@@ -933,9 +1015,14 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      -- groups relations: for every 2-simplex
      --                   e0 e1^-1 e2
      --                   (e0,e1,e2 are edges)
-     m:NNI := maxFaces(s.VERTSET2)
+     -- set m to maximum index in the face map
+     m:NNI := 0
+     for a1 in fm repeat
+       for a2 in a1 repeat
+         thism:NNI := abs(a2) pretend NNI
+         if thism>m then m:=thism
      generators:List(NNI) := [x::NNI for x in 1..m]
-     r:List(List(Integer)) := empty()$List(List(Integer))
+     r:List(List(Integer)) := fm
      groupPresentation(generators,r)$GroupPresentation
 
    -- Local function used by '=' to check if two simplexes are equal.
@@ -961,8 +1048,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- TODO - Assumes point set is exactly the same, for more generality we should allow
    -- the points to be defined in a different order.
    _=(a : %, b : %) : Boolean ==
-     as := a.SIMP2
-     bs := b.SIMP2
+     as := a.MAPS
+     bs := b.MAPS
      --print("equal:"::Symbol << as << ","::Symbol << bs)
      len:NNI := #as
      if len ~= #bs then return false
@@ -984,9 +1071,9 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- output
    coerce(s : %) : OutputForm ==
      res:OutputForm :=empty()$OutputForm -- holds result
-     if empty?(s.SIMP2) then return res
+     if empty?(s.MAPS) then return res
      tabNum:NNI := 1::NNI
-     for a in s.SIMP2 repeat
+     for a in s.MAPS repeat
        if tabNum = 1::NNI then res := hconcat(res,message("edge:"))
        if tabNum = 2::NNI then res := hconcat(res,message(" triangle:"))
        if tabNum = 3::NNI then res := hconcat(res,message(" tetrahedron:"))
