@@ -467,8 +467,56 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
          res.gr := concat(res.gr,face)
      res     
 
-   -- a function to take a set of faces and add those that are implied
-   -- by the simplecicalComplex conventions (if they don't already exist).
+   -- a local function to return a list where each entry:
+   -- i) is a permutation of the input list
+   -- ii) contains integers in ascending order
+   -- iii) is of the specified length
+   -- TODO this is in both simplicial and delta complexes so need to find common
+   -- home for it.
+   orderedPermutation(lst:List(Integer),len: NNI):List(List(Integer)) ==
+     if len < 1 then return empty()$List(List(Integer))
+     if len > #lst then return empty()$List(List(Integer))
+     if len = #lst then return [lst]
+     reslt:List(List(Integer)) := empty()$List(List(Integer))
+     if len=1 then
+       for y in lst repeat
+         reslt := concat(reslt,[y])
+       return reslt  
+     fst:Integer := lst.first
+     rst:List(Integer) := lst.rest
+     -- in the next line I probably should use 'subtractifcan' rather
+     -- than using pretend but it can never be negative due to the tests
+     -- at the start of this function.
+     for x in orderedPermutation(rst,(len-1) pretend NNI) repeat
+       r1:List(Integer) := concat(fst,x)
+       -- r1 holds a permutations starting with fst
+       reslt := concat(reslt,r1)
+     -- now we have combinations staring with fst
+     -- so we just have to add the rest
+     reslt := concat(reslt,orderedPermutation(rst,len))
+     reslt
+
+   -- local function used in listUnion in addImpliedFaces
+   -- TODO recognise all permutations of b, not just b and its reverse
+   isNewFace?(a:List(List(Integer)),b:List(Integer)):Boolean ==
+     --print("isNewFace?("::Symbol << a << ","::Symbol << b << ")"::Symbol)
+     if member?(b,a)$List(List(Integer)) then return false
+     if member?(reverse(b),a)$List(List(Integer)) then return false
+     true
+
+   -- local function used in addImpliedFaces
+   listUnion(a:List(List(Integer)),b:List(List(Integer))):List(List(Integer)) ==
+     res:List(List(Integer)) := empty()$List(List(Integer))
+     for a1 in a repeat
+       res:=concat(res,a1)
+     for b1 in b repeat
+       if isNewFace?(a,b1) then
+         res:=concat(res,b1)
+     --print("listUnion("::Symbol << a << ","::Symbol << b << ") = "::Symbol << res)
+     res
+
+   -- A function to take a set of faces and add those that are implied
+   -- by the simplicial complex conventions (if they don't already exist).
    -- For example, if the input is a triangle ((1,2,3)) then we would add
    -- its edges ((1,2),(1,3), and (2,3)).
    addImpliedFaces(s:%):List(List(List(Integer))) ==
@@ -479,9 +527,19 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      for a in 1..(maxGrade) repeat
        res := concat(res,empty()$List(List(Integer)))
      if maxGrade < 2 then return res
+     newFaces:List(List(Integer)) := empty()$List(List(Integer))
      for gr in inputList for grn in 1..(maxGrade) repeat
+       --print("addImpliedFaces change grade to grn="::Symbol << grn)
        for face in gr repeat
          res.grn := concat(res.grn,face)
+       for face in newFaces repeat
+         res.grn := concat(res.grn,face)
+       --print("addImpliedFaces empty newFaces. res.grn="::Symbol << res.grn)
+       newFaces := empty()$List(List(Integer))
+       for face in res.grn repeat
+         len: NNI := (#face -1) pretend NNI
+         if len > 0 then
+           newFaces := listUnion(newFaces,orderedPermutation(face,len))
      reverse(res)
 
    -- returns line around area assuming simplexes are all wound in same direction
@@ -900,6 +958,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- i) is a permutation of the input list
    -- ii) contains integers in ascending order
    -- iii) is of the specified length
+   -- TODO this is in both simplicial and delta complexes so need to find common
+   -- home for it.
    orderedPermutation(lst:List(Integer),len: NNI):List(List(Integer)) ==
      if len < 1 then return empty()$List(List(Integer))
      if len > #lst then return empty()$List(List(Integer))
@@ -926,29 +986,28 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- construct from FiniteSimplicialComplex. This builds indexes of
    -- edges, triangles and so on.
    deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
-     emptySimp:List(List(List(Integer))) := [[empty()$List(Integer)]]
-     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
-     simp:List(List(NNI)) := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).SIMP
-     print("deltaComplex("::Symbol << simp  <<")"::Symbol)
-     maxGr:NNI := maxGrade(simp)
-     if maxGr < 2 then return [vs ,emptySimp]
+     -- first grade and add implied faces
+     baseIndexedGraded:List(List(List(Integer))) := addImpliedFaces(fsc)
+     print("deltaComplex baseIndexedGraded="::Symbol << baseIndexedGraded )
+     -- TODO add list sort here
+     -- now change base indexed to heirarcical indexed
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
-     -- constuct an empty list for each grade
-     for a in 2..maxGr repeat
+     for grade in baseIndexedGraded for grn in 1..(#baseIndexedGraded) repeat
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
-     for lst in simp repeat
-       print("  deltaComplex lst="::Symbol << lst)
-       for grade1 in ((#lst)-1)..2 by -1 repeat
-         grade:NNI := grade1 pretend NNI
-         -- wrap faces in reference so we can change from within functions
-         faceRef:Reference(List(List(Integer))) := ref(faceMaps.(grade1-1))
-         print("    deltaComplex grade="::Symbol << grade << " faceRef="::Symbol << deref(faceRef))
-         facesBaseIndexed:List(List(Integer)) := orderedPermutation(lst pretend List(Integer),grade)
-         indexList := [getIndex!(ed,faceRef) for ed in facesBaseIndexed]
-         print ("    deltaComplex facesBaseIndexed="::Symbol << facesBaseIndexed << " indexList="::Symbol << indexList_
-              << " faceRef="::Symbol << deref(faceRef))
-         faceMaps.(grade-1) := deref(faceRef)
-         faceMaps.grade := concat(faceMaps.grade,indexList)$List(List(Integer))
+       if grn=1 then
+         -- edges - no need to change
+         faceMaps.grn := grade
+       if grn=2 then
+         -- triangles
+         for triangle in grade repeat
+           print("deltaComplex triangle="::Symbol << triangle )
+           edges:List(List(Integer)) := orderedPermutation(triangle,2::NNI)
+           print("deltaComplex edges="::Symbol << edges )
+         faceMaps.grn := grade
+       if grn>2 then
+         -- catch all for now
+         faceMaps.grn := grade
+     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      [vs ,faceMaps]
 
    -- local function used in oneSkeleton
