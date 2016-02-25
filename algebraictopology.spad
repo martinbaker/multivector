@@ -401,6 +401,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ a function to grade simplexes according to their lengths.
      ++ This nests the lists according to their length.
      ++ It starts with edges then triangles and so on.
+    sort:(s:%) -> %
+     ++ sort
     addImpliedFaces:(s:%) -> List(List(List(Integer)))
      ++ a function to take a set of faces and add those that are implied
      ++ by the simplecicalComplex conventions (if they don't already exist).
@@ -466,6 +468,45 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        if gr > 0 then
          res.gr := concat(res.gr,face)
      res     
+
+   -- less than
+   -- local function required for sort of list of lists
+   lt(a:List(NNI),b:List(NNI)):Boolean ==
+     if ((#a) < 1) then return true -- if lists are different lingths then shortest first
+     if ((#b) < 1) then return false
+     a1:NNI := a.first
+     b1:NNI := b.first
+     if a1<b1 then return true
+     if a1>b1 then return false
+     if ((#a) < 2) then return true -- if lists are different lingths then shortest first
+     if ((#b) < 2) then return false
+     lt(a.rest,b.rest)
+
+   -- sort faces to be in numeric order
+   -- both inside each face (for triangles only)
+   -- and then sort the faces to be in order
+   -- TODO only sorts inside triangles at the moment, extent to other faces.
+   sort(s:%):% ==
+     v:VS := s.VERTSET
+     fs:List(List(NNI)) := s.SIMP -- list of faces
+     fs2:List(List(NNI)) := empty()$List(List(NNI)) -- will hold internally sorted faces
+     for f in fs repeat
+       minValue:NNI := 99999::NNI
+       minIndex:NNI := 1::NNI
+       flen:NNI := #f
+       for e in f for en in 1..flen repeat
+         if e<minValue then
+           minValue:= e
+           minIndex:= en
+       f2:List(NNI) := f -- if not triangle use the fase as is
+       if flen=3 then
+           -- now rotate nodes of triangle so lowest is first
+           f2:List(NNI) := [f.(if (x-1+minIndex) > flen_
+             then (x-1+minIndex-flen)_
+             else (x-1+minIndex)) for x in 1..flen]
+       fs2 := concat(fs2,f2)
+     fs3:List(List(NNI)) := sort(lt,fs2)
+     [v,fs3]
 
    -- a local function to return a list where each entry:
    -- i) is a permutation of the input list
@@ -983,30 +1024,44 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      reslt := concat(reslt,orderedPermutation(rst,len))
      reslt
 
+   lookupFaceIndex(face:List(Integer),faceList:List(List(Integer))):NNI ==
+     res:NNI := 1
+     for x in faceList repeat
+       if x=face then return res
+       res := res +1
+     0::NNI
+
    -- construct from FiniteSimplicialComplex. This builds indexes of
    -- edges, triangles and so on.
    deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
      -- first grade and add implied faces
      baseIndexedGraded:List(List(List(Integer))) := addImpliedFaces(fsc)
-     print("deltaComplex baseIndexedGraded="::Symbol << baseIndexedGraded )
+     --print("deltaComplex baseIndexedGraded="::Symbol << baseIndexedGraded )
      -- TODO add list sort here
      -- now change base indexed to heirarcical indexed
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     previousFaceList:List(List(Integer)) := empty()$List(List(Integer))
      for grade in baseIndexedGraded for grn in 1..(#baseIndexedGraded) repeat
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
          -- edges - no need to change
          faceMaps.grn := grade
-       if grn=2 then
+       if grn>1 then
          -- triangles
-         for triangle in grade repeat
-           print("deltaComplex triangle="::Symbol << triangle )
-           edges:List(List(Integer)) := orderedPermutation(triangle,2::NNI)
-           print("deltaComplex edges="::Symbol << edges )
-         faceMaps.grn := grade
-       if grn>2 then
-         -- catch all for now
-         faceMaps.grn := grade
+         newFacesHigh:List(List(Integer))  := empty()$List(List(Integer)) 
+         for oldFaceHigh in grade repeat
+           --print("deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
+           oldFacesLow:List(List(Integer)) := orderedPermutation(oldFaceHigh,grn)
+           --print("deltaComplex oldFacesLow="::Symbol << oldFacesLow )
+           newIndexes:List(Integer) := empty()$List(Integer)
+           for oldFaceLow in oldFacesLow repeat
+             --print("deltaComplex oldFaceLow="::Symbol << oldFaceLow << " baseIndexedGraded.1="::Symbol << baseIndexedGraded.1)
+             i:NNI:=lookupFaceIndex(oldFaceLow,previousFaceList)
+             if i<1 then error "cant find index"
+             newIndexes := concat(newIndexes,i)
+           newFacesHigh := concat(newFacesHigh,newIndexes)
+         faceMaps.grn := newFacesHigh
+       previousFaceList := grade
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      [vs ,faceMaps]
 
