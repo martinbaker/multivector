@@ -11,12 +11,6 @@
 I would like to code topological spaces in a finite way, simplicial
 complexes and delta complexes allow us to do this in a systematic way.
 
-Simplicial Complexes may not be the most efficient tool, for cutting
-edge topology, in terms the most economical representation. However,
-for computer-science and combinatorial uses, simplicial complexes may
-be the best tool because of their combinatorial simplicity.
-- paraphrased from [1].
-
 I have put a fuller explanation of this code here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/}
 \end{abstract}
@@ -501,7 +495,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        f2:List(NNI) := f -- if not triangle use the fase as is
        if flen=3 then
            -- now rotate nodes of triangle so lowest is first
-           f2:List(NNI) := [f.(if (x-1+minIndex) > flen_
+           f2:= [f.(if (x-1+minIndex) > flen_
              then (x-1+minIndex-flen)_
              else (x-1+minIndex)) for x in 1..flen]
        fs2 := concat(fs2,f2)
@@ -927,7 +921,6 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      ++ generates graph AKA 1-skeleton
     fundamentalGroup:(s:%) -> GroupPresentation
      ++ Generates fundamental group from this simplicial complex.
-     ++ under construction
 
   Impl ==> add
 
@@ -1031,13 +1024,52 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        res := res +1
      0::NNI
 
+   -- less than
+   -- local function required for sort of list of lists
+   lt(a:List(Integer),b:List(Integer)):Boolean ==
+     if ((#a) < 1) then return true -- if lists are different lingths then shortest first
+     if ((#b) < 1) then return false
+     a1:Integer := a.first
+     b1:Integer := b.first
+     if abs(a1)<abs(b1) then return true
+     if abs(a1)>abs(b1) then return false
+     if ((#a) < 2) then return true -- if lists are different lingths then shortest first
+     if ((#b) < 2) then return false
+     lt(a.rest,b.rest)
+
+   -- sort faces to be in numeric order
+   -- both inside each face (for triangles only)
+   -- and then sort the faces to be in order
+   -- TODO only sorts inside triangles at the moment, extent to other faces.
+   sort(fs:List(List(Integer))):List(List(Integer)) ==
+     fs2:List(List(Integer)) := empty()$List(List(Integer)) -- will hold internally sorted faces
+     for f in fs repeat
+       minValue:Integer := 99999
+       minIndex:Integer := 1
+       flen:NNI := #f
+       for e in f for en in 1..flen repeat
+         if e<minValue then
+           minValue:= e
+           minIndex:= en
+       f2:List(Integer) := f -- if not triangle use the fase as is
+       if flen=3 then
+         -- now rotate nodes of triangle so lowest is first
+         f2 := [f.(if (x-1+minIndex) > flen_
+           then (x-1+minIndex-flen)_
+           else (x-1+minIndex)) for x in 1..flen]
+       fs2 := concat(fs2,f2)
+     fs3:List(List(Integer)) := sort(lt,fs2)
+
    -- construct from FiniteSimplicialComplex. This builds indexes of
    -- edges, triangles and so on.
    deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
      -- first grade and add implied faces
-     baseIndexedGraded:List(List(List(Integer))) := addImpliedFaces(fsc)
+     baseIndexedUnsorted:List(List(List(Integer))) := addImpliedFaces(fsc)
+     -- sort each grade
+     baseIndexedGraded:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     for gradedList in baseIndexedUnsorted repeat
+       baseIndexedGraded := concat(baseIndexedGraded,sort(gradedList))
      --print("deltaComplex baseIndexedGraded="::Symbol << baseIndexedGraded )
-     -- TODO add list sort here
      -- now change base indexed to heirarcical indexed
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
      previousFaceList:List(List(Integer)) := empty()$List(List(Integer))
@@ -1110,34 +1142,54 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        nodes:= concat(nodes,[m1,0::NNI,0::NNI])$List(OBJT)
      directedGraph(nodes,edges)$GS
 
+   -- local function to list all the links in a given tree
+   linksInTree(res:List(List(Integer)),a:Tree(Integer)):List(List(Integer)) ==
+     --print("linksInTree value="::Symbol << value(a) << " children="::Symbol << children(a))
+     fromNode:Integer := value(a)
+     for x in children(a) repeat
+       toNode:Integer := value(x)
+       newLink:List(Integer) := [fromNode,toNode]
+       res := concat(res,newLink)
+     for x in children(a) repeat
+       res := linksInTree(res,x)
+     res
+
    -- Generates fundamental group from this delta complex.
-   -- under construction
    fundamentalGroup(s:%):GroupPresentation ==
-     print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
+     --print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
      -- fundamental group is about triangles so get face map
      -- for triangles (2 dimensional)
-     fm:List(List(Integer)) := faceMap(s,2::NNI)
-     print("fundamentalGroup faceMap="::Symbol << fm )
-     -- under construction
      -- compute edge-path group
      graph:DirectedGraph(NNI) := oneSkeleton(s)
-     print("fundamentalGroup graph="::Symbol << graph )
+     --print("fundamentalGroup graph="::Symbol << graph )
      -- choose a spanning tree for the 1-skeleton
-     span := spanningTreeNode(graph,1::NNI)$DirectedGraph(NNI)
-     print("fundamentalGroup span="::Symbol << span )
+     span:Tree(Integer) := spanningTreeNode(graph,1::NNI)$DirectedGraph(NNI)
+     --print("fundamentalGroup span="::Symbol << span )
+     edges:List(List(Integer)) := faceMap(s,1::NNI)
+     res:List(List(Integer)) := empty()$List(List(Integer))
+     res := linksInTree(res,span)
+     edgesInTree:List(Boolean) := [false for y in edges]
+     for edge in edges for edgen in 1..(#edges) repeat
+       if member?(edge,res) then edgesInTree.edgen := true
+     --print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
+     triangles:List(List(Integer)) := faceMap(s,2::NNI)
+     rules:List(List(Integer)) := empty()$List(List(Integer))
+     --print("fundamentalGroup triangles="::Symbol << triangles )
+     for t in triangles repeat
+       rule:List(Integer) := empty()$List(Integer)
+       if not edgesInTree.(abs(t.1)) then rule:= concat(rule,abs(t.1))
+       if not edgesInTree.(abs(t.2)) then rule:= concat(rule,abs(t.2))
+       if not edgesInTree.(abs(t.3)) then rule:= concat(rule,abs(t.3))
+       if not empty?(rule) then rules := concat(rules,rule)
+     --print("fundamentalGroup rules="::Symbol << rules )
      -- groups generators: edges in 1-skeleton
      -- groups relations: for every 2-simplex
      --                   e0 e1^-1 e2
      --                   (e0,e1,e2 are edges)
      -- set m to maximum index in the face map
-     m:NNI := 0
-     for a1 in fm repeat
-       for a2 in a1 repeat
-         thism:NNI := abs(a2) pretend NNI
-         if thism>m then m:=thism
+     m:NNI := #edges
      generators:List(NNI) := [x::NNI for x in 1..m]
-     r:List(List(Integer)) := fm
-     groupPresentation(generators,r)$GroupPresentation
+     groupPresentation(generators,rules)$GroupPresentation
 
    -- Local function used by '=' to check if two simplexes are equal.
    -- To be equal they must contain the same indexes, wound in the same
