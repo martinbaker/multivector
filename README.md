@@ -66,7 +66,7 @@ Group represented by its generators and relations.
 Here we use it to hold homotopy group such as fundamental group.
 
 For further information see the documentation here:
-http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/
 
 algebraictopology.spad
 ----------------------
