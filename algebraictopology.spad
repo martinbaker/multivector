@@ -330,6 +330,9 @@ OrientedFacet() : Exports == Impl where
      ++ allSubsets of a given length
     isSubsetOf? :(sa:%,sb:%) -> Boolean
      ++ returns true if face 'b' is contained in face 'a'.
+    position:(e:%,lst:List(%)) -> Integer
+     ++ return index of e in lst. Index will be negative if e has
+     ++ negative multiplier.
     subtract:(sa:%,sb:%) -> %
      ++ used by link. Returns face 'a' minus the verticies in face 'b'.
     addVertex:(sa:%,v:NNI)-> %
@@ -376,16 +379,17 @@ OrientedFacet() : Exports == Impl where
    -- boundary
    delta(orf:%):List(%) ==
      facet:List(NNI) := orf.fac
+     revFacet:List(NNI) := reverse(facet) -- reverse outer list to get in numeric order
      mult:Integer := orf.mul
      res:List(%) := empty()$List(%)
      even:Boolean := false
-     for x in facet repeat
+     for x in revFacet repeat
        r:List(NNI) := remove(x,facet)
        m:Integer := if even then -mult else mult
        even := not even
        r1:% := orientedFacet(m,r)
        res:=concat(res,r1)$List(%)
-     reverse(res) -- reverse outer list to get in numeric order
+     res
 
    -- local function to add if new
    addIfNew(lst:List(%),orf:%):List(%) ==
@@ -446,6 +450,17 @@ OrientedFacet() : Exports == Impl where
      --print("subtract("::Symbol << sa << ","::Symbol << sb << ")="::Symbol << setDifference(sb,sa)$SIMPLEX)
      lst:List(NNI) := setDifference(sb.fac,sa.fac)$List(NNI)
      [1,lst]
+
+   -- return index of e in lst. Index will be negative if e has
+   -- negative multiplier.
+   position(e:%,lst:List(%)):Integer ==
+     m:Integer := e.mul
+     neg:Boolean := (m<0)
+     e2 := copy(e)
+     e2.mul := 1
+     i := position(e2,lst)$List(%)
+     if neg then i:= -i
+     i
 
    -- used by cone. Adds a vertex to face.
    addVertex(sa:%,v:NNI):% ==
@@ -812,33 +827,33 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 --     reverse(res) -- reverse outer lists to get in numeric order
 
    -- local function used by delta below
-   addFacet(facet1:List(NNI),mult1:Integer,lst:Record(mul:List(Integer),fac:List(List(NNI)))):_
-    Record(mul:List(Integer),fac:List(List(NNI))) ==
-     facet:List(NNI) := facet1
-     mult:Integer := mult1
-     if first(facet) > last(facet) then
-       facet := reverse(facet)
-       mult := -mult
-     f:List(List(NNI)) := lst.fac
-     m:List(Integer) := lst.mul
-     i:Integer := position(facet,f)
-     if i=0
-       then
-         if mult<0
-           then
-             f:=concat(f,reverse(facet))
-           else
-             f:=concat(f,facet)
-         m:=concat(m,mult)
-       else
-         m1:Integer := m.i + mult
-         if m1=0
-           then
-             f := delete(f,i)
-             m := delete(m,i)
-           else
-             setelt!(m,i,m1)
-     [m,f]
+--   addFacet(facet1:List(NNI),mult1:Integer,lst:Record(mul:List(Integer),fac:List(List(NNI)))):_
+--    Record(mul:List(Integer),fac:List(List(NNI))) ==
+--     facet:List(NNI) := facet1
+--     mult:Integer := mult1
+--     if first(facet) > last(facet) then
+--       facet := reverse(facet)
+--       mult := -mult
+--     f:List(List(NNI)) := lst.fac
+--     m:List(Integer) := lst.mul
+--     i:Integer := position(facet,f)
+--     if i=0
+--       then
+--         if mult<0
+--           then
+--             f:=concat(f,reverse(facet))
+--           else
+--             f:=concat(f,facet)
+--         m:=concat(m,mult)
+--       else
+--         m1:Integer := m.i + mult
+--         if m1=0
+--           then
+--             f := delete(f,i)
+--             m := delete(m,i)
+--           else
+--             setelt!(m,i,m1)
+--     [m,f]
 
    -- Step down to the next lower dimension, this is like hollowing out the complex.
    -- It takes the highest dimension entries and replaces them with their boundaries,
@@ -1183,8 +1198,8 @@ ChainComplex() : Exports == Impl where
 )if false
 \section{Delta Complex}
 
-The above representation defines faces, of any dimension, by their
-vertices. This is an efficient way to define them, a disadvantage
+The FiniteSimplicialComplex representation defines faces, of any dimension, by
+their vertices. This is an efficient way to define them, a disadvantage
 is that intermediate parts, such as edges, are not indexed. It is
 sometimes useful to be able to do this, for example, when generating
 homotopy groups such as the fundamental group.
@@ -1262,42 +1277,48 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- edges, triangles and so on.
    deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
      -- first grade and add implied faces
-     baseIndexedUnsorted:List(List(OrientedFacet)) := addImpliedFaces(fsc)
-     --print("deltaComplex baseIndexedUnsorted="::Symbol << baseIndexedUnsorted )
+     allFacets:List(List(OrientedFacet)) := addImpliedFaces(fsc)
+     --print("deltaComplex allFacets="::Symbol << allFacets )
      -- sort each grade
-     baseIndexedGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
-     for gradedList in baseIndexedUnsorted repeat
+     allFacetsGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
+     for gradedList in allFacets repeat
        --print("deltaComplex gradedList="::Symbol << gradedList )
-       --baseIndexedGraded := concat(baseIndexedGraded,gradedList)
-       baseIndexedGraded := concat(baseIndexedGraded,sort(gradedList))
-     --print("deltaComplex baseIndexedGraded="::Symbol << baseIndexedGraded )
+       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
+     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
      -- now change base indexed to heirarcical indexed
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
      previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
-     for gradeList in baseIndexedGraded for grn in 1..(#baseIndexedGraded) repeat
+     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
          -- edges - no need to change
          faceMaps.grn := [(getIndexes(x) pretend List(Integer)) for x in gradeList]
        if grn>1 then
-         -- triangles
-         newFacesHigh:List(List(Integer))  := empty()$List(List(Integer)) 
+         -- triangles and above
+         -- we need to build up a map from oldFaceHigh to oldFacesLow
+         newMap:List(List(Integer))  := empty()$List(List(Integer)) 
          for oldFaceHigh in gradeList repeat
            --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
-           oldFacesLow:List(OrientedFacet) := allSubsets(oldFaceHigh,grn)
+           --oldFacesLow:List(OrientedFacet) := allSubsets(oldFaceHigh,grn)
+           oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
            --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
            newIndexes:List(Integer) := empty()$List(Integer)
            for oldFaceLow in oldFacesLow repeat
              --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
              --      " previousFaceList="::Symbol << previousFaceList << _
-             --      " baseIndexedGraded.1="::Symbol << baseIndexedGraded.1)
-             i:=position(oldFaceLow,previousFaceList)
-             if abs(i) < 1 then error concat("cant find index:",string(i))
+             --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
+             i:=position(oldFaceLow,previousFaceList)$OrientedFacet
+             i2:Integer := abs(i)
+             if i2 < 1 then
+               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
+                 " not found in previousFaceList="::Symbol << previousFaceList )
+               error concat("cant find index:",string(i))
              newIndexes := concat(newIndexes,i)
-           newFacesHigh := concat(newFacesHigh,newIndexes)
-         faceMaps.grn := newFacesHigh
+           newMap := concat(newMap,newIndexes)
+         faceMaps.grn := newMap
        previousFaceList := gradeList
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
+     --print("deltaComplex faceMaps="::Symbol << faceMaps )
      [vs ,faceMaps]
 
    -- a simplical complex with one link
@@ -1329,20 +1350,23 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
      maps1:List(List(List(Integer))) := s.MAPS
      for faces in maps1 repeat
+       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
        nCols:NNI := #(faces)
        if nCols<1 then return chainComplex(res)
        nRows:NNI := 0
        for u in faces repeat
          for v in u repeat
-           if v>nRows then nRows := abs(v) pretend NNI
+           if abs(v)>nRows then nRows := abs(v) pretend NNI
        --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
        m : Matrix(Integer) := new(nRows,nCols,0)
        for u in faces for nu in 1..(#faces) repeat
          for v in u for nv in 1..(#u) repeat
-           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v)
+           v2:Integer := abs(v)
+           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
+           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
            ele:Integer := 1
            if even?(nv) then ele := -1
-           setelt!(m,v,nu,ele) -- params are (matrix,row number,col number, value)
+           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
        res := concat(res,m)
      chainComplex(res)
 
