@@ -1,9 +1,9 @@
 Multivector
 -----------
-Code to use with FriCAS program - I shold really change the name from 'Multivector' becaulse its no longer just about Clifford algebra but is a place to publish my new FriCAS code on any subject.
+Code to use with FriCAS program - I should really change the name from 'Multivector' becaulse its no longer just about Clifford algebra but is a place to publish my new FriCAS code on any subject.
 
-Changes Jan 2016
-----------------
+Changes March 2016
+------------------
 I have made some changes and additions to some of my code. Would you be interested in including this in the FriCAS library?
 
 The changed/new files are:
@@ -11,6 +11,7 @@ The changed/new files are:
 <ul>
   <li>logic.spad</li>
   <li>graph.spad</li>
+  <li>groupPresentation.spad</li>
   <li>algebraictopology.spad</li>
   <li>computation.spad</li>
 </ul>
@@ -56,6 +57,16 @@ There are some updates to existing code, this includes:
 For further information see the documentation here:
 
 http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
+
+groupPresentation.spad
+----------------------
+This is new code.
+
+Group represented by its generators and relations.
+Here we use it to hold homotopy group such as fundamental group.
+
+For further information see the documentation here:
+http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 
 algebraictopology.spad
 ----------------------
