@@ -1,0 +1,233 @@
+)if false
+\documentclass{article}
+\usepackage{axiom}
+\usepackage{url}
+\begin{document}
+\title{Group Presentations}
+\author{Martin J Baker}
+\maketitle
+\begin{abstract}
+
+I have put a fuller explanation of this code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/}
+\end{abstract}
+
+\section{Introduction}
+Group represented by its generators and relations.
+Here we use it to hold homotopy group such as fundamental group.
+for more documentation see:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/}
+
+Representation holds the group as a set of generators and a set of
+relations
+Each generator is a NNI
+Each relation is a list of indexes to generators. Negative values indicate
+
+\section{Homotopy Group}
+The homotopy group is finitely presented by generators and relations.
+This representation of a group is not, in general, algorithmically computable
+into other representations of a group.
+
+We can therefore compute 'a' (not 'the') homotopy group for a given simplicial
+complex. We may also be able to apply some simplifications to this group.
+However, in the general case, we cannot determine if this is the simplest
+representation or determine if two such groups are isomophic (their corresponding
+simplicial complexes are homeomorphic).
+
+Despite these fundamental limits on what is theoretically possible I still
+believe it is worthwhile to have the capability to generate 'a' homotopy
+group for a given structure.
+)endif
+
+)abbrev domain GROUPP GroupPresentation
+++ Author: Martin Baker
+++ Description: 
+++   Group represented by its generators and relations.
+++   Here we use it to hold homotopy group such as fundamental group.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/
+++ Date Created: Jan 2016
+++ Date Last Updated: March 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+GroupPresentation() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    groupPresentation: (v:List(NNI),rels1: List(List(Integer))) -> %
+     ++ construct from generators
+    simplify:(s : %) -> %
+     ++ There may not be a simplest form but it is possible to
+     ++ do some simplifications as follows:
+     ++ 1) remove all zero terms in rules
+     ++ 2) if a rule consists of a single generator then remove that generator
+     ++ 3) if a rule consists of a pair of generators then make the
+     ++    second generator the inverse of the first
+     ++ 4) if a generator is adjacent to its inverse then cancel them out.
+     ++ 5) remove duplicate rules
+
+  Impl ==> add
+
+   -- Representation holds the group as a set of generators and a set of
+   -- relations
+   -- Each generator is a NNI
+   -- Each relation is a list of indexes to generators. Negative values indicate
+   -- inverse.
+   Rep := Record(gens:PrimitiveArray(NNI),rels: List(List(Integer)))
+
+   -- constructor where the vertex set is supplied
+   groupPresentation(gens1:List(NNI),rels1: List(List(Integer))):% ==
+     g:PrimitiveArray(NNI) := construct(gens1)$PrimitiveArray(NNI)
+     [g,rels1]
+
+   -- Isomorphism not computable
+   -- so just test exact equality for now
+   _=(a : %, b : %) : Boolean ==
+     if a.gens ~= b.gens then return false
+     a.rels = b.rels
+
+   -- local function to remove zeroes from generators
+   removeGen(gens1:PrimitiveArray(NNI),val:NNI):PrimitiveArray(NNI) ==
+     remove(val,gens1)
+
+   -- local function to remove zeroes from relations
+   removeGen2(rels1:List(List(Integer)),val:NNI):List(List(Integer)) ==
+     rels2:List(List(Integer)) := empty$List(List(Integer))
+     for r in rels1 repeat
+       r2 := remove(val::Integer,r)
+       r2 := remove(-val,r2)
+       rels2 := concat(rels2,r2)
+     rels2
+
+   -- There may not be a simplest form but it is possible to
+   -- do some simplifications as follows:
+   -- 1) remove all zero terms in rules
+   -- 2) if a rule consists of a single generator then remove that generator
+   -- 3) if a rule consists of a pair of generators then make the
+   --    second generator the inverse of the first
+   -- 4) if a generator is adjacent to its inverse then cancel them out.
+   -- 5) remove duplicate rules
+   simplify(s : %) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     -- remove identity element from generators and rules
+     gens1 := removeGen(gens1,0::NNI)
+     rels1 := removeGen2(rels1,0::NNI)
+     -- remove any element contained in a one-element-rule
+     toBeRemoved:List(NNI) := empty$List(NNI)
+     toBeReplaced:List(Record(a:Integer,b:Integer)) := empty$List(Record(a:Integer,b:Integer))
+     for r in rels1 repeat
+       if #r = 1 then
+         toBeRemoved := concat(toBeRemoved,(first(r)) pretend NNI)
+     for ele in toBeRemoved repeat
+       gens1 := removeGen(gens1,ele)
+       rels1 := removeGen2(rels1,ele)
+     [gens1,rels1]
+
+   -- display generators as alphabetic digits
+   -- used by output form
+   genName(i:Integer):OutputForm ==
+     -- interpret zero as unit which is output as 'e'
+     if i=0 then return (char(101)$Character)::OutputForm
+     -- 'e' reserved for unit, so skip over it
+     if i>5 then i:=i+1
+     if i<5 then i:=i-1
+     -- lowercase alphabet starts at a=98 in 'ASCII' code (62 in hexadecimal)
+     c:Character := char(abs(i)+97)
+     -- negative values shown as inverse (-1 exponent)
+     if i<0 then
+       return super(c::OutputForm,(-1)::OutputForm)
+     c::OutputForm
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     ps:List(NNI) := parts((s.gens) pretend PrimitiveArray(NNI))
+     gens1:List(OutputForm) := empty()$List(OutputForm)
+     for p in ps repeat
+       gens1 := concat(gens1,genName(p::Integer))
+     --print blankSeparate(gens1)
+     rs:List(List(Integer)) := s.rels
+     rels1:List(OutputForm) := empty()$List(OutputForm)
+     for r in rs repeat
+       eleout: OutputForm := empty()$OutputForm
+       seperator: OutputForm:= outputForm(""::Symbol)
+       for ele in r repeat
+         newterm: OutputForm:=genName(ele)
+         eleout := hconcat([eleout,seperator,newterm])$OutputForm
+         seperator:= outputForm("*"::Symbol)
+       rels1 := concat(rels1,eleout)
+     g:OutputForm := message(" ")
+     if #gens1 > 0 then g:= blankSeparate(gens1)
+     hconcat(_
+       [message("<"),_
+       g,_
+       message("|"),_
+       blankSeparate(rels1),_
+       message(">")])
+
+--Copyright (c) 2016, Martin J Baker.
+--All rights reserved.
+--
+--Redistribution and use in source and binary forms, with or without
+--modification, are permitted provided that the following conditions are
+--met:
+--
+--    - Redistributions of source code must retain the above copyright
+--      notice, this list of conditions and the following disclaimer.
+--
+--    - Redistributions in binary form must reproduce the above copyright
+--      notice, this list of conditions and the following disclaimer in
+--      the documentation and/or other materials provided with the
+--      distribution.
+--
+--    - Neither the name of Martin J Baker. nor the
+--      names of its contributors may be used to endorse or promote products
+--      derived from this software without specific prior written permission.
+--
+--THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+--IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+--TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+--PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+--OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+--EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+--PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+--PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+--LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+--NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+--SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+)if false
+\eject
+\begin{thebibliography}{99}
+For more details see:
+[1] I have put a fuller explanation of this code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/}
+
+[2] Wikipedia
+\url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
+
+[3] Finite simplicial complexes in Sage
+\url{http://doc.sagemath.org/html/en/reference/homology/sage/homology/simplicial_complex.html}
+
+[4] Finite simplicial complexes in NPM
+\url{https://www.npmjs.com/package/simplicial-complex}
+
+[5] Simpcomp - a GAP package for working with simplicial complexes
+\url{https://code.google.com/p/simpcomp/}
+
+[6] A Macaulay2 package for working with simplicial complexes
+\url{http://www.math.uiuc.edu/Macaulay2/doc/Macaulay2-1.8.2/share/doc/Macaulay2/SimplicialComplexes/html}
+
+\end{thebibliography}
+\end{document}
+)endif
+
