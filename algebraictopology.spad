@@ -548,7 +548,6 @@ There is an alternative representation later.
 FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   NNI==> NonNegativeInteger
   PAIR ==> Record(fst:NNI,sec:NNI)
-  SIMPLEX ==> List(NNI)
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
@@ -673,29 +672,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      res     
 
    -- sort faces to be in numeric order
-   -- both inside each face (for triangles only)
-   -- and then sort the faces to be in order
-   -- TODO only sorts inside triangles at the moment, extent to other faces.
    sort(s:%):% ==
      v:VS := s.VERTSET
      fs:List(OrientedFacet) := s.SIMP -- list of faces
---     fs2:List(OrientedFacet) := empty()$List(OrientedFacet) -- will hold internally sorted faces
---     for f in fs repeat
---       minValue:NNI := 99999::NNI
---       minIndex:NNI := 1::NNI
---       flen:NNI := order(f)
---       for e in f for en in 1..flen repeat
---         if e<minValue then
---           minValue:= e
---           minIndex:= en
---       f2:OrientedFacet := f -- if not triangle use the fase as is
---       if flen=3 then
---           -- now rotate nodes of triangle so lowest is first
---           f2:= [f.(if (x-1+minIndex) > flen_
---             then (x-1+minIndex-flen)_
---             else (x-1+minIndex)) for x in 1..flen]
---       fs2 := concat(fs2,f2)
---     fs3:List(OrientedFacet) := sort(fs2)
      [v,sort(fs)]
 
    -- a local function to return a list where each entry:
@@ -813,48 +792,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 --               res := concat(res,pair)$List(List(NNI))
 --     simplicialComplex(s.VERTSET,res)
 
-   -- local function used by delta below
---   deltaSimplex(facet:List(NNI)):List(List(NNI)) ==
---     res:List(List(NNI)) := empty()$List(List(NNI))
---     mlst:List(Integer) := empty()$List(Integer)
---     even:Boolean := false
---     for x in facet repeat
---       r:List(NNI) := remove(x,facet)
---       m:Integer := if even then -1 else 1
---       mlst := concat(mlst,m)
---       even := not even
---       res:=concat(res,r)$List(List(NNI)) 
---     reverse(res) -- reverse outer lists to get in numeric order
-
-   -- local function used by delta below
---   addFacet(facet1:List(NNI),mult1:Integer,lst:Record(mul:List(Integer),fac:List(List(NNI)))):_
---    Record(mul:List(Integer),fac:List(List(NNI))) ==
---     facet:List(NNI) := facet1
---     mult:Integer := mult1
---     if first(facet) > last(facet) then
---       facet := reverse(facet)
---       mult := -mult
---     f:List(List(NNI)) := lst.fac
---     m:List(Integer) := lst.mul
---     i:Integer := position(facet,f)
---     if i=0
---       then
---         if mult<0
---           then
---             f:=concat(f,reverse(facet))
---           else
---             f:=concat(f,facet)
---         m:=concat(m,mult)
---       else
---         m1:Integer := m.i + mult
---         if m1=0
---           then
---             f := delete(f,i)
---             m := delete(m,i)
---           else
---             setelt!(m,i,m1)
---     [m,f]
-
    -- Step down to the next lower dimension, this is like hollowing out the complex.
    -- It takes the highest dimension entries and replaces them with their boundaries,
    -- cancelling out where it can.
@@ -869,16 +806,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
          res:=addSimplex(res,y)
      --[s.VERTSET,facets]
      res
-
-   -- local function, used by isFaceOf and subtract, which returns true if
-   -- vertex 'b' is contained in face 'a'.
-   isVertexOf(sa:SIMPLEX,vb:NNI):Boolean ==
-     for vertex in sa repeat
-       if vertex=vb then
-         --print("isVertexOf("::Symbol << sa << ","::Symbol << vb << ")=true"::Symbol)
-         return true
-     --print("isVertexOf("::Symbol << sa << ","::Symbol << vb << ")=false"::Symbol)
-     false
 
    -- The 'star' of a simplicial complex and a simplex contains only the simplexes
    -- of s which include simplex.
@@ -1087,24 +1014,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
      if empty?(s.SIMP) then return bracket(empty()$OutputForm)
---     mat:List List OutputForm := empty()$List(List(OutputForm))
-     -- matrix does not like different row widths so we need to
-     -- know the maximum width so we can pad to that width.
---     maxWidth:NNI := 0
---     for a in s.SIMP repeat
---       if order(a) > maxWidth then maxWidth := order(a)
---     if maxWidth = 0 then return empty()$OutputForm
      for a in s.SIMP repeat
        res:=vconcat(res,a::OutputForm)
---       row:List OutputForm := empty()$List(OutputForm)
---       for b in a repeat
---         row := concat(row,outputForm(b)$OutputForm)$List(OutputForm)
---       w:NNI := order(a)
---       while w < maxWidth repeat
---         row := concat(row,empty()$OutputForm)$List(OutputForm)
---         w:= w+1
---       mat := concat(mat,row)
---     matrix(mat)
      res
 
    -- coerce to DeltaComplex
@@ -1173,11 +1084,13 @@ ChainComplex() : Exports == Impl where
      for x in 2..len repeat
        m:Matrix(Integer):=a.x
        if maxRowIndex(m) ~= maxColIndex(last) then
-         print("validate failed nRows="::Symbol << maxRowIndex(m) << " not equal to nCols "::Symbol << maxColIndex(last))
+         print("validate failed nRows="::Symbol << maxRowIndex(m) <<_
+           " not equal to nCols "::Symbol << maxColIndex(last))
          return false
        prod:Matrix(Integer):= last*m
        if not zero?(prod) then
-         print("validate failed "::Symbol << last << " * "::Symbol << m << " = "::Symbol << prod)
+         print("validate failed "::Symbol << last << " * "::Symbol <<_
+           m << " = "::Symbol << prod)
          return false
        last:=m     
      true
@@ -1376,127 +1289,24 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      validate(cc)
      homology(cc)
 
-   -- a local function which returns the maximum grade (length) of a
-   -- list of lists
-   maxGrade(a:List(List(NNI))):NNI ==
-     res:NNI := 0::NNI
-     for lst in a repeat
-       if #lst > res then res := #lst
-     res
-
-   -- a local function which returns the index of a list in a
-   -- list of lists. If the list is not there then add it.
-   getIndex!(a:List(Integer),b1:Reference(List(List(Integer)))):Integer ==
-     res:Integer := 1::Integer
-     b:List(List(Integer)) := deref(b1)
-     --print ("getIndex! in a="::Symbol << a << " b="::Symbol << b)
-     if empty?(b) then b := [a]
-     for lst in b repeat
-       if a=lst then
-         setref(b1,b)
-         --print ("getIndex! old a="::Symbol << a << " b="::Symbol << _
-         -- b << " b1="::Symbol << b1<< " res="::Symbol << res)
-         return res
-       res := res+1
-     b := concat(b,a)
-     setref(b1,b)
-     --print ("getIndex! new a="::Symbol << a << " b="::Symbol << b << _
-     -- " b1="::Symbol << b1<< " res="::Symbol << res)
-     res
-
-   -- a local function to return a list where each entry:
-   -- i) is a permutation of the input list
-   -- ii) contains integers in ascending order
-   -- iii) is of the specified length
-   -- TODO this is in both simplicial and delta complexes so need to find common
-   -- home for it.
-   orderedPermutation(lst:List(Integer),len: NNI):List(List(Integer)) ==
-     if len < 1 then return empty()$List(List(Integer))
-     if len > #lst then return empty()$List(List(Integer))
-     if len = #lst then return [lst]
-     reslt:List(List(Integer)) := empty()$List(List(Integer))
-     if len=1 then
-       for y in lst repeat
-         reslt := concat(reslt,[y])
-       return reslt  
-     fst:Integer := lst.first
-     rst:List(Integer) := lst.rest
-     -- in the next line I probably should use 'subtractifcan' rather
-     -- than using pretend but it can never be negative due to the tests
-     -- at the start of this function.
-     for x in orderedPermutation(rst,(len-1) pretend NNI) repeat
-       r1:List(Integer) := concat(fst,x)
-       -- r1 holds a permutations starting with fst
-       reslt := concat(reslt,r1)
-     -- now we have combinations staring with fst
-     -- so we just have to add the rest
-     reslt := concat(reslt,orderedPermutation(rst,len))
-     reslt
-
-   -- TODO this will match on a list or its reverse but it wont match when, say,
-   -- the verticies of a triangle are rotated for example. Need to fix this.
-   lookupFaceIndex(face:List(Integer),faceList:List(List(Integer))):Integer ==
-     res:Integer := 1
-     for x in faceList repeat
-       if x=face then return res
-       if x=reverse(face) then return -res
-       res := res + 1
-     0
-
-   -- less than
-   -- local function required for sort of list of lists
-   lt(a:List(Integer),b:List(Integer)):Boolean ==
-     if ((#a) < 1) then return true -- if lists are different lingths then shortest first
-     if ((#b) < 1) then return false
-     a1:Integer := a.first
-     b1:Integer := b.first
-     if abs(a1)<abs(b1) then return true
-     if abs(a1)>abs(b1) then return false
-     if ((#a) < 2) then return true -- if lists are different lingths then shortest first
-     if ((#b) < 2) then return false
-     lt(a.rest,b.rest)
-
-   -- sort faces to be in numeric order
-   -- both inside each face (for triangles only)
-   -- and then sort the faces to be in order
-   -- TODO only sorts inside triangles at the moment, extend to other faces.
-   sort(fs:List(List(Integer))):List(List(Integer)) ==
-     fs2:List(List(Integer)) := empty()$List(List(Integer)) -- will hold internally sorted faces
-     for f in fs repeat
-       minValue:Integer := 99999
-       minIndex:Integer := 1
-       flen:NNI := #f
-       for e in f for en in 1..flen repeat
-         if e<minValue then
-           minValue:= e
-           minIndex:= en
-       f2:List(Integer) := f -- if not triangle use the fase as is
-       if flen=3 then
-         -- now rotate nodes of triangle so lowest is first
-         f2 := [f.(if (x-1+minIndex) > flen_
-           then (x-1+minIndex-flen)_
-           else (x-1+minIndex)) for x in 1..flen]
-       fs2 := concat(fs2,f2)
-     fs3:List(List(Integer)) := sort(lt,fs2)
+   -- local function used in oneSkeleton
+--   concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
+--         List(Record(value : NNI, posX : NNI, posY : NNI)) ==
+--     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
+--     if member?([b,0::NNI,0::NNI],a)$List(OBJT) then return a
+--     concat(a,[b,0::NNI,0::NNI])$List(OBJT)
 
    -- local function used in oneSkeleton
-   concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
-         List(Record(value : NNI, posX : NNI, posY : NNI)) ==
-     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
-     if member?([b,0::NNI,0::NNI],a)$List(OBJT) then return a
-     concat(a,[b,0::NNI,0::NNI])$List(OBJT)
-
-   -- local function used in oneSkeleton
-   concatIfNewArrow(a:List(Record(name : String, arrType : NNI, fromOb : NNI, _
-           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)),_
-           p:NNI,m:NNI):_
-           List(Record(name : String, arrType : NNI, fromOb : NNI, _
-           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)) ==
-     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
-           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
-     if member?(["x",0::NNI,p,m,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
-     if member?(["x",0::NNI,m,p,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
-     concat(a,["x",0::NNI,p,m,0::Integer,0::Integer,[]])$List(ARROW)
+--   concatIfNewArrow(a:List(Record(name : String, arrType : NNI, fromOb : NNI, _
+--           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)),_
+--           p:NNI,m:NNI):_
+--           List(Record(name : String, arrType : NNI, fromOb : NNI, _
+--           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)) ==
+--     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+--           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+--     if member?(["x",0::NNI,p,m,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
+--     if member?(["x",0::NNI,m,p,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
+--     concat(a,["x",0::NNI,p,m,0::Integer,0::Integer,[]])$List(ARROW)
 
    -- Generates graph AKA 1-skeleton.
    -- Used to generate fundamental group
@@ -1688,16 +1498,8 @@ SimplicialComplexFactory() : with
   -- That is, the surface of a volume with no holes in it, so we use a minimal
   -- triangulation of the faces of a single simplex.
   sphereSurface(dim:NNI):FiniteSimplicialComplex(VertexSetAbstract) ==
-    ASIMP := FiniteSimplicialComplex(VertexSetAbstract)
-    v1:List(List(NNI)) := empty()$List(List(NNI))
-    for a in 1..(dim+1) repeat
-      for b in (a+1)..(dim+1) repeat
-        for c in (b+1)..(dim+1) repeat
-          --if (b>a) and (c>b) then
-            --print("sphere a="::Symbol << a << " b="::Symbol << b << " c="::Symbol << c)
-            v1 := concat(v1,[a::NNI,b::NNI,c::NNI])
-    vs1:VertexSetAbstract := vertexSeta(dim)
-    simplicialComplex(vs1,v1)$ASIMP
+    s:=sphereSolid(dim)
+    delta(s)
 
   -- generate a minimal triangulation of the surface of an 3-dimensional torus.
   torusSurface():FiniteSimplicialComplex(VertexSetAbstract) ==
