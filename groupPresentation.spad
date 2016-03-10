@@ -22,21 +22,108 @@ Representation holds the group as a set of generators and a set of
 relations
 Each generator is a NNI
 Each relation is a list of indexes to generators. Negative values indicate
+the inverse of the generator.
+
+Note that the use of negative indices to represent the inverse does
+not imply an abelian group. This is just a convenient way to code
+the representation and, in general, the group is not necessarily
+abelian.
 
 \section{Homotopy Group}
 The homotopy group is finitely presented by generators and relations.
-This representation of a group is not, in general, algorithmically computable
-into other representations of a group.
+This representation of a group is not, in general, algorithmically
+computable into other representations of a group.
 
-We can therefore compute 'a' (not 'the') homotopy group for a given simplicial
-complex. We may also be able to apply some simplifications to this group.
-However, in the general case, we cannot determine if this is the simplest
-representation or determine if two such groups are isomophic (their corresponding
-simplicial complexes are homeomorphic).
+We can therefore compute 'a' (not 'the') homotopy group for a given
+simplicial complex. We may also be able to apply some simplifications
+to this group. However, in the general case, we cannot determine if
+this is the simplest representation or determine if two such groups
+are isomophic (their corresponding simplicial complexes are
+homeomorphic).
 
-Despite these fundamental limits on what is theoretically possible I still
-believe it is worthwhile to have the capability to generate 'a' homotopy
-group for a given structure.
+Despite these fundamental limits on what is theoretically possible
+I still believe it is worthwhile to have the capability to generate
+'a' homotopy group for a given structure.
+
+\section{Simplify}
+
+There may not be a simplest form but it is possible to do some
+simplifications.
+
+In order to try to simplify a finitely generated presentation
+to produce simpler but isomorphic groups we can apply certain
+transformations or automorphisms (isomorphisms of the group
+back to itself).
+
+For example:
+\begin{itemize}
+\item remove all zero terms in rules
+\item if a rule consists of a single generator then remove
+  that generator
+\item if a rule consists of a pair of generators then make
+  the second generator the inverse of the first
+\item if a generator is adjacent to its inverse then cancel
+  them out.
+\item remove duplicate rules.
+\end{itemize}
+
+These automorphisms were studied and categorised by Tietze
+and Nielsen.
+
+\subsection{Tietze Transformations}
+
+\begin{table}[]
+\label{Tietze transformations are of 4 kinds}
+\begin{tabular}{ll}
+Kind \ Examples \\
+Add a relation \ < A | A^3 > -> < A | A^3 , A^6 > \\
+Remove a relation \ for example we can reverse the above
+< A | A^3 , A^6> -> < A | A^3> \\
+Add a generator \ < A | A^3 > -> <A , B | A^3, B = A^2 > \\
+Remove a generator \ for example we can reverse the above
+<A , B | A^3, B = A^2 > -> < A | A^3 > \\
+\end{tabular}
+\end{table}
+
+\subsection{Nielsen Transformations}
+
+The following transformations on a finitely generated free group
+produce isomorphic groups.
+
+\begin{itemize}
+\item Switch A and B
+\item Cyclically permute A, B, ... to B, ..., A.
+\item Replace A with A-1
+\item Replace A with A*B
+\end{itemize}
+
+\section{Testing and Validating this Code}
+
+Some functions are very difficult to test, for example in
+the SimplicialComplex code here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/}
+and here:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/delta/}
+there are functions such as fundamentalGroup which output a
+GroupPresentation. The reason for the difficulty is that they
+do not have a canonical form, that is, there may
+be more than one correct result and none of them are better
+than the others and there is no general algorithm for testing
+if they are equal.
+
+So some change to the code may change the result but the result
+may be just as correct as the other result. So testing that
+fundamentalGroup generates a given output for a given input
+is not a useful test for correctness.
+
+I think that all we can do in this situation is to test
+fundamentalGroup with very simple inputs such as a
+topological sphere. This should always produce an empty
+presentation.
+
+This test is contained in the domain: SimplicialComplexTests
+which is in the algebraictopology.spad file here:
+\url{https://github.com/martinbaker/multivector/blob/master/algebraictopology.spad}
 )endif
 
 )abbrev domain GROUPP GroupPresentation
@@ -74,6 +161,11 @@ GroupPresentation() : Exports == Impl where
      ++    second generator the inverse of the first
      ++ 4) if a generator is adjacent to its inverse then cancel them out.
      ++ 5) remove duplicate rules
+    simplify:(s : %,trace:Boolean) -> %
+     ++ simplify with option to trace
+    --genName:(i2:Integer)->OutputForm
+    -- ++ display generators as alphabetic digits
+    -- ++ used by output form
 
   Impl ==> add
 
@@ -86,8 +178,17 @@ GroupPresentation() : Exports == Impl where
 
    -- constructor where the vertex set is supplied
    groupPresentation(gens1:List(NNI),rels1: List(List(Integer))):% ==
+     --print("  groupPresentation construct ("::Symbol << gens1 << ","::Symbol << rels1<< ")"::Symbol)
      g:PrimitiveArray(NNI) := construct(gens1)$PrimitiveArray(NNI)
-     [g,rels1]
+     -- remove empty rules since this simplifies equality function
+     --print("groupPresentation constuct:"::Symbol << rels1)
+     rels2: List(List(Integer)) := empty()$List(List(Integer))
+     for r in rels1 repeat
+       --print("  groupPresentation r="::Symbol << r)
+       if not empty?(r) then
+         rels2 := concat(rels2,r)
+     --print("  groupPresentation rep ("::Symbol << g << ","::Symbol << rels2<< ")"::Symbol)
+     [g,rels2]
 
    -- Isomorphism not computable
    -- so just test exact equality for now
@@ -95,18 +196,160 @@ GroupPresentation() : Exports == Impl where
      if a.gens ~= b.gens then return false
      a.rels = b.rels
 
-   -- local function to remove zeroes from generators
+   -- local function to remove generator 'val' from generators
    removeGen(gens1:PrimitiveArray(NNI),val:NNI):PrimitiveArray(NNI) ==
      remove(val,gens1)
 
-   -- local function to remove zeroes from relations
+   -- local function to remove generator 'val' from relations
    removeGen2(rels1:List(List(Integer)),val:NNI):List(List(Integer)) ==
      rels2:List(List(Integer)) := empty$List(List(Integer))
-     for r in rels1 repeat
-       r2 := remove(val::Integer,r)
-       r2 := remove(-val,r2)
-       rels2 := concat(rels2,r2)
+     for rule in rels1 repeat
+       rule2 := remove(val::Integer,rule)
+       rule2 := remove(-val,rule2)
+       rels2 := concat(rels2,rule2)
      rels2
+
+   -- local function to replace generator 'val1' with 'val2'
+   -- in relations
+   replaceGen(rels1:List(List(Integer)),val1:NNI,val2:Integer):List(List(Integer)) ==
+     rels2:List(List(Integer)) := empty$List(List(Integer))
+     for rule in rels1 repeat
+       rule2:List(Integer) := empty()$List(Integer)
+       for ele in rule repeat
+         --rule2 := replace(val::Integer,rule)
+         --rule2 := replace(-val,rule2)
+         rule2 := concat(rule2,ele)
+       rels2 := concat(rels2,rule2)
+     rels2
+
+--   simplify(s : %) :% ==
+--     gens1:PrimitiveArray(NNI) := s.gens
+--     rels1:List(List(Integer)) := s.rels
+     --print("groupPresentation simplify begin ("::Symbol << gens1 << ","::Symbol << rels1<< ")"::Symbol)
+     -- remove identity element from generators and rules
+--     gens1 := removeGen(gens1,0::NNI)
+--     rels1 := removeGen2(rels1,0::NNI)
+     -- remove any element contained in a one-element-rule
+--     toBeRemoved:List(NNI) := empty$List(NNI)
+--     toBeReplaced:List(Record(a:NNI,b:Integer)) := empty$List(Record(a:NNI,b:Integer))
+--     for r in rels1 repeat
+--       if #r = 1 then
+--         toBeRemoved := concat(toBeRemoved,(abs(first(r))) pretend NNI)
+--       if #r = 2 then
+--         negSign:Boolean := (second(r) < 0)
+--         r1:NNI := abs(second(r)) pretend NNI
+--         r2:Integer := if negSign then first(r) else -first(r)
+--         repl:Record(a:NNI,b:Integer) := construct(r1,r2)$Record(a:NNI,b:Integer)
+--         --toBeRemoved := concat(toBeRemoved,r1)
+--         toBeReplaced := concat(toBeReplaced,(repl))
+     -- first do replacements
+--     for ele in toBeReplaced repeat
+--       fromValue:NNI := ele.a
+--       toValue:Integer := ele.b
+--       rels1 := replaceGen(rels1,fromValue,toValue)
+     -- after replacements then we can do removals
+     --print("groupPresentation simplify toBeRemoved="::Symbol << toBeRemoved)
+--     for ele in toBeRemoved repeat
+--       gens1 := removeGen(gens1,ele)
+--       rels1 := removeGen2(rels1,ele)
+     -- remove empty rules since this simplifies equality function
+     --print("groupPresentation simplify:"::Symbol << rels1)
+--     rels2: List(List(Integer)) := empty()$List(List(Integer))
+--     for r in rels1 repeat
+       --print("  groupPresentation simplify r="::Symbol << r)
+--       if not empty?(r) then
+--         rels2 := concat(rels2,r)
+     --print("groupPresentation simplify res ("::Symbol << gens1 << ","::Symbol << rels2<< ")"::Symbol)
+--     [gens1,rels2]
+
+   -- Tietze Transformation to remove a generator that is equal to
+   -- the identity element. That is there is a rule containing only one
+   -- generator.
+   -- This procedure searches for a single element rule, if found, it
+   -- removes the corresponding generator and also removes it from
+   -- any rules containing it.
+   -- This procedure only removes one generator, if there are several
+   -- such rules then this procedure needs to be called several times.
+   -- This is a local function used by simplify.
+   TTRemoveGeneratorIfIdentity(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     toBeRemoved:NNI:=0
+     for rule in rels1 repeat
+       if #rule = 1 and toBeRemoved=0 then
+         toBeRemoved := abs(first(rule)) pretend NNI
+     if toBeRemoved=0 then return s
+     if trace then
+       print("simplify: generator '"::Symbol << toBeRemoved << _
+         "' is identity so remove it"::Symbol)
+     gens1 := removeGen(gens1,toBeRemoved)
+     rels1 := removeGen2(rels1,toBeRemoved)
+     [gens1,rels1]
+
+   -- Tietze Transformation to rename a generator.
+   -- If a rule consists of a pair of generators then make the
+   -- second generator the inverse of the first.
+   -- This procedure searches for a two element rule, if found, it
+   -- replaces the second element with the inverse of the first.
+   -- This procedure only replaces one generator, if there are several
+   -- such rules then this procedure needs to be called several times.
+   -- This is a local function used by simplify.
+   TTRenameGenerator(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     replaceFrom:NNI:=0
+     replaceTo:NNI:=0
+     for rule in rels1 repeat
+       if #rule = 2 and replaceFrom=0 then
+         replaceTo:Integer := abs(second(rule))
+         replaceFrom := abs(first(rule)) pretend NNI
+     if replaceFrom=0 then return s
+     if trace then
+       print("simplify: generator '"::Symbol << replaceFrom << _
+         "' is replaced by '"::Symbol << replaceTo << _
+         "'"::Symbol)
+     --gens1 := removeGen(gens1,replaceFrom)
+     --rels1 := removeGen2(rels1,replaceFrom)
+     [gens1,rels1]
+
+   -- This is a local function used by simplify.
+   TTRemoveEmpty(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     rels2:List(List(Integer)) := empty()$List(List(Integer))
+     for rule in rels1 repeat
+       --print("  groupPresentation simplify rule="::Symbol << rule)
+       if not empty?(rule) then
+         rels2 := concat(rels2,rule)
+     [gens1,rels2]
+
+   -- This is a local function used by simplify.
+   TTRemoveZero(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     gens1 := removeGen(gens1,0)
+     rels1 := removeGen2(rels1,0)
+     [gens1,rels1]
+
+   -- true if 'a' is simpler than 'b'.
+   -- There may not be an absolute measure of whether one presentation
+   -- is simpler than another but this procedure is used only in specific
+   -- circumstances, that is where we have attempted to simplify the
+   -- presentation and we want to test if it is actually simpler.
+   -- We do this by testing if the number of generators or rules has
+   -- reduced or if the complexity of the rules has reduced.
+   -- This is a local function used by simplify.
+   isSimpler?(a:%,b:%) :Boolean ==
+     gensa:PrimitiveArray(NNI) := a.gens
+     relsa:List(List(Integer)) := a.rels
+     gensb:PrimitiveArray(NNI) := b.gens
+     relsb:List(List(Integer)) := b.rels
+     if #gensa < #gensb then return true
+     if #relsa < #relsb then return true
+     false
+
+   simplify(s : %) :% ==
+     simplify(s,false)
 
    -- There may not be a simplest form but it is possible to
    -- do some simplifications as follows:
@@ -116,26 +359,32 @@ GroupPresentation() : Exports == Impl where
    --    second generator the inverse of the first
    -- 4) if a generator is adjacent to its inverse then cancel them out.
    -- 5) remove duplicate rules
-   simplify(s : %) :% ==
-     gens1:PrimitiveArray(NNI) := s.gens
-     rels1:List(List(Integer)) := s.rels
-     -- remove identity element from generators and rules
-     gens1 := removeGen(gens1,0::NNI)
-     rels1 := removeGen2(rels1,0::NNI)
-     -- remove any element contained in a one-element-rule
-     toBeRemoved:List(NNI) := empty$List(NNI)
-     toBeReplaced:List(Record(a:Integer,b:Integer)) := empty$List(Record(a:Integer,b:Integer))
-     for r in rels1 repeat
-       if #r = 1 then
-         toBeRemoved := concat(toBeRemoved,(first(r)) pretend NNI)
-     for ele in toBeRemoved repeat
-       gens1 := removeGen(gens1,ele)
-       rels1 := removeGen2(rels1,ele)
-     [gens1,rels1]
+   simplify(s : %,trace:Boolean) :% ==
+     res:% := s
+     lastpass:% := s
+     rep:Boolean := true
+     while rep repeat
+       res := TTRemoveEmpty(res,trace)
+       res := TTRemoveZero(res,trace)
+       lastpassInner:% := res
+       repInner:Boolean := true
+       while repInner repeat
+         res := TTRemoveGeneratorIfIdentity(res,trace)
+         repInner := isSimpler?(res,lastpassInner)
+         lastpassInner := res
+       res := TTRenameGenerator(res,trace)
+       rep := isSimpler?(res,lastpass)
+       lastpass := res
+     res
 
    -- display generators as alphabetic digits
    -- used by output form
-   genName(i:Integer):OutputForm ==
+   genName(i2:Integer):OutputForm ==
+     i:Integer := abs(i2)
+     suffix:NNI := 0
+     while i>26 repeat
+       i:=i-26
+       suffix := suffix+1
      -- interpret zero as unit which is output as 'e'
      if i=0 then return (char(101)$Character)::OutputForm
      -- 'e' reserved for unit, so skip over it
@@ -143,10 +392,12 @@ GroupPresentation() : Exports == Impl where
      if i<5 then i:=i-1
      -- lowercase alphabet starts at a=98 in 'ASCII' code (62 in hexadecimal)
      c:Character := char(abs(i)+97)
+     n:OutputForm := c::OutputForm
+     if suffix>0 then n:=hconcat(n,outputForm(suffix))
      -- negative values shown as inverse (-1 exponent)
-     if i<0 then
-       return super(c::OutputForm,(-1)::OutputForm)
-     c::OutputForm
+     if i2<0 then
+       return super(n,(-1)::OutputForm)
+     n
 
    -- output
    coerce(s : %) : OutputForm ==
@@ -154,25 +405,26 @@ GroupPresentation() : Exports == Impl where
      gens1:List(OutputForm) := empty()$List(OutputForm)
      for p in ps repeat
        gens1 := concat(gens1,genName(p::Integer))
-     --print blankSeparate(gens1)
+     --print("output gens:"::Symbol << gens1)
      rs:List(List(Integer)) := s.rels
      rels1:List(OutputForm) := empty()$List(OutputForm)
      for r in rs repeat
-       eleout: OutputForm := empty()$OutputForm
-       seperator: OutputForm:= outputForm(""::Symbol)
+       eleout: OutputForm := outputForm(" "::Symbol)
+       seperator: OutputForm:= outputForm(" "::Symbol)
        for ele in r repeat
          newterm: OutputForm:=genName(ele)
          eleout := hconcat([eleout,seperator,newterm])$OutputForm
          seperator:= outputForm("*"::Symbol)
        rels1 := concat(rels1,eleout)
-     g:OutputForm := message(" ")
+     --print("output rules:"::Symbol << rels1)
+     g:OutputForm := outputForm(" "::Symbol)
      if #gens1 > 0 then g:= blankSeparate(gens1)
+     r:OutputForm := outputForm(" "::Symbol)
+     if #rels1 > 0 then r:= blankSeparate(rels1)     
      hconcat(_
-       [message("<"),_
-       g,_
-       message("|"),_
-       blankSeparate(rels1),_
-       message(">")])
+       [outputForm("<"::Symbol),g,_
+       outputForm(" | "::Symbol),r,_
+       outputForm(">"::Symbol)])
 
 --Copyright (c) 2016, Martin J Baker.
 --All rights reserved.
