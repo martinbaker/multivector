@@ -196,187 +196,6 @@ GroupPresentation() : Exports == Impl where
      if a.gens ~= b.gens then return false
      a.rels = b.rels
 
-   -- local function to remove generator 'val' from generators
-   removeGen(gens1:PrimitiveArray(NNI),val:NNI):PrimitiveArray(NNI) ==
-     remove(val,gens1)
-
-   -- local function to remove generator 'val' from relations
-   removeGen2(rels1:List(List(Integer)),val:NNI):List(List(Integer)) ==
-     rels2:List(List(Integer)) := empty$List(List(Integer))
-     for rule in rels1 repeat
-       rule2 := remove(val::Integer,rule)
-       rule2 := remove(-val,rule2)
-       rels2 := concat(rels2,rule2)
-     rels2
-
-   -- local function to replace generator 'val1' with 'val2'
-   -- in relations
-   replaceGen(rels1:List(List(Integer)),val1:NNI,val2:Integer):List(List(Integer)) ==
-     rels2:List(List(Integer)) := empty$List(List(Integer))
-     for rule in rels1 repeat
-       rule2:List(Integer) := empty()$List(Integer)
-       for ele in rule repeat
-         --rule2 := replace(val::Integer,rule)
-         --rule2 := replace(-val,rule2)
-         rule2 := concat(rule2,ele)
-       rels2 := concat(rels2,rule2)
-     rels2
-
---   simplify(s : %) :% ==
---     gens1:PrimitiveArray(NNI) := s.gens
---     rels1:List(List(Integer)) := s.rels
-     --print("groupPresentation simplify begin ("::Symbol << gens1 << ","::Symbol << rels1<< ")"::Symbol)
-     -- remove identity element from generators and rules
---     gens1 := removeGen(gens1,0::NNI)
---     rels1 := removeGen2(rels1,0::NNI)
-     -- remove any element contained in a one-element-rule
---     toBeRemoved:List(NNI) := empty$List(NNI)
---     toBeReplaced:List(Record(a:NNI,b:Integer)) := empty$List(Record(a:NNI,b:Integer))
---     for r in rels1 repeat
---       if #r = 1 then
---         toBeRemoved := concat(toBeRemoved,(abs(first(r))) pretend NNI)
---       if #r = 2 then
---         negSign:Boolean := (second(r) < 0)
---         r1:NNI := abs(second(r)) pretend NNI
---         r2:Integer := if negSign then first(r) else -first(r)
---         repl:Record(a:NNI,b:Integer) := construct(r1,r2)$Record(a:NNI,b:Integer)
---         --toBeRemoved := concat(toBeRemoved,r1)
---         toBeReplaced := concat(toBeReplaced,(repl))
-     -- first do replacements
---     for ele in toBeReplaced repeat
---       fromValue:NNI := ele.a
---       toValue:Integer := ele.b
---       rels1 := replaceGen(rels1,fromValue,toValue)
-     -- after replacements then we can do removals
-     --print("groupPresentation simplify toBeRemoved="::Symbol << toBeRemoved)
---     for ele in toBeRemoved repeat
---       gens1 := removeGen(gens1,ele)
---       rels1 := removeGen2(rels1,ele)
-     -- remove empty rules since this simplifies equality function
-     --print("groupPresentation simplify:"::Symbol << rels1)
---     rels2: List(List(Integer)) := empty()$List(List(Integer))
---     for r in rels1 repeat
-       --print("  groupPresentation simplify r="::Symbol << r)
---       if not empty?(r) then
---         rels2 := concat(rels2,r)
-     --print("groupPresentation simplify res ("::Symbol << gens1 << ","::Symbol << rels2<< ")"::Symbol)
---     [gens1,rels2]
-
-   -- Tietze Transformation to remove a generator that is equal to
-   -- the identity element. That is there is a rule containing only one
-   -- generator.
-   -- This procedure searches for a single element rule, if found, it
-   -- removes the corresponding generator and also removes it from
-   -- any rules containing it.
-   -- This procedure only removes one generator, if there are several
-   -- such rules then this procedure needs to be called several times.
-   -- This is a local function used by simplify.
-   TTRemoveGeneratorIfIdentity(s:%,trace:Boolean) :% ==
-     gens1:PrimitiveArray(NNI) := s.gens
-     rels1:List(List(Integer)) := s.rels
-     toBeRemoved:NNI:=0
-     for rule in rels1 repeat
-       if #rule = 1 and toBeRemoved=0 then
-         toBeRemoved := abs(first(rule)) pretend NNI
-     if toBeRemoved=0 then return s
-     if trace then
-       print("simplify: generator '"::Symbol << toBeRemoved << _
-         "' is identity so remove it"::Symbol)
-     gens1 := removeGen(gens1,toBeRemoved)
-     rels1 := removeGen2(rels1,toBeRemoved)
-     [gens1,rels1]
-
-   -- Tietze Transformation to rename a generator.
-   -- If a rule consists of a pair of generators then make the
-   -- second generator the inverse of the first.
-   -- This procedure searches for a two element rule, if found, it
-   -- replaces the second element with the inverse of the first.
-   -- This procedure only replaces one generator, if there are several
-   -- such rules then this procedure needs to be called several times.
-   -- This is a local function used by simplify.
-   TTRenameGenerator(s:%,trace:Boolean) :% ==
-     gens1:PrimitiveArray(NNI) := s.gens
-     rels1:List(List(Integer)) := s.rels
-     replaceFrom:NNI:=0
-     replaceTo:NNI:=0
-     for rule in rels1 repeat
-       if #rule = 2 and replaceFrom=0 then
-         replaceTo:Integer := abs(second(rule))
-         replaceFrom := abs(first(rule)) pretend NNI
-     if replaceFrom=0 then return s
-     if trace then
-       print("simplify: generator '"::Symbol << replaceFrom << _
-         "' is replaced by '"::Symbol << replaceTo << _
-         "'"::Symbol)
-     --gens1 := removeGen(gens1,replaceFrom)
-     --rels1 := removeGen2(rels1,replaceFrom)
-     [gens1,rels1]
-
-   -- This is a local function used by simplify.
-   TTRemoveEmpty(s:%,trace:Boolean) :% ==
-     gens1:PrimitiveArray(NNI) := s.gens
-     rels1:List(List(Integer)) := s.rels
-     rels2:List(List(Integer)) := empty()$List(List(Integer))
-     for rule in rels1 repeat
-       --print("  groupPresentation simplify rule="::Symbol << rule)
-       if not empty?(rule) then
-         rels2 := concat(rels2,rule)
-     [gens1,rels2]
-
-   -- This is a local function used by simplify.
-   TTRemoveZero(s:%,trace:Boolean) :% ==
-     gens1:PrimitiveArray(NNI) := s.gens
-     rels1:List(List(Integer)) := s.rels
-     gens1 := removeGen(gens1,0)
-     rels1 := removeGen2(rels1,0)
-     [gens1,rels1]
-
-   -- true if 'a' is simpler than 'b'.
-   -- There may not be an absolute measure of whether one presentation
-   -- is simpler than another but this procedure is used only in specific
-   -- circumstances, that is where we have attempted to simplify the
-   -- presentation and we want to test if it is actually simpler.
-   -- We do this by testing if the number of generators or rules has
-   -- reduced or if the complexity of the rules has reduced.
-   -- This is a local function used by simplify.
-   isSimpler?(a:%,b:%) :Boolean ==
-     gensa:PrimitiveArray(NNI) := a.gens
-     relsa:List(List(Integer)) := a.rels
-     gensb:PrimitiveArray(NNI) := b.gens
-     relsb:List(List(Integer)) := b.rels
-     if #gensa < #gensb then return true
-     if #relsa < #relsb then return true
-     false
-
-   simplify(s : %) :% ==
-     simplify(s,false)
-
-   -- There may not be a simplest form but it is possible to
-   -- do some simplifications as follows:
-   -- 1) remove all zero terms in rules
-   -- 2) if a rule consists of a single generator then remove that generator
-   -- 3) if a rule consists of a pair of generators then make the
-   --    second generator the inverse of the first
-   -- 4) if a generator is adjacent to its inverse then cancel them out.
-   -- 5) remove duplicate rules
-   simplify(s : %,trace:Boolean) :% ==
-     res:% := s
-     lastpass:% := s
-     rep:Boolean := true
-     while rep repeat
-       res := TTRemoveEmpty(res,trace)
-       res := TTRemoveZero(res,trace)
-       lastpassInner:% := res
-       repInner:Boolean := true
-       while repInner repeat
-         res := TTRemoveGeneratorIfIdentity(res,trace)
-         repInner := isSimpler?(res,lastpassInner)
-         lastpassInner := res
-       res := TTRenameGenerator(res,trace)
-       rep := isSimpler?(res,lastpass)
-       lastpass := res
-     res
-
    -- display generators as alphabetic digits
    -- used by output form
    genName(i2:Integer):OutputForm ==
@@ -398,6 +217,239 @@ GroupPresentation() : Exports == Impl where
      if i2<0 then
        return super(n,(-1)::OutputForm)
      n
+
+   -- display a rule as alphabetic digits
+   genName2(i2:List(List(Integer))):OutputForm ==
+     rels1:List(OutputForm) := empty()$List(OutputForm)
+     for r in i2 repeat
+       eleout: OutputForm := outputForm(" "::Symbol)
+       seperator: OutputForm:= outputForm(" "::Symbol)
+       for ele in r repeat
+         newterm: OutputForm:=genName(ele)
+         eleout := hconcat([eleout,seperator,newterm])$OutputForm
+         seperator:= outputForm("*"::Symbol)
+       rels1 := concat(rels1,eleout)
+     blankSeparate(rels1)     
+     
+   -- local function to remove generator 'val' from generators
+   removeGen(gens1:PrimitiveArray(NNI),val:NNI):PrimitiveArray(NNI) ==
+     remove(val,gens1)
+
+   -- local function to remove generator 'val' from relations
+   removeGen2(rels1:List(List(Integer)),val:NNI):List(List(Integer)) ==
+     rels2:List(List(Integer)) := empty$List(List(Integer))
+     for rule in rels1 repeat
+       rule2 := remove(val::Integer,rule)
+       rule2 := remove(-val,rule2)
+       rels2 := concat(rels2,rule2)
+     rels2
+
+   -- local function to replace generator 'val1' with 'val2'
+   -- in relations
+   replaceGen(rels1:List(List(Integer)),val1:NNI,val2:Integer):List(List(Integer)) ==
+     --print("  groupPresentation replaceGen="::Symbol << rels1 << _
+     --      " val1="::Symbol << val1 << " val2="::Symbol << val2)
+     rels2:List(List(Integer)) := empty$List(List(Integer))
+     for rule in rels1 repeat
+       rule2:List(Integer) := empty()$List(Integer)
+       for ele in rule repeat
+         e:Integer :=abs(ele)
+         if e=val1 then e := val2
+         if ele<0 then e := -e
+         rule2 := concat(rule2,e)
+       rels2 := concat(rels2,rule2)
+     rels2
+
+   -- Tietze Transformation to remove a generator that is equal to
+   -- the identity element. That is there is a rule containing only one
+   -- generator.
+   -- This procedure searches for a single element rule, if found, it
+   -- removes the corresponding generator and also removes it from
+   -- any rules containing it.
+   -- This procedure only removes one generator, if there are several
+   -- such rules then this procedure needs to be called several times.
+   -- This is a local function used by simplify.
+   TTRemoveGeneratorIfIdentity(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     toBeRemoved:NNI := 0
+     for rule in rels1 repeat
+       if #rule = 1 and toBeRemoved=0 then
+         toBeRemoved := abs(first(rule)) pretend NNI
+     if toBeRemoved=0 then return s
+     if trace then
+       print hconcat(["simplify: generator '"::Symbol::OutputForm,_
+         genName(toBeRemoved),_
+         "' is identity so remove it"::Symbol::OutputForm])
+     gens1 := removeGen(gens1,toBeRemoved)
+     rels1 := removeGen2(rels1,toBeRemoved)
+     if trace then print genName2(rels1)
+     [gens1,rels1]
+
+   -- Tietze Transformation to rename a generator.
+   -- If a rule consists of a pair of generators then make the
+   -- second generator the inverse of the first.
+   -- This procedure searches for a two element rule, if found, it
+   -- replaces the second element with the inverse of the first.
+   -- This procedure only replaces one generator, if there are several
+   -- such rules then this procedure needs to be called several times.
+   -- This is a local function used by simplify.
+   TTRenameGenerator(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     replaceFrom:NNI:=0
+     replaceTo:Integer:=0
+     for rule in rels1 repeat
+       if #rule = 2 and replaceFrom=0 then
+         replaceTo := second(rule)
+         replaceFrom := abs(first(rule)) pretend NNI
+         if first(rule) >0 then replaceTo := -replaceTo
+         -- don't replace an element with itself or its inverse
+         if replaceFrom = abs(replaceTo) then replaceFrom := 0
+     if replaceFrom=0 then return s
+     if trace then
+       print hconcat(["simplify: generator '"::Symbol::OutputForm,_
+         genName(replaceFrom),_
+         "' is replaced by '"::Symbol::OutputForm,_
+         genName(replaceTo), _
+         "'"::Symbol::OutputForm])
+     gens1 := removeGen(gens1,replaceFrom)
+     rels1 := replaceGen(rels1,replaceFrom,replaceTo)
+     if trace then print genName2(rels1)
+     [gens1,rels1]
+
+   -- This is a local function used by simplify.
+   TTRemoveEmpty(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     rels2:List(List(Integer)) := empty()$List(List(Integer))
+     for rule in rels1 repeat
+       --print("  groupPresentation simplify rule="::Symbol << rule)
+       if not empty?(rule) then
+         rels2 := concat(rels2,rule)
+     [gens1,rels2]
+
+   -- This is a local function used by simplify.
+   TTRemoveZero(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     gens1 := removeGen(gens1,0)
+     rels1 := removeGen2(rels1,0)
+     [gens1,rels1]
+
+   -- This is a local function used by simplify.
+   TTRemoveEleTimesInverse(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     --print("TTRemoveEleTimesInverse rules in ="::Symbol << rels1)
+     rels2:List(List(Integer)) := empty()$List(List(Integer))
+     changed:Boolean := false
+     for rule in rels1 repeat
+       --print("TTRemoveEleTimesInverse rule="::Symbol << rule)
+       rule2:List(Integer) := empty()$List(Integer)
+       lastele:Integer := 0
+       for ele in rule repeat
+         if abs(ele)=abs(lastele) and sign(ele) ~= sign(lastele)
+           then
+             if trace then print hconcat([_
+               "simplify: generator '"::Symbol::OutputForm,_
+               genName(ele),_
+               "' is adjacent to its inverse"::Symbol::OutputForm])
+             changed := true
+             lastele := 0
+           else
+             if lastele ~= 0 then rule2 := concat(rule2,lastele)
+             lastele := ele
+       if lastele ~= 0 then rule2 := concat(rule2,lastele)
+       if not empty?(rule2) then rels2 := concat(rels2,rule2)
+     if trace and changed then print genName2(rels2)
+     [gens1,rels2]
+
+   -- This is a local function used by simplify.
+   -- If a rule contains more inverted elements that non-inverted
+   -- elements then it is easier to read if we invert all the terms
+   -- we must then reverse the order.
+   -- A bit like De Morgan's laws
+   TTMinimiseInverses(s:%,trace:Boolean) :% ==
+     gens1:PrimitiveArray(NNI) := s.gens
+     rels1:List(List(Integer)) := s.rels
+     rels2:List(List(Integer)) := empty()$List(List(Integer))
+     for rule in rels1 repeat
+       numInverts:NNI := 0
+       numNonInverts:NNI := 0
+       for ele in rule repeat
+         if ele<0 then numInverts := numInverts+1 else numNonInverts := numNonInverts+1
+       if numInverts>numNonInverts
+         then
+           rule2:List(Integer) := empty()$List(Integer)
+           for ele in rule repeat
+             rule2:= concat(-ele,rule2)
+           rels2 := concat(rels2,rule2)
+         else
+           rels2 := concat(rels2,rule)
+     [gens1,rels2]
+
+   -- true if 'a' is simpler than 'b'.
+   -- There may not be an absolute measure of whether one presentation
+   -- is simpler than another but this procedure is used only in specific
+   -- circumstances, that is where we have attempted to simplify the
+   -- presentation and we want to test if it is actually simpler.
+   -- We do this by testing if the number of generators or rules has
+   -- reduced or if the complexity of the rules has reduced.
+   -- This is a local function used by simplify.
+   isSimpler?(a:%,b:%) :Boolean ==
+     gensa:PrimitiveArray(NNI) := a.gens
+     relsa:List(List(Integer)) := a.rels
+     gensb:PrimitiveArray(NNI) := b.gens
+     relsb:List(List(Integer)) := b.rels
+     if #gensa < #gensb then return true
+     if #relsa < #relsb then return true
+     ruleCompleityA:NNI := 0
+     for rule in relsa repeat
+       ruleCompleityA := ruleCompleityA + #rule
+     ruleCompleityB:NNI := 0
+     for rule in relsb repeat
+       ruleCompleityB := ruleCompleityB + #rule
+     if ruleCompleityA < ruleCompleityB then return true
+     false
+
+   simplify(s : %) :% ==
+     simplify(s,false)
+
+   -- There may not be a simplest form but it is possible to
+   -- do some simplifications as follows:
+   -- 1) remove all zero terms in rules
+   -- 2) if a rule consists of a single generator then remove that generator
+   -- 3) if a rule consists of a pair of generators then make the
+   --    second generator the inverse of the first
+   -- 4) if a generator is adjacent to its inverse then cancel them out.
+   -- 5) remove duplicate rules
+   simplify(s : %,trace:Boolean) :% ==
+     if trace then
+       print("before simplification:="::Symbol << s)
+     res:% := s
+     lastpass:% := s
+     rep:Boolean := true
+     while rep repeat
+       res := TTRemoveEmpty(res,trace)
+       res := TTRemoveZero(res,trace)
+       lastpassInner:% := res
+       repInner:Boolean := true
+       while repInner repeat
+         res := TTRemoveGeneratorIfIdentity(res,trace)
+         repInner := isSimpler?(res,lastpassInner)
+         lastpassInner := res
+       res := TTRenameGenerator(res,trace)
+       lastpassInner := res
+       repInner := true
+       while repInner repeat
+         res := TTRemoveEleTimesInverse(res,trace)
+         repInner := isSimpler?(res,lastpassInner)
+         lastpassInner := res
+       res := TTMinimiseInverses(res,trace)
+       rep := isSimpler?(res,lastpass)
+       lastpass := res
+     res
 
    -- output
    coerce(s : %) : OutputForm ==
