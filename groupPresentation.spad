@@ -93,7 +93,7 @@ produce isomorphic groups.
 \begin{itemize}
 \item Switch A and B
 \item Cyclically permute A, B, ... to B, ..., A.
-\item Replace A with A-1
+\item Replace A with A^(-1)
 \item Replace A with A*B
 \end{itemize}
 

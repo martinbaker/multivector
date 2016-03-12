@@ -332,19 +332,25 @@ OrientedFacet() : Exports == Impl where
      ++ oriented facet is always stored in vertex order
      ++ orientation is calculated by the number of edges that have to be
      ++ flipped to put it in order.
-    orientedFacet: (fac:List(Integer)) -> %
+    orientedFacetUnsigned: (fac:List(Integer)) -> %
      ++ Constructor for oriented face which removes duplicates
      ++ and ignores orientation
+    orientedFacetSigned: (fac:List(Integer)) -> %
+     ++ Constructor for oriented face which removes duplicates
+     ++ If the face is positive then we expect the sequence to
+     ++ be: + - + - ...
     orientedFacet: (mul:Integer,fac:OrientedFacet) -> %
      ++ Copy constructor which can change mul
     orientedFacet: (boundary:List(%)) -> %
      ++ Constructor for oriented face from its boundary.
-     ++ This is like filling-in the boundary, in that sence it
+     ++ This is like filling-in the boundary, in that sense it
      ++ is the inverse of 'delta'.
     order:(orf:%) -> NNI
      ++ number of vertices
     getIndexes:(orf:%) -> List(NNI)
      ++ returns indexes in face
+    getIndexesSigned:(orf:%) -> List(Integer)
+     ++ returns indexes in face with sign to give orientation
     getMult:(orf:%) -> Integer
      ++ returns multipier of face
     setMult! :(orf:%,m:Integer) -> %
@@ -400,17 +406,28 @@ OrientedFacet() : Exports == Impl where
 
    -- constructor for oriented face which removes duplicates
    -- and ignores orientation
-   orientedFacet(fac1:List(Integer)):% ==
+   orientedFacetUnsigned(fac1:List(Integer)):% ==
      lst:List(NNI) := [abs(x)::NNI for x in fac1]
      lst := removeDuplicates(lst)
      [1,sort(lst)]
+
+   -- Constructor for oriented face which removes duplicates.
+   -- If the face is positive then we expect the sequence to
+   -- be: + - + - ...
+   orientedFacetSigned(fac1:List(Integer)):% ==
+     lst:List(NNI) := [abs(x)::NNI for x in fac1]
+     lst := removeDuplicates(lst)
+     sig:Integer := 1
+     if #fac1 < 1 then error "attempt to construct empty facet"
+     if first(fac1)<0 then sig := -1
+     [sig,sort(lst)]
 
    -- Copy constructor which can change mul
    orientedFacet(mul:Integer,fac1:OrientedFacet):% ==
      [mul,getIndexes(fac1)]
 
    -- Constructor for oriented face from its boundary.
-   -- This is like filling-in the boundary, in that sence it
+   -- This is like filling-in the boundary, in that sense it
    -- is the inverse of 'delta'.
    orientedFacet(boundary:List(%)):% ==
      indexLst:List(List(NNI)) := empty()$List(List(NNI))
@@ -451,6 +468,16 @@ OrientedFacet() : Exports == Impl where
    -- returns indexes in face
    getIndexes(orf:%):List(NNI) ==
      orf.fac
+
+   -- returns indexes in face with sign to give orientation
+   getIndexesSigned(orf:%):List(Integer) ==
+     res:List(Integer) := empty()$List(Integer)
+     neg:Boolean := (sign(orf.mul) = -1)
+     for i in orf.fac repeat
+       i2:Integer := if neg then (-i)::Integer else i::Integer
+       res := concat(res,i2)
+       neg := not neg
+     res
 
    -- returns multipier of face
    getMult(orf:%):Integer ==
@@ -768,7 +795,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      maps:List(List(List(Integer))) := dcrep.MAPS
      -- res list contains list which will become the result
      res:List(OrientedFacet) := empty()$List(OrientedFacet)
-     -- delete list contains list for removal at the end
+     -- deleteList contains list for removal at the end
      deleteList:List(OrientedFacet) := empty()$List(OrientedFacet)
      lastMap:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
      for map in maps for grade in 1..(#maps) repeat
@@ -776,7 +803,8 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        if grade=1 then
          -- edges so facets are equal to map
          for facet in map repeat
-           orf := orientedFacet(facet)
+           orf := orientedFacetSigned(facet)
+           --print("simplicialComplex add edge="::Symbol << orf << " from face="::Symbol << facet)
            res:=concat(res,orf)
            lastMap.grade :=concat(lastMap.grade,orf)
        if grade>1 then
@@ -902,11 +930,15 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      inputList:List(List(OrientedFacet)) := reverse(grade(s))
      res:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
      maxGrade:NNI := #inputList
-     if (maxGrade) < 1 then return res
+     if (maxGrade) < 1 then
+       --print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
+       return res
      -- create an empty list for each grade
      for a in 1..(maxGrade) repeat
        res := concat(res,empty()$List(OrientedFacet))
-     if maxGrade < 2 then return res -- do we include verticies?
+--     if maxGrade < 2 then
+--       print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
+--       return res -- do we include verticies?
      newFaces:List(OrientedFacet) := empty()$List(OrientedFacet)
      for gr in inputList for grn in 1..(maxGrade) repeat
        --print("addImpliedFaces grade number grn="::Symbol << grn)
@@ -924,6 +956,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
          if len > 0 then
            newFaces := listUnion(newFaces,allSubsets(face,len))
        --print("addImpliedFaces get next grade res="::Symbol << res)
+     --print("addImpliedFaces result="::Symbol << reverse(res))
      reverse(res)
 
    -- returns line around area assuming simplexes are all wound in same direction
@@ -1394,8 +1427,12 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
-         -- edges - no need to change
-         faceMaps.grn := [(getIndexes(x) pretend List(Integer)) for x in gradeList]
+         -- edges
+         for x in gradeList repeat
+           -- x is an OrientedFacet
+           fm:List(Integer) := getIndexesSigned(x)
+           -- fm is signed list of vericies
+           faceMaps.grn := concat(faceMaps.grn,fm)
        if grn>1 then
          -- triangles and above
          -- we need to build up a map from oldFaceHigh to oldFacesLow
@@ -1440,8 +1477,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
 
    -- returns an individual face map specified by n.
    -- Where 'n' is the dimension required, so n=1 returns
-   -- one dimentional faces (edges), n=2 returns
-   -- two dimentional faces (triamgles), and so on.
+   -- one dimensional faces (edges), n=2 returns
+   -- two dimensional faces (triangles), and so on.
    faceMap(s:%,n:NNI):List(List(Integer)) ==
      maps1:List(List(List(Integer))) := s.MAPS
      if n > #maps1 then return empty()$List(List(Integer))
@@ -1536,13 +1573,19 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        res := linksInTree(res,x)
      res
 
+   -- local function used by fundamentalGroup
+   unsignedEdge(e:List(Integer)):List(Integer) ==
+     res:List(Integer) := empty()$List(Integer)
+     for a in e repeat res:=concat(res,abs(a))
+     res
+
    -- Generates fundamental group from this delta complex.
    fundamentalGroup(s:%):GroupPresentation ==
      fundamentalGroup(s,true,false)
 
    fundamentalGroup(s:%,simplify:Boolean,trace:Boolean):GroupPresentation ==
      -- Generates fundamental group from this delta complex.
-     --print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
+     if trace then print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
      -- fundamental group is about triangles so get face map
      -- for triangles (2 dimensional)
      -- compute edge-path group
@@ -1550,24 +1593,25 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      --print("fundamentalGroup graph="::Symbol << graph )
      -- choose a spanning tree for the 1-skeleton
      span:Tree(Integer) := spanningTreeNode(graph,1::NNI)$UndirectedGraph(NNI)
-     --print("fundamentalGroup span="::Symbol << span )
+     if trace then print("fundamentalGroup span="::Symbol << span )
      edges:List(List(Integer)) := faceMap(s,1::NNI)
      res:List(List(Integer)) := empty()$List(List(Integer))
      res := linksInTree(res,span)
      edgesInTree:List(Boolean) := [false for y in edges]
+     if trace then print("fundamentalGroup edges="::Symbol << edges << " res="::Symbol << res)
      for edge in edges for edgen in 1..(#edges) repeat
-       if member?(edge,res) then edgesInTree.edgen := true
-     --print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
+       if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
+     if trace then print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
      triangles:List(List(Integer)) := faceMap(s,2::NNI)
      rules:List(List(Integer)) := empty()$List(List(Integer))
-     --print("fundamentalGroup triangles="::Symbol << triangles )
+     if trace then print("fundamentalGroup triangles="::Symbol << triangles )
      for t in triangles repeat
        rule:List(Integer) := empty()$List(Integer)
        if not edgesInTree.(abs(t.1)) then rule:= concat(rule,t.1)
        if not edgesInTree.(abs(t.2)) then rule:= concat(rule,t.2)
        if not edgesInTree.(abs(t.3)) then rule:= concat(rule,t.3)
        if not empty?(rule) then rules := concat(rules,rule)
-     --print("fundamentalGroup rules="::Symbol << rules )
+     if trace then print("fundamentalGroup rules="::Symbol << rules )
      -- groups generators: edges in 1-skeleton
      -- groups relations: for every 2-simplex
      --                   e0 e1^-1 e2
@@ -1834,13 +1878,19 @@ SimplicialComplexTests() : with
 
   -- Local function to provide random FiniteSimplicialComplex.
   randomSimplicialComplex(n:NNI):FiniteSimplicialComplex(VertexSetAbstract) ==
-    i:NNI := random(6)+1
-    if i=1 then return sphereSolid(3)$SimplicialComplexFactory
-    if i=2 then return sphereSurface(3)$SimplicialComplexFactory
-    if i=3 then return torusSurface()$SimplicialComplexFactory
-    if i=4 then return band()$SimplicialComplexFactory
-    if i=5 then return moebiusBand()$SimplicialComplexFactory
-    if i=6 then return projectivePlane()$SimplicialComplexFactory
+    i:NNI := random(12)+1
+    if i=1 then return sphereSolid(2)$SimplicialComplexFactory
+    if i=2 then return sphereSurface(2)$SimplicialComplexFactory
+    if i=3 then return sphereSolid(3)$SimplicialComplexFactory
+    if i=4 then return sphereSurface(3)$SimplicialComplexFactory
+    if i=5 then return sphereSolid(4)$SimplicialComplexFactory
+    if i=6 then return sphereSurface(4)$SimplicialComplexFactory
+    if i=7 then return sphereSolid(5)$SimplicialComplexFactory
+    if i=8 then return sphereSurface(5)$SimplicialComplexFactory
+    if i=9 then return torusSurface()$SimplicialComplexFactory
+    if i=10 then return band()$SimplicialComplexFactory
+    if i=11 then return moebiusBand()$SimplicialComplexFactory
+    if i=12 then return projectivePlane()$SimplicialComplexFactory
     kleinBottle()$SimplicialComplexFactory
 
 
