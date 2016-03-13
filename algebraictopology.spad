@@ -20,9 +20,9 @@ Simplicial Complexes are a generalisation of graph theory as implemented here:
 https://github.com/fricas/fricas/blob/master/src/algebra/graph.spad
 I will implement coercions from graphs to simplicial complexes.
 
-Delta Complexes are defined by a chain of 'face maps', These can be represented
-by a sequence of matricies, in this linear algebra form the homology groups can
-be calculated from the Smith normal form:
+Delta Complexes are defined by a chain of 'face maps', These can be
+represented by a sequence of matrices, in this linear algebra form
+the homology groups can be calculated from the Smith normal form:
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/smith.spad}
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/smith2.spad}
 
@@ -33,8 +33,8 @@ This linear algebra form seems somehow related to regular triangular sets
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/zerodim.spad}
 
 Zariski topology:
-The Zariski topology of an algebraic variety is the topology whose closed sets
-are the algebraic subsets of the variety.
+The Zariski topology of an algebraic variety is the topology whose
+closed sets are the algebraic subsets of the variety.
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/zerodim.spad}
 \url{https://github.com/fricas/fricas/blob/master/src/algebra/regset.spad}
 
@@ -60,7 +60,8 @@ If the dimension given for the simplicial complex is 'k' then:
 \item The number of elements in each vertex = k.
 \item The maximum number of vertexes in each simplice = k + 1.
 \end{itemize}
-For example, a triangle has 3 vertexes, so it is maximum size face in 3-1=2 dimensions.
+For example, a triangle has 3 vertexes, so it is
+maximum size face in 3-1=2 dimensions.
 \begin{table}[]
 \label{Dimensions}
 \begin{tabular}{lll}
@@ -74,21 +75,25 @@ n \ n element vertex \ simplice \\
 \end{table}
 
 \section{Abstract Simplicial Complex vs. Simplicial Complex}
-If we apply the restrictions explained so far we have an abstract simplicial complex,
+If we apply the restrictions explained so far we have an
+abstract simplicial complex,
 However, for a simplicial complex there are some additional conditions.
 
-An Abstract Simplicial Complex is purely combinitorial, that is we don't need the
-geometric information.
+An Abstract Simplicial Complex is purely combinitorial,
+that is we don't need the geometric information.
 
-Therefore the AbstractSimplicialComplex domain does not need coordinates for the
-verticies and they can be denoted by symbols.
+Therefore the AbstractSimplicialComplex domain does not
+need coordinates for the vertices and they can be denoted by symbols.
 
 \section{Operations on Simplicial Complexes}
 
-Closure - closure of X contains X and all the faces touching X
-Star -
-Link -
-Join - We will call it a SimplicialJoin since it is not related to joins in lattices.
+\begin{itemize}
+\item Closure - closure of X contains X and all the faces touching X
+\item Star -
+\item Link -
+\item Join - We will call it a SimplicialJoin since it is not related
+  to joins in lattices.
+\end{itemize}
 
 \section{Simplicial Maps}
 Allow edges to be collapsed into vertices.
@@ -96,8 +101,8 @@ Allow edges to be collapsed into vertices.
 \section{Oriented Simplexes Maps}
 
 \section{Vertex Set Code}
-We want an indexed set of points, the simplest way to do the indexing is to use
-'List' instead of 'Set'.
+We want an indexed set of points, the simplest way to do the
+indexing is to use 'List' instead of 'Set'.
 
 The vertices themselves may be either:
 \begin{itemize}
@@ -105,8 +110,8 @@ The vertices themselves may be either:
 \item symbolic vertex names.
 \item numeric indexes.
 \end{itemize}
-So we cave a category that can represent any of these types and then a domain for
-each type.
+So we cave a category that can represent any of these types
+and then a domain for each type.
 )endif
 
 )abbrev category VERTS VertexSet
@@ -132,11 +137,11 @@ VertexSet() : Category == Definition where
 
 )if false
 \section{Vertex Set Coord}
-This is VertexSet for a geometric simplicial complex. In this case each vertex is
-represented by a point in some underlying space.
+This is VertexSet for a geometric simplicial complex. In this case each
+vertex is represented by a point in some underlying space.
 
-We want to represent an indexed set of points, the simplest way to do this is to
-use a list of points.
+We want to represent an indexed set of points, the simplest way to do
+this is to use a list of points.
 )endif
 
 )abbrev domain VERTSC VertexSetCoord
@@ -222,8 +227,8 @@ VertexSetCoord(F:Field) : Exports == Impl where
 )if false
 \section{Vertex Set Abstract}
 
-This is VertexSet for an abstract simplicial complex. In this case each vertex is
-represented by an index without any underlying coordinates.
+This is VertexSet for an abstract simplicial complex. In this case
+each vertex is represented by an index without any underlying coordinates.
 
 )endif
 
@@ -359,11 +364,17 @@ OrientedFacet() : Exports == Impl where
      ++ construct the boundary. This is like hollowing out
      ++ the facet.
     allSubsets:(orf:%) -> List(%)
-     ++ allSubsets
+     ++ allSubsets of a given facet
+     ++ returned in reverse order
+     ++ subsets returned are not oriented
     allSubsets:(orf:%,len:NNI) -> List(%)
      ++ allSubsets of a given length
+     ++ returned in reverse order
+     ++ subsets returned are not oriented
     isSubsetOf? :(sa:%,sb:%) -> Boolean
      ++ returns true if face 'b' is contained in face 'a'.
+     ++ true subset only : returns false if a=b
+     ++ TODO does not work for single vertex
     position:(e:%,lst:List(%)) -> Integer
      ++ return index of e in lst. Index will be negative if e has
      ++ negative multiplier.
@@ -390,6 +401,7 @@ OrientedFacet() : Exports == Impl where
    -- orientation is calculated by the number of edges that have to be
    -- flipped to put it in order.
    orientedFacet(mul1:Integer,fac1:List(NNI)):% ==
+     --print("orientedFacet("::Symbol << mul1 << ","::Symbol << fac1)
      mul2:Integer := mul1
      fac2:List(NNI) := sort(fac1)
      -- diff = number of differences between sorted and unsorted
@@ -398,7 +410,7 @@ OrientedFacet() : Exports == Impl where
        if x~=y then diff:=diff+1
      -- swapping vertexes cannot change only 1
      if diff=1 then error "cant construct orientedFacet"
-     if even?(diff) and diff>2 then mul2:= -mul2
+     if even?(diff) and diff>1 then mul2:= -mul2
      --print("orientedFacet("::Symbol << mul1 << ","::Symbol << fac1 << _
      --  ") mul2="::Symbol << mul2 << " fac2="::Symbol << _
      --  fac2 << " diff="::Symbol << diff)
@@ -439,7 +451,8 @@ OrientedFacet() : Exports == Impl where
      for subFacet in b repeat
        indexLst := concat(indexLst,getIndexes(subFacet))
        multLst := concat(multLst,getMult(subFacet))
-     --print("orientedFacet indexLst="::Symbol << indexLst << " multLst="::Symbol << multLst)
+     --print("orientedFacet indexLst="::Symbol << indexLst <<_
+     --      " multLst="::Symbol << multLst)
      m:Integer := first(multLst)
      indexes:List(NNI) := empty()$List(NNI)
      for i in indexLst repeat
@@ -452,7 +465,8 @@ OrientedFacet() : Exports == Impl where
      expected:List(%) := delta(res)
      for e in expected for r in boundary repeat
        if e ~= r then
-         print("orientedFacet error expected="::Symbol << e << " actual="::Symbol << r)
+         print("orientedFacet error expected="::Symbol << _
+                e << " actual="::Symbol << r)
      res
 
    -- number of vertices
@@ -517,7 +531,9 @@ OrientedFacet() : Exports == Impl where
          res := concat(res,orf)
      res
 
-   -- allSubsets
+   -- allSubsets of given facet
+   -- returned in reverse order
+   -- subsets returned are not oriented
    allSubsets(orf:%):List(%) ==
      --print("allSubsets("::Symbol << orf << ")"::Symbol)
      facet:List(NNI) := orf.fac
@@ -538,6 +554,8 @@ OrientedFacet() : Exports == Impl where
      res
 
    -- allSubsets of a given length
+   -- returned in reverse order
+   -- subsets returned are not oriented
    allSubsets(orf:%,len:NNI):List(%) ==
      --print("allSubsets("::Symbol << orf << ","::Symbol << len << ")"::Symbol)
      res:List(%) := allSubsets(orf)
@@ -551,6 +569,8 @@ OrientedFacet() : Exports == Impl where
 
    -- local function, used by link, which returns true if face 'b' is
    -- contained in face 'a'.
+   -- true subset only : returns false if a=b
+   -- TODO does not work for single vertex
    isSubsetOf?(sa:%,sb:%):Boolean ==
      all:List(%) := allSubsets(sb)
      for vertex in all repeat
@@ -560,7 +580,8 @@ OrientedFacet() : Exports == Impl where
 
    -- used by link. Returns face 'a' minus the verticies in face 'b'.
    subtract(sa:%,sb:%):% ==
-     --print("subtract("::Symbol << sa << ","::Symbol << sb << ")="::Symbol << setDifference(sb,sa)$SIMPLEX)
+     --print("subtract("::Symbol << sa << ","::Symbol << _
+     --       sb << ")="::Symbol << setDifference(sb,sa)$SIMPLEX)
      lst:List(NNI) := setDifference(sb.fac,sa.fac)$List(NNI)
      [1,lst]
 
@@ -589,16 +610,18 @@ OrientedFacet() : Exports == Impl where
      not(vertsa ~= vertsb)
 
    -- less than Local
-   -- calls itself recursivly
+   -- calls itself recursively
    ltLocal(a:List(NNI),b:List(NNI)):Boolean ==
      if a=b then return false
-     if ((#a) < 1) then return true -- if lists are different lengths then shortest first
+     -- if lists are different lengths then shortest first
+     if ((#a) < 1) then return true
      if ((#b) < 1) then return false
      a1:NNI := a.first
      b1:NNI := b.first
      if a1<b1 then return true
      if a1>b1 then return false
-     if ((#a) < 2) then return true -- if lists are different lengths then shortest first
+     -- if lists are different lengths then shortest first
+     if ((#a) < 2) then return true
      if ((#b) < 2) then return false
      ltLocal(a.rest,b.rest)
 
@@ -643,7 +666,7 @@ OrientedFacet() : Exports == Impl where
 )if false
 \section{FiniteSimplicialComplex}
 
-Defines a set of n-dimential facets. 
+Defines a set of n-dimensional facets. 
 
 This representation defines faces, of any dimension, by their
 vertices. This can be an efficient way to define them.

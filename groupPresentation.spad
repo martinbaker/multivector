@@ -74,17 +74,39 @@ and Nielsen.
 
 \begin{table}[]
 \label{Tietze transformations are of 4 kinds}
-\begin{tabular}{ll}
-Kind \ Examples \\
-Add a relation \ < A | A^3 > -> < A | A^3 , A^6 > \\
-Remove a relation \ for example we can reverse the above
+\begin{tabular}{lll}
+ \ Kind \ Examples \\
+T1 \ Add a relation \ < A | A^3 > -> < A | A^3 , A^6 > \\
+T2 \ Remove a relation \ for example we can reverse the above
 < A | A^3 , A^6> -> < A | A^3> \\
-Add a generator \ < A | A^3 > -> <A , B | A^3, B = A^2 > \\
-Remove a generator \ for example we can reverse the above
+T3 \ Add a generator \ < A | A^3 > -> <A , B | A^3, B = A^2 > \\
+T4 \ Remove a generator \ for example we can reverse the above
 <A , B | A^3, B = A^2 > -> < A | A^3 > \\
 \end{tabular}
 \end{table}
+We are interested in simplifying so we are mostly interested
+in T2 and T4.
+\subsection{T2}
 
+T2 allows us to remove a relation but not generators. This
+happens when a rule is redundant, that is it contains no
+additional information than is already contained in the
+other rules.
+
+This happens, for example, where:
+
+One rule is a multiple of another - In this case we can
+remove the highest multiple but not the lowest.
+
+One rule is the inverse of another - In this case we can
+remove any one, but not both of these rules.
+
+We can also simplify rules, for example, where an element
+and its inverse are next to each other they can be
+cancelled out and removed.
+\subsection{T4}
+
+T4 allows us to remove a generator and corresponding rules. 
 \subsection{Nielsen Transformations}
 
 The following transformations on a finitely generated free group
