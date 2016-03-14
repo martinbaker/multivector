@@ -173,7 +173,11 @@ GroupPresentation() : Exports == Impl where
 
   Exports ==> SetCategory() with
     groupPresentation: (v:List(NNI),rels1: List(List(Integer))) -> %
-     ++ construct from generators
+     ++ construct from generators and relations
+    groupPresentation: (v:List(NNI)) -> %
+     ++ construct free group with generators but no relations
+    groupPresentation:() -> %
+     ++ construct trivial group with no generators or relations
     simplify:(s : %) -> %
      ++ There may not be a simplest form but it is possible to
      ++ do some simplifications as follows:
@@ -198,7 +202,7 @@ GroupPresentation() : Exports == Impl where
    -- inverse.
    Rep := Record(gens:PrimitiveArray(NNI),rels: List(List(Integer)))
 
-   -- constructor where the vertex set is supplied
+   -- construct from generators and relations
    groupPresentation(gens1:List(NNI),rels1: List(List(Integer))):% ==
      --print("  groupPresentation construct ("::Symbol << gens1 << ","::Symbol << rels1<< ")"::Symbol)
      g:PrimitiveArray(NNI) := construct(gens1)$PrimitiveArray(NNI)
@@ -212,11 +216,32 @@ GroupPresentation() : Exports == Impl where
      --print("  groupPresentation rep ("::Symbol << g << ","::Symbol << rels2<< ")"::Symbol)
      [g,rels2]
 
-   -- Isomorphism not computable
-   -- so just test exact equality for now
+   -- construct free group with generators but no relations
+   groupPresentation(gens1:List(NNI)):% ==
+     --print("  groupPresentation construct ("::Symbol << gens1 << ","::Symbol << rels1<< ")"::Symbol)
+     g:PrimitiveArray(NNI) := construct(gens1)$PrimitiveArray(NNI)
+     rels2: List(List(Integer)) := empty()$List(List(Integer))
+     [g,rels2]
+
+   -- construct trivial group with no generators or relations
+   groupPresentation():% ==
+     gens1:List(NNI) := empty()$List(NNI)
+     rels1: List(List(Integer)) :=empty()$List(List(Integer))
+     groupPresentation(gens1,rels1)
+
+   -- Isomorphism is the most useful level of 'equality' for
+   -- whole groups but unfortunately this is not computable in
+   -- the general case for presentations.
+   -- Exact equality is not very useful, so instead,
+   -- I have implimented a 'might-be-isomorphic' function
+   -- which returns true if 'a' and 'b' have the same number
+   -- of generators and relations. I am using this to compare
+   -- very simple presentations in the validation code which
+   -- is useful to give some level of confidence that the
+   -- correct presentation was generated.
    _=(a : %, b : %) : Boolean ==
-     if a.gens ~= b.gens then return false
-     a.rels = b.rels
+     if #(a.gens) ~= #(b.gens) then return false
+     #(a.rels) = #(b.rels)
 
    -- display generators as alphabetic digits
    -- used by output form

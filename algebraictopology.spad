@@ -89,7 +89,7 @@ need coordinates for the vertices and they can be denoted by symbols.
 
 \begin{itemize}
 \item Closure - closure of X contains X and all the faces touching X
-\item Star -
+\item Star(A,b) - set of sub-simplices of 'A' which contain face 'b'.
 \item Link -
 \item Join - We will call it a SimplicialJoin since it is not related
   to joins in lattices.
@@ -363,18 +363,17 @@ OrientedFacet() : Exports == Impl where
     delta:(orf:%) -> List(%)
      ++ construct the boundary. This is like hollowing out
      ++ the facet.
-    allSubsets:(orf:%) -> List(%)
+    allSubsets:(orf:%,minDim:NNI) -> List(%)
      ++ allSubsets of a given facet
      ++ returned in reverse order
      ++ subsets returned are not oriented
-    allSubsets:(orf:%,len:NNI) -> List(%)
+    allSubsets:(orf:%,minDim:NNI,maxDim:NNI) -> List(%)
      ++ allSubsets of a given length
      ++ returned in reverse order
      ++ subsets returned are not oriented
     isSubsetOf? :(sa:%,sb:%) -> Boolean
-     ++ returns true if face 'b' is contained in face 'a'.
+     ++ returns true if face 'a' is contained in face 'b'.
      ++ true subset only : returns false if a=b
-     ++ TODO does not work for single vertex
     position:(e:%,lst:List(%)) -> Integer
      ++ return index of e in lst. Index will be negative if e has
      ++ negative multiplier.
@@ -520,59 +519,69 @@ OrientedFacet() : Exports == Impl where
 
    -- local function to add if new
    addIfNew(lst:List(%),orf:%):List(%) ==
-     if member?(orf,lst)$List(%) then return lst
+     --print("addIfNew("::Symbol << lst << ","::Symbol << orf << ")"::Symbol)
+     if not empty?(orf) and member?(orf,lst)$List(%) then return lst
      concat(lst,orf)
 
-   -- local function to add if new
+   -- local function to add list if new
    addIfNew2(lst:List(%),orfs:List(%)):List(%) ==
+     --print("addIfNew2("::Symbol << lst << ","::Symbol << orfs << ")"::Symbol)
+     if empty?(orfs) then return lst
      res:List(%) := copy(lst)
      for orf in orfs repeat
-       if member?(orf,res)$List(%) then
+       if not empty?(orf) and not member?(orf,res)$List(%) then
          res := concat(res,orf)
+     --print("addIfNew2("::Symbol << lst << ","::Symbol << orfs << _
+     --    ") res="::Symbol<< res)
      res
 
    -- allSubsets of given facet
    -- returned in reverse order
    -- subsets returned are not oriented
-   allSubsets(orf:%):List(%) ==
-     --print("allSubsets("::Symbol << orf << ")"::Symbol)
+   allSubsets(orf:%,minDim:NNI):List(%) ==
+     --print("allSubsets in ("::Symbol << orf << ","::Symbol << minDim << ")"::Symbol)
      facet:List(NNI) := orf.fac
      mult:Integer := orf.mul
      res:List(%) := empty()$List(%)
-     if order(orf)<1 then return res
+     if order(orf) <= minDim then
+       --print("allSubsets out 1 orf"::Symbol << orf << " order(orf)="::Symbol << _
+       --      order(orf) << " result="::Symbol << res)
+       return res
      --even:Boolean := false
      for x in facet repeat
-       --print("allSubsets x="::Symbol << x << " in facet="::Symbol << facet)
+       --print("allSubsets 2 x="::Symbol << x << " in facet="::Symbol << facet)
        r:List(NNI) := remove(x,facet)
        --m:Integer := if even then -mult else mult
        --even := not even
        r1:% := orientedFacet(1,r)
        res:=addIfNew(res,r1)
-       if order(r1)>1 then
-         res:=addIfNew2(res,allSubsets(r1))
-     --print("allSubsets of"::Symbol << orf << " result="::Symbol << res)
+       --print("allSubsets 3 order(r1)="::Symbol << order(r1) << " minDim="::Symbol << minDim)
+       if order(r1) > minDim then
+         sub:List(%) := allSubsets(r1,minDim)
+         if not empty?(sub) then res:=addIfNew2(res,sub)
+     --print("allSubsets out orf="::Symbol << orf << " result="::Symbol << res)
      res
 
    -- allSubsets of a given length
    -- returned in reverse order
    -- subsets returned are not oriented
-   allSubsets(orf:%,len:NNI):List(%) ==
-     --print("allSubsets("::Symbol << orf << ","::Symbol << len << ")"::Symbol)
-     res:List(%) := allSubsets(orf)
+   allSubsets(orf:%,minDim:NNI,maxDim:NNI):List(%) ==
+     --print("allSubsets("::Symbol << orf << ","::Symbol << _
+     --       minDim << ","::Symbol << maxDim << ")"::Symbol)
+     res:List(%) := allSubsets(orf,minDim)
      --print("allSubsets res="::Symbol << res)
      res2:List(%) := empty()$List(%)
      for y in res repeat
-       if order(y)=len then
+       if order(y) <= maxDim then
          res2:=concat(res2,y)$List(%)       
      --print("allSubsets result="::Symbol << res2)
      res2
 
-   -- local function, used by link, which returns true if face 'b' is
-   -- contained in face 'a'.
+   -- local function, used by link, which returns true if face 'a' is
+   -- contained in face 'b'.
    -- true subset only : returns false if a=b
-   -- TODO does not work for single vertex
    isSubsetOf?(sa:%,sb:%):Boolean ==
-     all:List(%) := allSubsets(sb)
+     all:List(%) := allSubsets(sb,1)
      for vertex in all repeat
        if vertex=sa then return true
      --print("isSubsetOf?("::Symbol << sa << ","::Symbol << sb << ")=true"::Symbol)
@@ -740,11 +749,11 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ It takes the highest dimension entries and replaces them with their boundaries,
      ++ cancelling out where it can.
     star:(s:%,simplex:OrientedFacet) -> %
-     ++ The 'star' of a simplicial complex and a vertex contains only the simplexes
-     ++ of s which include vertex 'v'.
+     ++ The 'star' of a simplicial complex and a facet contains only the faces
+     ++ of s which include simplex.
     link:(s:%,simplex:OrientedFacet) -> %
      ++ The 'link' of a simplicial complex and a vertex contains the boundary of the
-     ++ simplexes of s which include vertex 'v'.
+     ++ simplexes of s which include simplex.
     cone:(s:%,vertex:NNI) -> %
      ++ The 'cone' of a simplicial complex is formed by adding the vertex to every
      ++ facet.
@@ -977,7 +986,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        for face in res.grn repeat
          len: NNI := (order(face) -1) pretend NNI
          if len > 0 then
-           newFaces := listUnion(newFaces,allSubsets(face,len))
+           newFaces := listUnion(newFaces,allSubsets(face,len,len))
        --print("addImpliedFaces get next grade res="::Symbol << res)
      --print("addImpliedFaces result="::Symbol << reverse(res))
      reverse(res)
@@ -1031,23 +1040,23 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      --[s.VERTSET,facets]
      res
 
-   -- The 'star' of a simplicial complex and a simplex contains only the simplexes
+   -- The 'star' of a simplicial complex and a simplex contains only the faces
    -- of s which include simplex.
    star(s:%,simplex:OrientedFacet):% ==
      res:List(OrientedFacet) := empty()$List(OrientedFacet)
      for simp in s.SIMP repeat
-       if not isSubsetOf?(simp,simplex) then
+       if isSubsetOf?(simplex,simp) then
          res:=concat(res,simp)
      [s.VERTSET,res]
 
    -- The 'link' of a simplicial complex and a simplex contains the boundary of the
    -- simplexes of s which include simplex.
-   -- If s is continous then link is: boundaryLine(star(s,simplex))
    link(s:%,simplex:OrientedFacet):% ==
      res:List(OrientedFacet) := empty()$List(OrientedFacet)
      for facet in s.SIMP repeat
-       if isSubsetOf?(facet,simplex) then
-         x:OrientedFacet := subtract(simplex,facet)
+       if isSubsetOf?(simplex,facet) then
+         --x:OrientedFacet := subtract(simplex,facet)
+         x:List(OrientedFacet) := delta(facet)
          res:=concat(res,x)
      [s.VERTSET,res]
 
@@ -1462,7 +1471,6 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
          newMap:List(List(Integer))  := empty()$List(List(Integer)) 
          for oldFaceHigh in gradeList repeat
            --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
-           --oldFacesLow:List(OrientedFacet) := allSubsets(oldFaceHigh,grn)
            oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
            --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
            newIndexes:List(Integer) := empty()$List(Integer)
@@ -1967,12 +1975,44 @@ SimplicialComplexTests() : with
   -- Tests are:
   -- 1) fundamentalGroup of sphere is empty presentation
   testSimplicialComplex2():Boolean ==
-    sp := sphereSolid(3)$SimplicialComplexFactory
-    pr := fundamentalGroup(sp)
-    em := groupPresentation(empty$List(NNI),empty$List(List(Integer)))
-    if pr ~= em then
-      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << pr << " should be empty:"::Symbol << em)
-      error "fundamentalGroup of sphere should be empty"
+    triv := groupPresentation()$GroupPresentation -- trivial group
+    free1 := groupPresentation([1])$GroupPresentation -- free in 1d
+    rule1 := groupPresentation([1],[[1]])$GroupPresentation
+    g1 := fundamentalGroup(sphereSolid(2)$SimplicialComplexFactory)
+    if g1 ~= triv then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g1 << _
+            " should be empty:"::Symbol << triv)
+      error "fundamentalGroup of sphereSolid(2) should be empty"
+    g2 := fundamentalGroup(sphereSolid(3)$SimplicialComplexFactory)
+    if g2 ~= triv then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g2 << _
+            " should be empty:"::Symbol << triv)
+      error "fundamentalGroup of sphereSolid(3) should be empty"
+    g3 := fundamentalGroup(sphereSurface(2)$SimplicialComplexFactory)
+    if g3 ~= free1 then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g3 << _
+            " should be free in 1 dim:"::Symbol << free1)
+      error "fundamentalGroup of sphereSurface(2) should be free in 1 gen"
+    g4 := fundamentalGroup(sphereSurface(3)$SimplicialComplexFactory)
+    if g4 ~= triv then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g4 << _
+            " should be empty:"::Symbol << triv)
+      error "fundamentalGroup of sphereSurface(3) should be empty"
+    g5 := fundamentalGroup(band()$SimplicialComplexFactory)
+    if g5 ~= free1 then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g5 << _
+            " should be free in 1 dim:"::Symbol << free1)
+      error "fundamentalGroup of band() should be free in 1 gen"
+    g6 := fundamentalGroup(moebiusBand()$SimplicialComplexFactory)
+    if g6 ~= free1 then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g6 << _
+            " should be free in 1 dim:"::Symbol << free1)
+      error "fundamentalGroup of moebiusBand() should be free in 1 gen"
+    g7 := fundamentalGroup(projectivePlane()$SimplicialComplexFactory)
+    if g7 ~= rule1 then
+      print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g7 << _
+            " should have 1 rule:"::Symbol << rule1)
+      error "fundamentalGroup of projectivePlane() should have 1 rule"
     true
 
   -- call all the other tests n times
