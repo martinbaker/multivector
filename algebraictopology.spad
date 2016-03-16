@@ -90,7 +90,8 @@ need coordinates for the vertices and they can be denoted by symbols.
 \begin{itemize}
 \item Closure - closure of X contains X and all the faces touching X
 \item Star(A,b) - set of sub-simplices of 'A' which contain face 'b'.
-\item Link -
+\item Link - The 'link' of a simplicial complex and a vertex contains
+ the boundary of the simplexes of s which include simplex.
 \item Join - We will call it a SimplicialJoin since it is not related
   to joins in lattices.
 \end{itemize}
@@ -382,6 +383,18 @@ OrientedFacet() : Exports == Impl where
      ++ may be different
     subtract:(sa:%,sb:%) -> %
      ++ used by link. Returns face 'a' minus the verticies in face 'b'.
+    product:(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI) -> List(%)
+     ++ Used by product of simplicial complexes, this function returns
+     ++ the product of two simplexes.
+     ++ For more detailed explanation of simplex product code see:
+     ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
+     ++ Also see Hatcher [9].
+     ++ page 277 - The simplical cross product.
+     ++ page 278 - The cohomology cross product.
+     ++ Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
+     ++ of entries in sa and y is number of entries in sb.
+     ++ Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
+     ++ be done by combinatorics code?
     addVertex:(sa:%,v:NNI)-> %
      ++ used by cone. Adds a vertex to face.
     empty? :(sa:%) -> Boolean
@@ -594,6 +607,50 @@ OrientedFacet() : Exports == Impl where
      lst:List(NNI) := setDifference(sb.fac,sa.fac)$List(NNI)
      [1,lst]
 
+   -- local function used by simplexProduct.
+   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
+     if indexA<1 then error "productIndex out of range"
+     if indexB<1 then error "productIndex out of range"
+     ia:Integer := indexA -1
+     ib:Integer := indexB -1
+     res := ia + ib*maxA
+     (res+1)::NNI
+
+   -- local function used by simplexProduct.
+   addToPath(listPath:List(%),indexA:NNI,indexB:NNI,maxA:NNI):List(%) ==
+     i:NNI := productIndex(indexA,indexB,maxA)
+     if empty?(listPath) then return [orientedFacet(1,[i])]
+     if empty?(first listPath) then return [orientedFacet(1,[i])]
+     return [addVertex(path,i) for path in listPath]
+
+   -- Used by product of simplicial complexes, this function returns
+   -- the product of two simplexes.
+   -- For more detailed explanation of simplex product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
+   -- Also see Hatcher [9].
+   -- page 277 - The simplical cross product.
+   -- page 278 - The cohomology cross product.
+   -- Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
+   -- of entries in sa and y is number of entries in sb.
+   -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
+   -- be done by combinatorics code?
+   product(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI):List(%) ==
+     --print("simplexProduct("::Symbol << pathList << ","::Symbol << minA << ","::Symbol << _
+     --         maxA<< ","::Symbol << minB<< ","::Symbol << maxB<< ")"::Symbol)
+     diffA:Integer := maxA-minA
+     diffB:Integer := maxB-minB
+     if diffA = 0 and diffB = 0 then return addToPath(pathList,maxA,maxB,maxA)
+     if diffA = 0 then
+       return product(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     if diffB = 0 then
+       return product(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     --print("["::Symbol::OutputForm)
+     path1:List(%) := product(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
+     --print(","::Symbol::OutputForm)
+     path2:List(%) := product(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
+     --print("]"::Symbol::OutputForm)
+     concat(path1,path2)
+
    -- return index of e in lst. Index will be negative if e has
    -- negative multiplier.
    position(e:%,lst:List(%)):Integer ==
@@ -740,10 +797,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ by the simplecicalComplex conventions (if they don't already exist).
      ++ For example, if the input is a triangle ((1,2,3)) then we would add
      ++ its edges ((1,2),(1,3), and (2,3)).
---    boundaryLine: (s:%) -> %
-     ++ returns line around area assuming simplexes are all wound in same direction
-     ++ For more information about such topological functions see this page:
-     ++ http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/topo/
     delta:(s:%) -> %
      ++ Step down to the next lower dimension, this is like hollowing out the complex.
      ++ It takes the highest dimension entries and replaces them with their boundaries,
@@ -763,6 +816,15 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ Forms disjoint union of two simplicial complexes.
     product:(a:%,b:%) -> %
      ++ Forms product of two simplicial complexes.
+     ++ For more detailed explanation of simplex product code see:
+     ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
+     ++ Also see Hatcher [9].
+     ++ page 277 - The simplical cross product.
+     ++ page 278 - The cohomology cross product.
+     ++ Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
+     ++ of entries in sa and y is number of entries in sb.
+     ++ Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
+     ++ be done by combinatorics code?
     oneSkeleton:(s:%) -> DirectedGraph(NNI)
      ++ generates graph AKA 1-skeleton
     fundamentalGroup:(s:%) -> GroupPresentation
@@ -991,40 +1053,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      --print("addImpliedFaces result="::Symbol << reverse(res))
      reverse(res)
 
-   -- returns line around area assuming simplexes are all wound in same direction
-   -- TODO try to put the segments on the line in order
-   -- For more information about such topological functions see this page:
-   -- http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/topo/
---   boundaryLine(s:%):% ==
---     res:List(OrientedFacet) := empty()$List(OrientedFacet)
---     lines:List(PAIR) := empty()$List(PAIR)
---     for simp in s.SIMP repeat
---       firstEntry:NNI := 0
---       for n in 1..(#simp) repeat
---         if n = 1 then firstEntry := simp.n
---         if n = #simp then
---           line:PAIR := construct(simp.n,firstEntry)$PAIR
---           lines := concat(lines,line)$List(PAIR)
---         if n < #simp then
---           line:PAIR := construct(simp.n,simp.(n+1))$PAIR
---           lines := concat(lines,line)$List(PAIR)
---     cancel:List(PAIR) := empty()$List(PAIR)
---     for x in lines repeat
---       pair:List(NNI) := [x.fst,x.sec]
---       if member?(x,cancel)
---         then
---           cancel := remove(x,cancel)$List(PAIR)
---         else
---           rev:PAIR := construct(x.sec,x.fst)$PAIR
---           -- TODO should really check that segment has not already been
---           -- canceled
---           if member?(rev,lines)
---             then
---               cancel := concat(cancel,rev)$List(PAIR)
---             else
---               res := concat(res,pair)$List(List(NNI))
---     simplicialComplex(s.VERTSET,res)
-
    -- Step down to the next lower dimension, this is like hollowing out the complex.
    -- It takes the highest dimension entries and replaces them with their boundaries,
    -- cancelling out where it can.
@@ -1158,24 +1186,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteSimplicialComplex(VS))
      homology(dc)
 
-   -- local function used by simplexProduct.
-   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
-     if indexA<1 then error "productIndex out of range"
-     if indexB<1 then error "productIndex out of range"
-     ia:Integer := indexA -1
-     ib:Integer := indexB -1
-     res := ia + ib*maxA
-     (res+1)::NNI
-
-   -- local function used by simplexProduct.
-   addToPath(listPath:List(OrientedFacet),indexA:NNI,indexB:NNI,maxA:NNI):List(OrientedFacet) ==
-     i:NNI := productIndex(indexA,indexB,maxA)
-     if empty?(listPath) then return [orientedFacet(1,[i])]
-     if empty?(first listPath) then return [orientedFacet(1,[i])]
-     return [addVertex(path,i)$OrientedFacet for path in listPath]
-
-   -- local function, used by product of simplicial complexes, this local function returns
-   -- the product of two simplexes.
+   -- Forms product of two simplicial complexes.
    -- For more detailed explanation of simplex product code see:
    -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
    -- Also see Hatcher [9].
@@ -1185,24 +1196,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- of entries in sa and y is number of entries in sb.
    -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
    -- be done by combinatorics code?
-   simplexProduct(pathList:List(OrientedFacet),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI):List(OrientedFacet) ==
-     --print("simplexProduct("::Symbol << pathList << ","::Symbol << minA << ","::Symbol << _
-     --         maxA<< ","::Symbol << minB<< ","::Symbol << maxB<< ")"::Symbol)
-     diffA:Integer := maxA-minA
-     diffB:Integer := maxB-minB
-     if diffA = 0 and diffB = 0 then return addToPath(pathList,maxA,maxB,maxA)
-     if diffA = 0 then
-       return simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
-     if diffB = 0 then
-       return simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
-     --print("["::Symbol::OutputForm)
-     path1:List(OrientedFacet) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
-     --print(","::Symbol::OutputForm)
-     path2:List(OrientedFacet) := simplexProduct(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
-     --print("]"::Symbol::OutputForm)
-     concat(path1,path2)
-
-   -- Forms product of two simplicial complexes.
    product(a:%,b:%):% ==
      simpsa:List(OrientedFacet) := a.SIMP
      simpsb:List(OrientedFacet) := b.SIMP
@@ -1212,7 +1205,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      res:List(OrientedFacet) := empty()$List(OrientedFacet)
      for simpa in simpsa repeat
        for simpb in simpsb repeat
-         res := concat(res,simplexProduct(empty()$List(OrientedFacet),1,dima,1,dimb))
+         res := concat(res,product(empty()$List(OrientedFacet),1,dima,1,dimb))
      [vs,res]
 
    -- Local function used by '=' to check if two simplexes are equal.
