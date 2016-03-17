@@ -383,9 +383,8 @@ OrientedFacet() : Exports == Impl where
      ++ may be different
     subtract:(sa:%,sb:%) -> %
      ++ used by link. Returns face 'a' minus the verticies in face 'b'.
-    product:(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI) -> List(%)
-     ++ Used by product of simplicial complexes, this function returns
-     ++ the product of two simplexes.
+    product:(a:%,b:%) -> List(%)
+     ++ This function returns the product of two facets..
      ++ For more detailed explanation of simplex product code see:
      ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
      ++ Also see Hatcher [9].
@@ -395,6 +394,9 @@ OrientedFacet() : Exports == Impl where
      ++ of entries in sa and y is number of entries in sb.
      ++ Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
      ++ be done by combinatorics code?
+    product:(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI) -> List(%)
+     ++ This is an alternative version of product which attempts to get round the
+     ++ problem of relating new indexes
     addVertex:(sa:%,v:NNI)-> %
      ++ used by cone. Adds a vertex to face.
     empty? :(sa:%) -> Boolean
@@ -607,7 +609,7 @@ OrientedFacet() : Exports == Impl where
      lst:List(NNI) := setDifference(sb.fac,sa.fac)$List(NNI)
      [1,lst]
 
-   -- local function used by simplexProduct.
+   -- local function used by product.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
      if indexA<1 then error "productIndex out of range"
      if indexB<1 then error "productIndex out of range"
@@ -616,15 +618,14 @@ OrientedFacet() : Exports == Impl where
      res := ia + ib*maxA
      (res+1)::NNI
 
-   -- local function used by simplexProduct.
+   -- local function used by product.
    addToPath(listPath:List(%),indexA:NNI,indexB:NNI,maxA:NNI):List(%) ==
      i:NNI := productIndex(indexA,indexB,maxA)
      if empty?(listPath) then return [orientedFacet(1,[i])]
      if empty?(first listPath) then return [orientedFacet(1,[i])]
      return [addVertex(path,i) for path in listPath]
 
-   -- Used by product of simplicial complexes, this function returns
-   -- the product of two simplexes.
+   -- this function returns the product of two facets.
    -- For more detailed explanation of simplex product code see:
    -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
    -- Also see Hatcher [9].
@@ -634,6 +635,13 @@ OrientedFacet() : Exports == Impl where
    -- of entries in sa and y is number of entries in sb.
    -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
    -- be done by combinatorics code?
+   product(a:%,b:%):List(%) ==
+     dima:NNI := order(a)
+     dimb:NNI := order(b)
+     product(empty()$List(%),1,dima,1,dimb)   
+   
+   -- This is an alternative version of product which attempts to get round the
+   -- problem of relating new indexes
    product(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI):List(%) ==
      --print("simplexProduct("::Symbol << pathList << ","::Symbol << minA << ","::Symbol << _
      --         maxA<< ","::Symbol << minB<< ","::Symbol << maxB<< ")"::Symbol)
@@ -649,7 +657,16 @@ OrientedFacet() : Exports == Impl where
      --print(","::Symbol::OutputForm)
      path2:List(%) := product(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
      --print("]"::Symbol::OutputForm)
-     concat(path1,path2)
+     res:List(%) :=concat(path1,path2)
+     res := sort(res)
+     -- now we need to altenate the sign
+     neg:Boolean := false
+     res2 := empty()$List(%)
+     for r in res repeat
+       r2:% := if neg then orientedFacet(-1,r pretend OrientedFacet) else r
+       res2  := concat(res2,r2)
+       neg := not neg
+     res2
 
    -- return index of e in lst. Index will be negative if e has
    -- negative multiplier.
