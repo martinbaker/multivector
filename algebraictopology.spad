@@ -383,6 +383,8 @@ OrientedFacet() : Exports == Impl where
      ++ may be different
     subtract:(sa:%,sb:%) -> %
      ++ used by link. Returns face 'a' minus the verticies in face 'b'.
+    reindex:(sa:%) -> %
+     ++ re-index so that indexes start at 1 and are then consecutive.
     product:(a:%,b:%) -> List(%)
      ++ This function returns the product of two facets..
      ++ For more detailed explanation of simplex product code see:
@@ -608,6 +610,27 @@ OrientedFacet() : Exports == Impl where
      --       sb << ")="::Symbol << setDifference(sb,sa)$SIMPLEX)
      lst:List(NNI) := setDifference(sb.fac,sa.fac)$List(NNI)
      [1,lst]
+
+   -- re-index so that indexes start at 1 and are then consecutive.
+   reindex(sa:%):% ==
+     facet:List(NNI) := sa.fac
+     -- first calculate the mapping
+     oldval:List(NNI) := empty()
+     newval:List(NNI) := empty()
+     i:NNI := 1
+     for v in facet repeat
+       oldval := concat(oldval,v)
+       newval := concat(newval,i)
+       i := i+1
+     -- now apply the mapping
+     res:List(NNI) := empty()
+     for v in facet repeat
+       ptr:Integer := position(v,oldval)
+       if ptr <1 then error "error in reindex"
+       --print("reindex old val="::Symbol << qelt(oldval,ptr) <<_
+       --        " new val="::Symbol << qelt(newval,ptr))
+       res := concat(res,qelt(newval,ptr))
+     [1,res]
 
    -- local function used by product.
    productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
@@ -1285,11 +1308,62 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 )if false
 \section{Chain Complex}
 
-Delta Complexes are defined by a sequence of 'face maps', These can be represented
-by a list of matricies.
+We have already discussed simplicial complexes and delta complexes.
 
-In this linear algebra form the homology groups can
-be calculated from the Smith normal form:
+I now want to add chain complexes and co-chain complexes which are an
+algebriation of the complexes implemented above.
+
+The ChainComplex domain would be contain a sequence free abelian groups:
+C0,C1,C2 ... 0
+Which are defined like this:
+
+C0 = Zero dimensional chain
+= free abelian group on vertices.
+Elements of C0 are intergral linear combinations of vertices such as: 2x+7y+5z
+
+C1 = One dimensional chain
+= free abelian group on directed edges (1-cells).
+Elements of C1 are intergral linear combinations of edges such as: 2xy+7xz+5yz
+These don't necessarily need to be a cycle or even connected.
+
+C2 = two dimensional chain
+= free abelian group on directed triangles (2-cells).
+
+It seems to me that, at this stage we are mostly interested in the linear
+algebra structure so it would seem to be an unnecessary overhead to carry
+around the vertex representation, perhaps we can just think of vertexes as
+indexes and implement each chain like this:
+Rep := List(Integer)
+
+However, what gives it its structure is the mappings between these free abelian
+groups. So we also need (non-free) abelian groups as quotients of free abelian
+group. So the chain complex holds a set of free abelian groups (chains) and a
+set of group homomorphisms.
+
+Rep of ChainComplex needs to be represented by:
+C0,C1,C2 ... 0
+delta1:(C1) -> C0 , delta2:(C2) -> C1 ...
+
+where delta is a group homomorphism which respects the group structure:
+
+delta(u+v) = delta u + delta v
+delta(u^-1) =(delta u)^-1
+
+I think these group homomorphisms need to be represented by: Matrix(Integer)
+so that we can solve using IntegerSmithNormalForm?
+
+So the types of function that I would like to implement on ChainComplex are:
+image: (ChainComplex,delta) -> chain
+kernel: (ChainComplex,delta) -> chain
+
+and we need to find cycles by finding null space of augmented matrix, presumably
+using IntegerSmithNormalForm?
+
+Beyond this I would like to implement the (co)homology so it needs a way
+to test if a given abelian group is isomorphic to the integers (Z) or some
+sum of Z or similar structure.
+
+Also for a potential CoChainComplex domain, how would this relate to DeRhamComplex? 
 )endif
 
 )abbrev domain CHAINC ChainComplex
