@@ -288,7 +288,69 @@ VertexSetAbstract() : Exports == Impl where
 
    -- output
    coerce(s : %) : OutputForm == outputForm(deref(s) pretend NNI)$OutputForm
- 
+
+)if false
+\section{Oriented Facets Category}
+
+The aim of this category is to represent different types of facet, such as,
+\begin{itemize}
+\item A single simplex.
+\item A single cubical simplex.
+\item The product of two facets
+\end{itemize}
+These all have similar functions but different representations.
+
+The first of these is OrientedFacet which is the usual triangle and
+higher-order-triangle based facet, it holds the facet as a set of indexes (fac)
+together with an orientation (mul) like this:
+Rep := Record(mul:Integer,fac:List(NNI))
+
+The second is a cubical facet, this is held as a set of line intervals
+which may, or may not, be degenerate.
+
+The third is a product facet, this is intended to hold the product of
+two facets. The product has two indexes to represent each vertex, that is
+the Cartesian product of the vertices of the operands. Usually this double
+vertex will be normalised back to a single set of indexes but this can only
+be done after the whole simplicial complex has been multiplied so the
+corresponding facets can be matched up and sorted.
+
+)endif
+
+)abbrev category FACTCAT FacetCategory
+++ Author: Martin Baker
+++ Date Created: April 2016
+++ Date Last Updated: April 2016
+++ Basic Operations:
+++ Related Constructors:
+++ Keywords: facet simplex
+++ Description:
+++  This is a category to represent different types of facet, such as,
+++  1) A single simplex
+++  2) A single cubical simplex
+++  3) The product of two facets
+++
+++ References:
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+
+FacetCategory() : Category == Definition where
+ NNI==> NonNegativeInteger
+
+ Definition ==> Join(SetCategory(),OrderedSet()) with
+   order:(orf:%) -> NNI
+    ++ number of vertices
+   getIndexes:(orf:%) -> List(NNI)
+    ++ returns indexes in face
+   getIndexesSigned:(orf:%) -> List(Integer)
+    ++ returns indexes in face with sign to give orientation
+
+  add
+
+   -- number of vertices
+   order(f:%):NNI ==
+     facet:List(NNI) := getIndexes(f)
+     #facet
+
 )if false
 \section{Oriented Facet}
 
@@ -332,7 +394,7 @@ OrientedFacet() : Exports == Impl where
   NNI==> NonNegativeInteger
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
-  Exports ==> Join(SetCategory(),OrderedSet()) with
+  Exports ==> FacetCategory with
     orientedFacet: (mul:Integer,fac:List(NNI)) -> %
      ++ Constructor for oriented facet
      ++ oriented facet is always stored in vertex order
@@ -351,12 +413,6 @@ OrientedFacet() : Exports == Impl where
      ++ Constructor for oriented face from its boundary.
      ++ This is like filling-in the boundary, in that sense it
      ++ is the inverse of 'delta'.
-    order:(orf:%) -> NNI
-     ++ number of vertices
-    getIndexes:(orf:%) -> List(NNI)
-     ++ returns indexes in face
-    getIndexesSigned:(orf:%) -> List(Integer)
-     ++ returns indexes in face with sign to give orientation
     getMult:(orf:%) -> Integer
      ++ returns multipier of face
     setMult! :(orf:%,m:Integer) -> %
@@ -484,11 +540,6 @@ OrientedFacet() : Exports == Impl where
          print("orientedFacet error expected="::Symbol << _
                 e << " actual="::Symbol << r)
      res
-
-   -- number of vertices
-   order(orf:%):NNI ==
-     facet:List(NNI) := orf.fac
-     #facet
 
    -- is empty if it contains no verticies or if multipier is zero
    empty?(orf:%):Boolean ==
@@ -2175,7 +2226,11 @@ For more details see:
     than pure mathematics, point-of-view. So homotopy or homology is
     not mentioned but subjects like Voronoi Diagrams, Delauney
     Triangulations, Convex Hulls and many similar topics are covered.
+[11] Computational Homology by Tomasz Kaczynski, Konstantin Mischaikow,
+       and Marian Mrozek, Springer-Verlag (2004).
 
+[12] Kenzo
+\url{https://www-fourier.ujf-grenoble.fr/~sergerar/Kenzo/}
 \end{thebibliography}
 \end{document}
 )endif
