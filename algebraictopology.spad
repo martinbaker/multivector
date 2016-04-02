@@ -295,7 +295,7 @@ VertexSetAbstract() : Exports == Impl where
 The aim of this category is to represent different types of facet, such as,
 \begin{itemize}
 \item A single simplex.
-\item A single cubical simplex.
+\item A single cubical facet.
 \item The product of two facets
 \end{itemize}
 These all have similar functions but different representations.
@@ -314,6 +314,8 @@ the Cartesian product of the vertices of the operands. Usually this double
 vertex will be normalised back to a single set of indexes but this can only
 be done after the whole simplicial complex has been multiplied so the
 corresponding facets can be matched up and sorted.
+So the representation is:
+Rep := Record(mul:Integer,left:List(NNI),right:List(NNI))
 
 )endif
 
@@ -337,19 +339,19 @@ FacetCategory() : Category == Definition where
  NNI==> NonNegativeInteger
 
  Definition ==> Join(SetCategory(),OrderedSet()) with
+   getMult:(orf:%) -> Integer
+    ++ returns multipier of face
    order:(orf:%) -> NNI
     ++ number of vertices
-   getIndexes:(orf:%) -> List(NNI)
-    ++ returns indexes in face
-   getIndexesSigned:(orf:%) -> List(Integer)
-    ++ returns indexes in face with sign to give orientation
+   empty? :(sa:%) -> Boolean
+    ++ is empty if it contains no verticies or if multipier is zero
 
   add
 
-   -- number of vertices
-   order(f:%):NNI ==
-     facet:List(NNI) := getIndexes(f)
-     #facet
+   -- is empty if it contains no verticies or if multipier is zero
+   empty?(orf:%):Boolean ==
+     if order(orf)=0 then return true
+     getMult(orf) =0
 
 )if false
 \section{Oriented Facet}
@@ -382,7 +384,7 @@ To allow facets to be checked for equality indexes are stored in order
 ++ Date Last Updated: March 2016
 ++ Basic Operations:
 ++ Related packages:
-++ Related categories:
+++ Related categories: FacetCategory
 ++ Related Domains:
 ++ Also See:
 ++ AMS Classifications:
@@ -413,8 +415,10 @@ OrientedFacet() : Exports == Impl where
      ++ Constructor for oriented face from its boundary.
      ++ This is like filling-in the boundary, in that sense it
      ++ is the inverse of 'delta'.
-    getMult:(orf:%) -> Integer
-     ++ returns multipier of face
+    getIndexes:(orf:%) -> List(NNI)
+     ++ returns indexes in face
+    getIndexesSigned:(orf:%) -> List(Integer)
+     ++ returns indexes in face with sign to give orientation
     setMult! :(orf:%,m:Integer) -> %
      ++ sets multipier of face
     delta:(orf:%) -> List(%)
@@ -457,8 +461,6 @@ OrientedFacet() : Exports == Impl where
      ++ problem of relating new indexes
     addVertex:(sa:%,v:NNI)-> %
      ++ used by cone. Adds a vertex to face.
-    empty? :(sa:%) -> Boolean
-     ++ is empty if it contains no verticies or if multipier is zero
 
   Impl ==> add
 
@@ -541,10 +543,10 @@ OrientedFacet() : Exports == Impl where
                 e << " actual="::Symbol << r)
      res
 
-   -- is empty if it contains no verticies or if multipier is zero
-   empty?(orf:%):Boolean ==
-     if order(orf)=0 then return true
-     orf.mul =0
+   -- number of vertices
+   order(f:%):NNI ==
+     facet:List(NNI) := getIndexes(f)
+     #facet
 
    -- returns indexes in face
    getIndexes(orf:%):List(NNI) ==
@@ -821,6 +823,128 @@ OrientedFacet() : Exports == Impl where
      hconcat(prefix,body)
 
 )if false
+\section{Cubical Facet}
+As an alternative to simplicial complexes we can base our topology on squares
+rather than triangles.
+
+For more information see:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
+
+However we need to implement this in a different way, if we specified a square
+by its vertices then we could not be sure that the vertices were all in the
+same plane and we could not be sure that the squares aligned.
+
+We therefore have seperate indexes for each dimension and we specify
+these as an interval. 
+)endif
+
+)abbrev domain CFACET CubicalFacet
+++ Author: Martin Baker
+++ Description: 
+++   A single vertex,edge,square,cube...
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
+++ Date Created: April 2016
+++ Date Last Updated: April 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories: FacetCategory
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ Examples:
+++ References:
+
+CubicalFacet() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> FacetCategory with
+    cubicalFacet: (mul:Integer,fac:List(Segment(NNI))) -> %
+     ++ Constructor for cubical facet
+     ++ intervals are always stored in low..high order
+     ++ orientation is calculated by the number of intervals that have to be
+     ++ flipped to put it in order.
+    cubicalFacet: (mul:Integer,fac:CubicalFacet) -> %
+     ++ Copy constructor which can change mul
+    getIntervals: (orf:%) -> List(Segment(NNI))
+     ++ returns intervals in face one for each dimension
+    setMult! :(orf:%,m:Integer) -> %
+     ++ sets multipier of face
+
+  Impl ==> add
+
+   -- A facet is a list of indexes (ordered)
+   -- mul is usually 1 or -1 to reverse direction.
+   -- other multipliers are not usually valid but can be used temporarily
+   -- to count windings.
+   Rep := Record(mul:Integer,fac:List(Segment(NNI)))
+
+   -- Constructor for cubical facet
+   -- intervals are always stored in low..high order
+   -- orientation is calculated by the number of intervals that have to be
+   -- flipped to put it in order.
+   cubicalFacet(mul1:Integer,fac1:List(Segment(NNI))):% ==
+     --print("cubicalFacet("::Symbol << mul1 << ","::Symbol << fac1)
+     mul2:Integer := mul1
+     fac2:List(Segment(NNI)) := empty()$List(Segment(NNI))
+     invert:Boolean := false
+     for x in fac1 repeat
+       interv:Segment(NNI) := x
+       lo := low(x)
+       hi := high(x)
+       if lo > hi then
+         interv := segment(hi,lo)
+         invert := not invert
+       fac2 := concat(fac2,interv)
+     if invert then mul2 := -mul2
+     [mul2,fac2]
+
+   -- Copy constructor which can change mul
+   cubicalFacet(mul1:Integer,fac1:CubicalFacet):% ==
+     fac2:List(Segment(NNI)) := getIntervals(fac1)
+     [mul1,fac2]
+
+   -- returns intervals in face one for each dimension
+   getIntervals(orf:%):List(Segment(NNI)) ==
+     orf.fac
+
+   -- number of vertices
+   order(f:%):NNI ==
+     ints := #getIntervals(f)
+     2^ints
+
+   -- returns multipier of face
+   getMult(orf:%):Integer ==
+     orf.mul
+
+   -- sets multipier of face
+   setMult!(orf:%,m:Integer):% ==
+     orf.mul := m
+     orf
+
+   -- Returns true if x equals y.
+   -- Assumes indexes are in order as this is forced by constructor.
+   _=(a : %, b : %) : Boolean ==
+     if a.mul ~= b.mul then return false
+     a.fac = b.fac
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     prefix:OutputForm := ("")::Symbol::OutputForm
+     m:Integer := s.mul
+     if abs(m) ~= 1 then
+       prefix:=hconcat(m::OutputForm,("*")::Symbol::OutputForm)
+     if m = -1 then prefix:=("-")::Symbol::OutputForm
+     elements:List(OutputForm) := [x::OutputForm for x in s.fac]
+     --print("orientedFacet coerce elements="::Symbol << _
+     --   elements << " m="::Symbol << m)
+     body:OutputForm := paren(elements)
+     hconcat(prefix,body)
+
+)if false
+
 \section{FiniteSimplicialComplex}
 
 Defines a set of n-dimensional facets. 
