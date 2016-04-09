@@ -305,8 +305,9 @@ higher-order-triangle based facet, it holds the facet as a set of indexes (fac)
 together with an orientation (mul) like this:
 Rep := Record(mul:Integer,fac:List(NNI))
 
-The second is a cubical facet, this is held as a set of line intervals
+The second is a cubical facet, this is held as a set of indexed line intervals
 which may, or may not, be degenerate.
+Rep := Record(mul:Integer,fac:List(Segment(NNI)))
 
 The third is a product facet, this is intended to hold the product of
 two facets. The product has two indexes to represent each vertex, that is
@@ -315,7 +316,7 @@ vertex will be normalised back to a single set of indexes but this can only
 be done after the whole simplicial complex has been multiplied so the
 corresponding facets can be matched up and sorted.
 So the representation is:
-Rep := Record(mul:Integer,left:List(NNI),right:List(NNI))
+Rep := Record(mul:Integer,ind:List(Record(left:NNI,right:NNI)))
 
 )endif
 
@@ -417,6 +418,10 @@ OrientedFacet() : Exports == Impl where
      ++ is the inverse of 'delta'.
     getIndexes:(orf:%) -> List(NNI)
      ++ returns indexes in face
+    minIndex:(orf:%) -> NNI
+     ++ returns minimum index
+    maxIndex:(orf:%) -> NNI
+     ++ returns maximum index
     getIndexesSigned:(orf:%) -> List(Integer)
      ++ returns indexes in face with sign to give orientation
     setMult! :(orf:%,m:Integer) -> %
@@ -445,7 +450,13 @@ OrientedFacet() : Exports == Impl where
      ++ used by link. Returns face 'a' minus the verticies in face 'b'.
     reindex:(sa:%) -> %
      ++ re-index so that indexes start at 1 and are then consecutive.
-    product:(a:%,b:%) -> List(%)
+    boolWordPermute:(numZeros:NNI,numOnes:NNI)->List(List(Boolean))
+     ++ boolean word permutation
+     ++ find all permutations of numZeros and numOnes
+     ++ used by product to calculate all paths through lattice
+    boolWordPermute:(wordIn:List(List(Boolean)),numZeros:NNI,numOnes:NNI)->List(List(Boolean))
+     ++ recursive part of boolWordPermute
+    product:(a:%,b:%) -> List(ProductFacet)
      ++ This function returns the product of two facets..
      ++ For more detailed explanation of simplex product code see:
      ++ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
@@ -456,9 +467,6 @@ OrientedFacet() : Exports == Impl where
      ++ of entries in sa and y is number of entries in sb.
      ++ Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
      ++ be done by combinatorics code?
-    product:(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI) -> List(%)
-     ++ This is an alternative version of product which attempts to get round the
-     ++ problem of relating new indexes
     addVertex:(sa:%,v:NNI)-> %
      ++ used by cone. Adds a vertex to face.
 
@@ -551,6 +559,22 @@ OrientedFacet() : Exports == Impl where
    -- returns indexes in face
    getIndexes(orf:%):List(NNI) ==
      orf.fac
+
+   -- returns minimum index
+   minIndex(orf:%):NNI ==
+     m:NNI := 0
+     inds:List(NNI) := getIndexes(orf)
+     for i in inds repeat
+       if m=0 or i<m then m:=i
+     m
+
+   -- returns maximum index
+   maxIndex(orf:%):NNI ==
+     m:NNI := 0
+     inds:List(NNI) := getIndexes(orf)
+     for i in inds repeat
+       if i>m then m:=i
+     m
 
    -- returns indexes in face with sign to give orientation
    getIndexesSigned(orf:%):List(Integer) ==
@@ -685,21 +709,37 @@ OrientedFacet() : Exports == Impl where
        res := concat(res,qelt(newval,ptr))
      [1,res]
 
-   -- local function used by product.
-   productIndex(indexA:NNI,indexB:NNI,maxA:NNI):NNI ==
-     if indexA<1 then error "productIndex out of range"
-     if indexB<1 then error "productIndex out of range"
-     ia:Integer := indexA -1
-     ib:Integer := indexB -1
-     res := ia + ib*maxA
-     (res+1)::NNI
+   -- boolean word permutation
+   -- find all permutations of numZeros and numOnes
+   -- used by product to calculate all paths through lattice
+   boolWordPermute(numZeros:NNI,numOnes:NNI):List(List(Boolean)) ==
+     boolWordPermute(empty()$List(List(Boolean)),numZeros,numOnes)
 
-   -- local function used by product.
-   addToPath(listPath:List(%),indexA:NNI,indexB:NNI,maxA:NNI):List(%) ==
-     i:NNI := productIndex(indexA,indexB,maxA)
-     if empty?(listPath) then return [orientedFacet(1,[i])]
-     if empty?(first listPath) then return [orientedFacet(1,[i])]
-     return [addVertex(path,i) for path in listPath]
+   -- recursive part of boolWordPermute
+   boolWordPermute(wordIn:List(List(Boolean)),numZeros:NNI,numOnes:NNI):List(List(Boolean)) ==
+     --print("boolWordPermute("::Symbol << numZeros << ","::Symbol << numOnes << ")"::Symbol)
+     if numZeros<1 and numOnes<1 then
+       --print("boolWordPermute wordIn="::Symbol << wordIn)
+       return wordIn
+     res:List(List(Boolean)) := empty()$List(List(Boolean))
+     if numZeros>0 then
+       z:NNI := subtractIfCan(numZeros,1)::NNI
+       word0:List(List(Boolean)) := empty()$List(List(Boolean))
+       if empty?(wordIn) then word0 := [[false]]
+       for x in wordIn repeat
+         subWord:List(Boolean) := concat(x,false)
+         word0 := concat(word0,subWord)
+       res := concat(res,boolWordPermute(word0,z,numOnes))
+     if numOnes>0 then
+       z:NNI := subtractIfCan(numOnes,1)::NNI
+       word1:List(List(Boolean)) := empty()$List(List(Boolean))
+       if empty?(wordIn) then word1 := [[true]]
+       for x in wordIn repeat
+         subWord:List(Boolean) := concat(x,true)
+         word1 := concat(word1,subWord)
+       res := concat(res,boolWordPermute(word1,numZeros,z))
+     --print("boolWordPermute res="::Symbol << res)
+     res
 
    -- this function returns the product of two facets.
    -- For more detailed explanation of simplex product code see:
@@ -711,38 +751,28 @@ OrientedFacet() : Exports == Impl where
    -- of entries in sa and y is number of entries in sb.
    -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
    -- be done by combinatorics code?
-   product(a:%,b:%):List(%) ==
-     dima:NNI := order(a)
-     dimb:NNI := order(b)
-     product(empty()$List(%),1,dima,1,dimb)   
-   
-   -- This is an alternative version of product which attempts to get round the
-   -- problem of relating new indexes
-   product(pathList:List(%),minA:NNI,maxA:NNI,minB:NNI,maxB:NNI):List(%) ==
-     --print("simplexProduct("::Symbol << pathList << ","::Symbol << minA << ","::Symbol << _
-     --         maxA<< ","::Symbol << minB<< ","::Symbol << maxB<< ")"::Symbol)
-     diffA:Integer := maxA-minA
-     diffB:Integer := maxB-minB
-     if diffA = 0 and diffB = 0 then return addToPath(pathList,maxA,maxB,maxA)
-     if diffA = 0 then
-       return product(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
-     if diffB = 0 then
-       return product(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
-     --print("["::Symbol::OutputForm)
-     path1:List(%) := product(addToPath(pathList,minA,minB,maxA),minA+1,maxA,minB,maxB)
-     --print(","::Symbol::OutputForm)
-     path2:List(%) := product(addToPath(pathList,minA,minB,maxA),minA,maxA,minB+1,maxB)
-     --print("]"::Symbol::OutputForm)
-     res:List(%) :=concat(path1,path2)
-     res := sort(res)
-     -- now we need to altenate the sign
-     neg:Boolean := false
-     res2 := empty()$List(%)
-     for r in res repeat
-       r2:% := if neg then orientedFacet(-1,r pretend OrientedFacet) else r
-       res2  := concat(res2,r2)
-       neg := not neg
-     res2
+   product(a:%,b:%):List(ProductFacet) ==
+     res := empty()$List(ProductFacet)
+     indA:List(NNI) := getIndexes(a)
+     indB:List(NNI) := getIndexes(b)
+     lenA:NNI := subtractIfCan(#indA,1)::NNI
+     lenB:NNI := subtractIfCan(#indB,1)::NNI
+     perms:List(List(Boolean)) := reverse(boolWordPermute(lenA,lenB))
+     --print("product perms="::Symbol << perms)
+     for perm in perms repeat
+       leftIndex:NNI := 1
+       rightIndex:NNI := 1
+       i:Record(left:NNI,right:NNI) := [indA.leftIndex,indB.rightIndex]
+       i2:List(Record(left:NNI,right:NNI)) := [i]
+       for b in perm repeat
+         if b then rightIndex:=rightIndex+1 else leftIndex:=leftIndex+1
+         if leftIndex > #indA then error "leftIndex too high in product"
+         if rightIndex > #indB then error "rightIndex too high in product"
+         i := [indA.leftIndex,indB.rightIndex]
+         i2 := concat(i2,i)
+       pf := productFacet(1,i2)
+       res := concat(res,pf)
+     res
 
    -- return index of e in lst. Index will be negative if e has
    -- negative multiplier.
@@ -817,6 +847,146 @@ OrientedFacet() : Exports == Impl where
        prefix:=hconcat(m::OutputForm,("*")::Symbol::OutputForm)
      if m = -1 then prefix:=("-")::Symbol::OutputForm
      elements:List(OutputForm) := [x::OutputForm for x in s.fac]
+     --print("orientedFacet coerce elements="::Symbol << _
+     --   elements << " m="::Symbol << m)
+     body:OutputForm := paren(elements)
+     hconcat(prefix,body)
+
+)if false
+\section{Product Facet}
+This is intended to hold the product of two facets.
+
+For more information see:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
+
+The product has two indexes to represent each vertex, that is
+the Cartesian product of the vertices of the operands. Usually this double
+vertex will be normalised back to a single set of indexes but this can only
+be done after the whole simplicial complex has been multiplied so the
+corresponding facets can be matched up and sorted.
+So the representation is:
+Rep := Record(mul:Integer,left:List(NNI),right:List(NNI))
+
+)endif
+
+)abbrev domain PFACET ProductFacet
+++ Author: Martin Baker
+++ Description: 
+++   Holds the product of two simplexes
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/
+++ Date Created: April 2016
+++ Date Last Updated: April 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories: FacetCategory
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ Examples:
+++ References:
+
+ProductFacet() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> FacetCategory with
+    productFacet: (mul:Integer,ind1:List(Record(left:NNI,right:NNI))) -> %
+     ++ Constructor for product facet
+    productFacet: (mul:Integer,other:ProductFacet) -> %
+     ++ Copy constructor to allow change of sign
+    getIndexs: (orf:%) -> List(Record(left:NNI,right:NNI))
+     ++ returns left indexes
+    getMaxLeft:(orf:%) -> NNI
+     ++ returns maximum left index
+    getMaxRight:(orf:%) -> NNI
+     ++ returns maximum right index
+    setMult! :(orf:%,m:Integer) -> %
+     ++ sets multipier of face
+    addVertex2:(sa:%,v:Record(left:NNI,right:NNI))-> %
+     ++ used by cone. Adds a vertex to face.
+
+  Impl ==> add
+
+   -- A facet is a list of indexes (ordered)
+   -- mul is usually 1 or -1 to reverse direction.
+   -- other multipliers are not usually valid but can be used temporarily
+   -- to count windings.
+   Rep := Record(mul:Integer,ind:List(Record(left:NNI,right:NNI)))
+
+   -- Constructor for product facet
+   productFacet(mul1:Integer,ind1:List(Record(left:NNI,right:NNI))):% ==
+     [mul1,ind1]
+
+   -- Copy constructor to allow change of sign
+   productFacet(mul1:Integer,other:ProductFacet):% ==
+     [mul1,getIndexs(other)]
+
+   -- returns left and right indexes
+   getIndexs(orf:%):List(Record(left:NNI,right:NNI)) ==
+     orf.ind
+
+   -- returns maximum left index
+   getMaxLeft(orf:%):NNI ==
+     m:NNI := 0
+     indexes:List(Record(left:NNI,right:NNI)):=getIndexs(orf)
+     for index in indexes repeat
+       if index.left > m then m:= index.left
+     m
+
+   -- returns maximum right index
+   getMaxRight(orf:%):NNI ==
+     m:NNI := 0
+     indexes:List(Record(left:NNI,right:NNI)):=getIndexs(orf)
+     for index in indexes repeat
+       if index.right > m then m:= index.right
+     m
+
+   -- number of vertices
+   order(f:%):NNI ==
+     #getIndexs(f)
+
+   -- returns multipier of face
+   getMult(orf:%):Integer ==
+     orf.mul
+
+   -- sets multipier of face
+   setMult!(orf:%,m:Integer):% ==
+     orf.mul := m
+     orf
+
+   -- used by cone. Adds a vertex to face.
+   addVertex2(sa:%,v:Record(left:NNI,right:NNI)):% ==
+    f:List(Record(left:NNI,right:NNI)) := getIndexs(sa)
+    f := concat(f,v)
+    productFacet(1,f)
+
+   -- Returns true if x equals y.
+   -- Assumes indexes are in order as this is forced by constructor.
+   _=(a : %, b : %) : Boolean ==
+     if a.mul ~= b.mul then return false
+     indas:List(Record(left:NNI,right:NNI)) := getIndexs(a)
+     indbs:List(Record(left:NNI,right:NNI)) := getIndexs(b)
+     if #indas ~= #indbs then return false
+     for inda in indas for indb in indbs repeat
+       if inda.left ~= indb.left then return false
+       if inda.right ~= indb.right then return false
+     true
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     prefix:OutputForm := ("")::Symbol::OutputForm
+     m:Integer := s.mul
+     if abs(m) ~= 1 then
+       prefix:=hconcat(m::OutputForm,("*")::Symbol::OutputForm)
+     if m = -1 then prefix:=("-")::Symbol::OutputForm
+     elements:List(OutputForm) := empty()$List(OutputForm)
+     for x in s.ind repeat
+       l:NNI := x.left
+       r:NNI := x.right
+       element := bracket([l::OutputForm,r::OutputForm])
+       elements := concat(elements,element)
      --print("orientedFacet coerce elements="::Symbol << _
      --   elements << " m="::Symbol << m)
      body:OutputForm := paren(elements)
@@ -1038,8 +1208,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ page 278 - The cohomology cross product.
      ++ Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
      ++ of entries in sa and y is number of entries in sb.
-     ++ Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
-     ++ be done by combinatorics code?
     oneSkeleton:(s:%) -> DirectedGraph(NNI)
      ++ generates graph AKA 1-skeleton
     fundamentalGroup:(s:%) -> GroupPresentation
@@ -1199,10 +1367,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        return reslt  
      fst:Integer := lst.first
      rst:List(Integer) := lst.rest
-     -- in the next line I probably should use 'subtractifcan' rather
-     -- than using pretend but it can never be negative due to the tests
+     -- len can never be negative due to the tests
      -- at the start of this function.
-     for x in orderedPermutation(rst,(len-1) pretend NNI) repeat
+     for x in orderedPermutation(rst,subtractIfCan(len,1)::NNI) repeat
        r1:List(Integer) := concat(fst,x)
        -- r1 holds a permutations starting with fst
        reslt := concat(reslt,r1)
@@ -1409,19 +1576,43 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- page 278 - The cohomology cross product.
    -- Returns list, each entry is a 'lattice path' from (0,0) to (x,y) where x is number
    -- of entries in sa and y is number of entries in sb.
-   -- Calculation of 'lattice paths' is a combinatorics problem so perhaps it should really
-   -- be done by combinatorics code?
    product(a:%,b:%):% ==
      simpsa:List(OrientedFacet) := a.SIMP
      simpsb:List(OrientedFacet) := b.SIMP
-     dima:NNI := maxFaces(a.VERTSET)$VS
-     dimb:NNI := maxFaces(b.VERTSET)$VS
      vs:VS := prod(a.VERTSET,b.VERTSET)
-     res:List(OrientedFacet) := empty()$List(OrientedFacet)
+     res:List(ProductFacet) := empty()$List(ProductFacet)
      for simpa in simpsa repeat
        for simpb in simpsb repeat
-         res := concat(res,product(empty()$List(OrientedFacet),1,dima,1,dimb))
-     [vs,res]
+         res := concat(res,product(simpa,simpb))
+     --print("product("::Symbol << a << ","::Symbol << b << ") raw res="::Symbol << res)
+     -- remove duplicates
+     res2:List(ProductFacet) := empty()$List(ProductFacet)
+     for e in res repeat
+       if not member?(e,res2) then res2:= concat(res2,e)
+     --print("product("::Symbol << a << ","::Symbol << b << ") no dup="::Symbol << res2)
+     -- normalise res2 so facets have one index list each
+     res3:List(OrientedFacet) := empty()$List(OrientedFacet)
+     dima:NNI := 0 -- maximum dimension of left element
+     dimb:NNI := 0 -- maximum dimension of right element
+     for z in res2 repeat
+       az := getMaxLeft(z)
+       if az>dima then dima := az
+       bz := getMaxRight(z)
+       if bz>dimb then dimb := bz
+     for x in res2 repeat
+       inds:List(Record(left:NNI,right:NNI)) := getIndexs(x)
+       inds2:List(NNI) := empty()$List(NNI)
+       mul:Integer := getMult(x)
+       for y in inds repeat
+         l:NNI := subtractIfCan(y.left,1)::NNI
+         r:NNI := subtractIfCan(y.right,1)::NNI
+         newIndex:NNI := l*dimb + r +1 
+         --newIndex:NNI := (r+(dima-l)*dimb)pretend NNI
+         inds2 := concat(inds2,newIndex)$List(NNI)
+         --print("product indexes l="::Symbol << l << " r="::Symbol << r << _
+         --  " dima="::Symbol << dima << " dimb="::Symbol << dimb << " newIndex="::Symbol << newIndex)
+       res3 := concat(res3,orientedFacet(mul,inds2))
+     [vs,res3]
 
    -- Local function used by '=' to check if two simplexes are equal.
    -- To be equal they must contain the same indexes, wound in the same
