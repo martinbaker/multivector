@@ -329,9 +329,9 @@ Rep := Record(mul:Integer,ind:List(Record(left:NNI,right:NNI)))
 ++ Keywords: facet simplex
 ++ Description:
 ++  This is a category to represent different types of facet, such as,
-++  1) A single simplex
-++  2) A single cubical simplex
-++  3) The product of two facets
+++  (1) A single simplex
+++  (2) A single cubical simplex
+++  (3) The product of two facets
 ++
 ++ References:
 ++ http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
@@ -1042,6 +1042,9 @@ CubicalFacet() : Exports == Impl where
      ++ returns intervals in face one for each dimension
     setMult! :(orf:%,m:Integer) -> %
      ++ sets multipier of face
+    delta:(orf:%) -> List(%)
+     ++ construct the boundary. This is like hollowing out
+     ++ the facet.
 
   Impl ==> add
 
@@ -1094,6 +1097,31 @@ CubicalFacet() : Exports == Impl where
      orf.mul := m
      orf
 
+   -- construct the boundary. This is like hollowing out
+   -- the facet.
+   delta(orf:%):List(%) ==
+     facet:List(Segment(NNI)) := orf.fac
+     revFacet:List(Segment(NNI)) := reverse(facet) -- reverse outer list to get in numeric order
+     mult:Integer := orf.mul
+     res:List(%) := empty()$List(%)
+     for seg in revFacet for segn in 1..(#revFacet) repeat
+       lo := low(seg)
+       hi := high(seg)
+       if lo ~= hi then  
+         r:List(Segment(NNI)) := empty()$List(Segment(NNI))
+         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
+           s:Segment(NNI) := if newsegn ~= segn then newseg else segment(lo,lo)
+           r:=concat(r,s)
+         r1:% := cubicalFacet(1,r)
+         res:=concat(res,r1)$List(%)
+         r:List(Segment(NNI)) := empty()$List(Segment(NNI))
+         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
+           s:Segment(NNI) := if newsegn ~= segn then newseg else segment(hi,hi)
+           r:=concat(r,s)
+         r1:% := cubicalFacet(1,r)
+         res:=concat(res,r1)$List(%)
+     res
+
    -- Returns true if x equals y.
    -- Assumes indexes are in order as this is forced by constructor.
    _=(a : %, b : %) : Boolean ==
@@ -1114,7 +1142,6 @@ CubicalFacet() : Exports == Impl where
      hconcat(prefix,body)
 
 )if false
-
 \section{FiniteSimplicialComplex}
 
 Defines a set of n-dimensional facets. 
@@ -1157,11 +1184,10 @@ DeltaComplex and is discussed later.
 
 FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
   NNI==> NonNegativeInteger
-  PAIR ==> Record(fst:NNI,sec:NNI)
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    simplicialComplex: (v:VS,f:List(List(NNI))) -> %
+    simplicialComplex: (v:VS,fs:List(List(NNI))) -> %
      ++ constructor where the simplices are supplied
     simplicialComplex: (v:VS) -> %
      ++ construct empty simplex
@@ -1253,10 +1279,11 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- constructor where the vertex set and simplices are supplied
    simplicialComplex(v:VS,fs:List(List(NNI))):% ==
+     --print("simplicialComplex("::Symbol << fs << ")"::Symbol)
      res:List(OrientedFacet) := empty()$List(OrientedFacet)
      for f in fs repeat
        res := concat(res,orientedFacet(1,f))
-     --print("simplicialComplex("::Symbol << fs << ") res="::Symbol<< res)
+     --print("simplicialComplex f="::Symbol << f << " res="::Symbol<< res)
      [v,res]
 
    -- construct empty simplex
@@ -1412,9 +1439,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      -- create an empty list for each grade
      for a in 1..(maxGrade) repeat
        res := concat(res,empty()$List(OrientedFacet))
---     if maxGrade < 2 then
---       print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
---       return res -- do we include verticies?
      newFaces:List(OrientedFacet) := empty()$List(OrientedFacet)
      for gr in inputList for grn in 1..(maxGrade) repeat
        --print("addImpliedFaces grade number grn="::Symbol << grn)
@@ -1447,7 +1471,6 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
        for y in x repeat
          --facets := concat(facets,y)$List(OrientedFacet)
          res:=addSimplex(res,y)
-     --[s.VERTSET,facets]
      res
 
    -- The 'star' of a simplicial complex and a simplex contains only the faces
@@ -1670,6 +1693,148 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- coerce SimplicialComplex to DeltaComplex
    coerce(s:%) : DeltaComplex(VS) ==
      deltaComplex(s pretend FiniteSimplicialComplex(VS))
+)if false
+\section{FiniteCubicalComplex}
+
+Defines a set of n-dimensional facets. 
+
+This representation defines faces, of any dimension, by their intervals.
+The representation is in two parts:
+\begin{itemize}
+\item The verities themselves which may either geometric (actual
+  coordinates) or abstract.
+\item A set of facets, each one represented by a set intervals.
+\end{itemize}
+
+)endif
+
+)abbrev domain CUBEC FiniteCubicalComplex
+++ Author: Martin Baker
+++ Description: 
+++   A Finite Simplicial Complex
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
+++ Date Created: April 2016
+++ Date Last Updated: April 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: topology, finite, cubical, complex, edge, triangle
+++ Examples:
+++ References:
+
+FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    cubicalComplex: (v:VS,f:List(CubicalFacet)) -> %
+     ++ constructor where the cubes are supplied
+    cubicalComplex: (v:VS) -> %
+     ++ construct empty cubical complex
+    addCube: (a:%,f:CubicalFacet) -> %
+     ++ Add a facet to this simplex
+     ++ If the facet is also in the list then, dont append, instead
+     ++ change the multiplier.
+    delta:(s:%) -> %
+     ++ Step down to the next lower dimension, this is like hollowing out the complex.
+     ++ It takes the highest dimension entries and replaces them with their boundaries,
+     ++ cancelling out where it can.
+
+  Impl ==> add
+
+   -- Representation holds whole Cubical Complex. This consists of
+   -- a vertex set, here represented as a vertex list so that we can
+   -- index it.
+   -- Also a list of hypercubes.
+   Rep := Record(VERTSET:VS,CUBE:List(CubicalFacet))
+
+   -- constructor where the vertex set and cubes are supplied
+   cubicalComplex(v:VS,fs:List(CubicalFacet)):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for f in fs repeat
+       res := concat(res,cubicalFacet(1,f))
+     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
+     [v,res]
+
+   -- construct empty cubical complex
+   cubicalComplex(v:VS):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     [v,res]
+
+   -- Add a facet to this simplex
+   -- If the facet is also in the list then, dont append, instead
+   -- change the multiplier.
+   addCube(a:%,f:CubicalFacet):% ==
+     res:List(CubicalFacet) := a.CUBE
+     -- check for duplicates
+     found:Boolean:=false
+     for orf in res repeat
+       if getIntervals(orf)=getIntervals(f) then
+         m:Integer := getMult(orf)+getMult(f)
+         setMult!(orf,m)
+         found:=true
+     if not found then
+       res := concat(res,f)
+     -- look for empty faces
+     res2:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for orf in res repeat
+       if getMult(orf) ~= 0 then
+         res2 := concat(res2,orf)     
+     [a.VERTSET,res2]
+
+   -- Step down to the next lower dimension, this is like hollowing out the complex.
+   -- It takes the highest dimension entries and replaces them with their boundaries,
+   -- cancelling out where it can.
+   delta(s:%):% ==
+     res:% := cubicalComplex(s.VERTSET)
+     --facets:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for facet in s.CUBE repeat
+       x:List(CubicalFacet) := delta(facet)
+       --print("delta("::Symbol << s.CUBE << ") x="::Symbol << x)
+       for y in x repeat
+         --facets := concat(facets,y)$List(CubicalFacet)
+         res:=addCube(res,y)
+     res
+
+   -- Returns true if x equals y.
+   -- That is, they contain the same simplexes, although not necessarily in the
+   -- same order.
+   -- TODO - Assumes point set is exactly the same, for more generality we should allow
+   -- the points to be defined in a different order.
+   _=(a : %, b : %) : Boolean ==
+     as:List(CubicalFacet) := a.CUBE
+     bs:List(CubicalFacet) := b.CUBE
+     --print("equal:"::Symbol << as << ","::Symbol << bs)
+     len:NNI := #as
+     if len ~= #bs then return false
+     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+     --print("empty flags "::Symbol << flags)
+     for a1 in as repeat
+       x:NNI := 1
+       while (a1 ~= bs.x) or (flags.x) repeat
+         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+         x:=x+1
+         if x > #as then return false
+       flags.x := true
+       --print("flags."::Symbol << x << "=true "::Symbol << flags)
+     --print("final flags "::Symbol << flags)
+     for f in flags repeat
+       if f=false then return false
+     true
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     res:OutputForm := empty()$OutputForm
+     if empty?(s.CUBE) then return bracket("empty"::Symbol::OutputForm)
+     for a in s.CUBE repeat
+       -- a is OrientedFacet
+       res:=vconcat(res,a::OutputForm)
+     --print("FiniteCubicialComplex coerce num="::Symbol << #(s.CUBE))
+     res
 
 )if false
 \section{Chain Complex}
