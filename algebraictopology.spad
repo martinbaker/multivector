@@ -1036,12 +1036,17 @@ CubicalFacet() : Exports == Impl where
      ++ intervals are always stored in low..high order
      ++ orientation is calculated by the number of intervals that have to be
      ++ flipped to put it in order.
+    cubicalFacet: (mul:Integer,fac:List(List(NNI))) -> %
+     ++ Constructor for cubical facet
     cubicalFacet: (mul:Integer,fac:CubicalFacet) -> %
      ++ Copy constructor which can change mul
     getIntervals: (orf:%) -> List(Segment(NNI))
      ++ returns intervals in face one for each dimension
     setMult! :(orf:%,m:Integer) -> %
      ++ sets multipier of face
+    product:(a:%,b:%) -> %
+     ++ This function returns the product of two cubicalfacets.
+     ++ Unlike the simplex case, the product is a sinle facet
     delta:(orf:%) -> List(%)
      ++ construct the boundary. This is like hollowing out
      ++ the facet.
@@ -1074,6 +1079,16 @@ CubicalFacet() : Exports == Impl where
      if invert then mul2 := -mul2
      [mul2,fac2]
 
+   -- Constructor for cubical facet
+   cubicalFacet(mul1:Integer,fac1:List(List(NNI))):% ==
+     --print("cubicalFacet("::Symbol << mul1 << ","::Symbol << fac1)
+     fac2:List(Segment(NNI)) := empty()$List(Segment(NNI))
+     for x in fac1 repeat
+       if #x ~= 2 then error "inner list should contain low,high"
+       interv:Segment(NNI) := segment(first(x),second(x))
+       fac2 := concat(fac2,interv)
+     [mul1,fac2]
+
    -- Copy constructor which can change mul
    cubicalFacet(mul1:Integer,fac1:CubicalFacet):% ==
      fac2:List(Segment(NNI)) := getIntervals(fac1)
@@ -1096,6 +1111,15 @@ CubicalFacet() : Exports == Impl where
    setMult!(orf:%,m:Integer):% ==
      orf.mul := m
      orf
+
+   -- This function returns the product of two cubicalfacets.
+   -- Unlike the simplex case, the product is a sinle facet
+   -- For more detailed explanation of cubical product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
+   product(a:%,b:%):% ==
+     aint:List(Segment(NNI)) := getIntervals(a)
+     bint:List(Segment(NNI)) := getIntervals(b)
+     cubicalFacet(1,concat(aint,bint))
 
    -- construct the boundary. This is like hollowing out
    -- the facet.
@@ -1711,7 +1735,7 @@ The representation is in two parts:
 )abbrev domain CUBEC FiniteCubicalComplex
 ++ Author: Martin Baker
 ++ Description: 
-++   A Finite Simplicial Complex
+++   A Finite Cubical Complex
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
 ++ Date Created: April 2016
@@ -1733,12 +1757,18 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
   Exports ==> SetCategory() with
     cubicalComplex: (v:VS,f:List(CubicalFacet)) -> %
      ++ constructor where the cubes are supplied
+    cubicalComplex: (v:VS,f:List(List(Segment(NNI)))) -> %
+     ++ constructor where the cubes are supplied
+    cubicalComplex: (v:VS,f:List(List(List(NNI)))) -> %
+     ++ constructor where the cubes are supplied
     cubicalComplex: (v:VS) -> %
      ++ construct empty cubical complex
     addCube: (a:%,f:CubicalFacet) -> %
      ++ Add a facet to this simplex
      ++ If the facet is also in the list then, dont append, instead
      ++ change the multiplier.
+    product:(a:%,b:%) -> %
+     ++ Forms product of two cubical complexes.
     delta:(s:%) -> %
      ++ Step down to the next lower dimension, this is like hollowing out the complex.
      ++ It takes the highest dimension entries and replaces them with their boundaries,
@@ -1759,6 +1789,22 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
        res := concat(res,cubicalFacet(1,f))
      --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
      [v,res]
+
+   -- constructor where the vertex set and cubes are supplied
+   cubicalComplex(v:VS,fs:List(List(Segment(NNI)))):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for f in fs repeat
+       res := concat(res,cubicalFacet(1,f))
+     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
+     cubicalComplex(v,res)
+
+   -- constructor where the vertex set and cubes are supplied
+   cubicalComplex(v:VS,fs:List(List(List(NNI)))):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for f in fs repeat
+       res := concat(res,cubicalFacet(1,f))
+     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
+     cubicalComplex(v,res)
 
    -- construct empty cubical complex
    cubicalComplex(v:VS):% ==
@@ -1785,6 +1831,20 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
        if getMult(orf) ~= 0 then
          res2 := concat(res2,orf)     
      [a.VERTSET,res2]
+
+   -- Forms product of two cubucal complexes.
+   -- For more detailed explanation of simplex product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
+   product(a:%,b:%):% ==
+     cubesa:List(CubicalFacet) := a.CUBE
+     cubesb:List(CubicalFacet) := b.CUBE
+     vs:VS := prod(a.VERTSET,b.VERTSET)
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for cubea in cubesa repeat
+       for cubeb in cubesb repeat
+         p:CubicalFacet := product(cubea,cubeb)
+         res := concat(res,p)
+     [vs,res]
 
    -- Step down to the next lower dimension, this is like hollowing out the complex.
    -- It takes the highest dimension entries and replaces them with their boundaries,
@@ -2162,25 +2222,6 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      validate(cc)
      homology(cc)
 
-   -- local function used in oneSkeleton
---   concatIfNew(a:List(Record(value : NNI, posX : NNI, posY : NNI)),b:NNI):_
---         List(Record(value : NNI, posX : NNI, posY : NNI)) ==
---     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
---     if member?([b,0::NNI,0::NNI],a)$List(OBJT) then return a
---     concat(a,[b,0::NNI,0::NNI])$List(OBJT)
-
-   -- local function used in oneSkeleton
---   concatIfNewArrow(a:List(Record(name : String, arrType : NNI, fromOb : NNI, _
---           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)),_
---           p:NNI,m:NNI):_
---           List(Record(name : String, arrType : NNI, fromOb : NNI, _
---           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)) ==
---     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
---           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
---     if member?(["x",0::NNI,p,m,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
---     if member?(["x",0::NNI,m,p,0::Integer,0::Integer,[]],a)$List(ARROW) then return a
---     concat(a,["x",0::NNI,p,m,0::Integer,0::Integer,[]])$List(ARROW)
-
    -- Generates graph AKA 1-skeleton.
    -- Used to generate fundamental group
    oneSkeleton(s:%):UndirectedGraph(NNI) ==
@@ -2454,6 +2495,133 @@ SimplicialComplexFactory() : with
     r
 
 )if false
+\section{Cubical Complex Factory}
+
+)endif
+
+)abbrev package CUBECF CubicalComplexFactory
+++ Author: Martin Baker
+++ Date Created: Apr 2016
+++ Date Last Updated: APR 2016
+++ Description:
+++  Provides functions to construct various Cubical complexes.
+PI ==> PositiveInteger
+NNI==> NonNegativeInteger
+x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+CubicalComplexFactory() : with
+  sphereSolid:(dim:NNI) -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ Generate a cubical complex equivalent to a solid hyper-sphere. That
+    ++ is, a solid volume with no holes in it, so we use a single n-dimensional
+    ++ cube.
+  sphereSurface:(dim:NNI) -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ Generate a cubical complex equivalent to the surface of a hyper-sphere.
+    ++ That is, the surface of a volume with no holes in it, so we use a minimal
+    ++ triangulation of the faces of a single simplex.
+  torusSurface:() -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ generate a cubical complex of the surface of an 3-dimensional torus.
+  band:() -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ Generate a cubical complex of the surface of a cylinder without ends
+  moebiusBand:() -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ Generate a cubical complex of the surface of a Moebius band.
+    ++ A one sided surface with a single external boundary line.
+  projectivePlane:() -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ Generate a cubical complex of the surface of a projective plane.
+    ++ A one sided surface which cannot be embedded in 3D space without
+    ++ intersecting itself. There are no external boundaries, every edge
+    ++ connects two faces.
+    ++ (A punctured projective plane is equivalent to a Moebius band)
+  kleinBottle:() -> FiniteCubicalComplex(VertexSetAbstract)
+    ++ generate a cubical complex of the surface of a Klein bottle.
+
+ == add
+
+  -- generate a cubical complex equivalent to a solid hyper-sphere. That
+  -- is, a solid volume with no holes in it, so we use a single n-dimensional
+  -- cube.
+  sphereSolid(dim:NNI):FiniteCubicalComplex(VertexSetAbstract) ==
+    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
+    v1:List(List(List(NNI))) := [[[1::NNI,2::NNI] for n in 1..dim]]
+    vs1:VertexSetAbstract := vertexSeta(dim)
+    r:=cubicalComplex(vs1,v1)$ASIMP
+    --print("sphereSolid="::Symbol << r)
+    r
+
+  -- generate a cubical complex equivalent to the surface of a hyper-sphere.
+  -- That is, the surface of a volume with no holes in it, so we use the
+  -- faces of a single cube.
+  sphereSurface(dim:NNI):FiniteCubicalComplex(VertexSetAbstract) ==
+    s:=sphereSolid(dim)
+    r:=delta(s)
+    --print("sphereSurface="::Symbol << r)
+    r
+
+  -- generate a cubical complex of the surface of an 3-dimensional torus.
+  torusSurface():FiniteCubicalComplex(VertexSetAbstract) ==
+    a:=sphereSurface(2)
+    b:=sphereSurface(2)
+    product(a,b)
+
+  -- generate a cubical complex of the surface of a cylinder without ends
+  band() : FiniteCubicalComplex(VertexSetAbstract) ==
+    a:=sphereSurface(2)
+    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
+    v1:List(List(List(NNI))) := [[[1,2]]]
+    vs1:VertexSetAbstract := vertexSeta(2::NNI)
+    b := cubicalComplex(vs1,[v1])$ASIMP
+    product(a,b)
+
+  -- generate a cubical complex of the surface of a Moebius band.
+--  moebiusBand() : FiniteCubicalComplex(VertexSetAbstract) ==
+--    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
+--    v1:List(List(NNI)) := [[1,2,3],[2,3,4],[3,4,5],[1,4,5],[1,2,5]]
+--    vs1:VertexSetAbstract := vertexSeta(5::NNI)
+--    r := cubicalComplex(vs1,v1)$ASIMP
+    --print("moebiusBand="::Symbol << r)
+--    r
+
+  -- generate a cubical complex of the surface of a projective plane.
+  -- (A punctured projective plane is equivalent to a Moebius band)
+  -- see [13] for details
+  projectivePlane():FiniteCubicalComplex(VertexSetAbstract) ==
+    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
+    v1:List(List(List(NNI))) := [[[1,2], [1,1], [1,1], [1,2], [1,1]],_
+            [[1,2], [1,1], [1,1], [1,1], [1,2]],_
+            [[1,1], [1,2], [1,2], [1,1], [1,1]],_
+            [[1,1], [1,2], [1,1], [1,2], [1,1]],_
+            [[1,1], [1,1], [1,2], [1,1], [1,2]],_
+            [[1,2], [1,2], [2,2], [1,1], [1,1]],_
+            [[1,2], [2,2], [1,2], [1,1], [1,1]],_
+            [[2,2], [1,2], [1,2], [1,1], [1,1]],_
+            [[1,2], [1,2], [1,1], [1,1], [2,2]],_
+            [[1,2], [2,2], [1,1], [1,1], [1,2]],_
+            [[2,2], [1,2], [1,1], [1,1], [1,2]],_
+            [[1,2], [1,1], [1,2], [2,2], [1,1]],_
+            [[1,2], [1,1], [2,2], [1,2], [1,1]],_
+            [[2,2], [1,1], [1,2], [1,2], [1,1]],_
+            [[1,1], [1,2], [1,1], [1,2], [2,2]],_
+            [[1,1], [1,2], [1,1], [2,2], [1,2]],_
+            [[1,1], [2,2], [1,1], [1,2], [1,2]],_
+            [[1,1], [1,1], [1,2], [1,2], [2,2]],_
+            [[1,1], [1,1], [1,2], [2,2], [1,2]],_
+            [[1,1], [1,1], [2,2], [1,2], [1,2]]]
+    vs1:VertexSetAbstract := vertexSeta(6::NNI)
+    r := cubicalComplex(vs1,[v1])$ASIMP
+    --print("projectivePlane="::Symbol << r)
+    r
+
+  -- generate a cubical complex of the surface of a Klein bottle.
+--  kleinBottle():FiniteCubicalComplex(VertexSetAbstract) ==
+--    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
+--    v1:List(List(NNI)) := [[3,4,8],[2,3,4],[2,4,6],[2,6,8],[2,5,8],[3,5,7],_
+--                           [2,3,7],[2,7,1],[2,5,1],[3,5,1],[4,5,8],[4,5,7],_
+--                           [4,6,7],[6,7,1],[3,6,1],[3,6,8]]
+--    vs1:VertexSetAbstract := vertexSeta(8::NNI)
+--    r := simplicialComplex(vs1,v1)$ASIMP
+--    --print("kleinBottle="::Symbol << r)
+--    r
+
+)if false
 \section{Testing and Validating this Code}
 
 SimplicialComplexTests contains tests SimplicialComplex and the
@@ -2711,6 +2879,8 @@ For more details see:
 
 [12] Kenzo
 \url{https://www-fourier.ujf-grenoble.fr/~sergerar/Kenzo/}
+[13] Construction Techniques for Cubical Complexes
+\url{http://www.emis.de/journals/EM/expmath/volumes/13/13.4/Schwartz.pdf}
 \end{thebibliography}
 \end{document}
 )endif
