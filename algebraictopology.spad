@@ -307,7 +307,7 @@ Rep := Record(mul:Integer,fac:List(NNI))
 
 The second is a cubical facet, this is held as a set of indexed line intervals
 which may, or may not, be degenerate.
-Rep := Record(mul:Integer,fac:List(Segment(NNI)))
+Rep := Record(mul:Integer,fac:List(Segment(Integer)))
 
 The third is a product facet, this is intended to hold the product of
 two facets. The product has two indexes to represent each vertex, that is
@@ -1031,16 +1031,16 @@ CubicalFacet() : Exports == Impl where
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> FacetCategory with
-    cubicalFacet: (mul:Integer,fac:List(Segment(NNI))) -> %
+    cubicalFacet: (mul:Integer,fac:List(Segment(Integer))) -> %
      ++ Constructor for cubical facet
      ++ intervals are always stored in low..high order
      ++ orientation is calculated by the number of intervals that have to be
      ++ flipped to put it in order.
-    cubicalFacet: (mul:Integer,fac:List(List(NNI))) -> %
+    cubicalFacet: (mul:Integer,fac:List(List(Integer))) -> %
      ++ Constructor for cubical facet
     cubicalFacet: (mul:Integer,fac:CubicalFacet) -> %
      ++ Copy constructor which can change mul
-    getIntervals: (orf:%) -> List(Segment(NNI))
+    getIntervals: (orf:%) -> List(Segment(Integer))
      ++ returns intervals in face one for each dimension
     setMult! :(orf:%,m:Integer) -> %
      ++ sets multipier of face
@@ -1057,19 +1057,19 @@ CubicalFacet() : Exports == Impl where
    -- mul is usually 1 or -1 to reverse direction.
    -- other multipliers are not usually valid but can be used temporarily
    -- to count windings.
-   Rep := Record(mul:Integer,fac:List(Segment(NNI)))
+   Rep := Record(mul:Integer,fac:List(Segment(Integer)))
 
    -- Constructor for cubical facet
    -- intervals are always stored in low..high order
    -- orientation is calculated by the number of intervals that have to be
    -- flipped to put it in order.
-   cubicalFacet(mul1:Integer,fac1:List(Segment(NNI))):% ==
+   cubicalFacet(mul1:Integer,fac1:List(Segment(Integer))):% ==
      --print("cubicalFacet("::Symbol << mul1 << ","::Symbol << fac1)
      mul2:Integer := mul1
-     fac2:List(Segment(NNI)) := empty()$List(Segment(NNI))
+     fac2:List(Segment(Integer)) := empty()$List(Segment(Integer))
      invert:Boolean := false
      for x in fac1 repeat
-       interv:Segment(NNI) := x
+       interv:Segment(Integer) := x
        lo := low(x)
        hi := high(x)
        if lo > hi then
@@ -1080,22 +1080,22 @@ CubicalFacet() : Exports == Impl where
      [mul2,fac2]
 
    -- Constructor for cubical facet
-   cubicalFacet(mul1:Integer,fac1:List(List(NNI))):% ==
+   cubicalFacet(mul1:Integer,fac1:List(List(Integer))):% ==
      --print("cubicalFacet("::Symbol << mul1 << ","::Symbol << fac1)
-     fac2:List(Segment(NNI)) := empty()$List(Segment(NNI))
+     fac2:List(Segment(Integer)) := empty()$List(Segment(Integer))
      for x in fac1 repeat
        if #x ~= 2 then error "inner list should contain low,high"
-       interv:Segment(NNI) := segment(first(x),second(x))
+       interv:Segment(Integer) := segment(first(x),second(x))
        fac2 := concat(fac2,interv)
      [mul1,fac2]
 
    -- Copy constructor which can change mul
    cubicalFacet(mul1:Integer,fac1:CubicalFacet):% ==
-     fac2:List(Segment(NNI)) := getIntervals(fac1)
+     fac2:List(Segment(Integer)) := getIntervals(fac1)
      [mul1,fac2]
 
    -- returns intervals in face one for each dimension
-   getIntervals(orf:%):List(Segment(NNI)) ==
+   getIntervals(orf:%):List(Segment(Integer)) ==
      orf.fac
 
    -- number of vertices
@@ -1117,30 +1117,30 @@ CubicalFacet() : Exports == Impl where
    -- For more detailed explanation of cubical product code see:
    -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
    product(a:%,b:%):% ==
-     aint:List(Segment(NNI)) := getIntervals(a)
-     bint:List(Segment(NNI)) := getIntervals(b)
+     aint:List(Segment(Integer)) := getIntervals(a)
+     bint:List(Segment(Integer)) := getIntervals(b)
      cubicalFacet(1,concat(aint,bint))
 
    -- construct the boundary. This is like hollowing out
    -- the facet.
    delta(orf:%):List(%) ==
-     facet:List(Segment(NNI)) := orf.fac
-     revFacet:List(Segment(NNI)) := reverse(facet) -- reverse outer list to get in numeric order
+     facet:List(Segment(Integer)) := orf.fac
+     revFacet:List(Segment(Integer)) := reverse(facet) -- reverse outer list to get in numeric order
      mult:Integer := orf.mul
      res:List(%) := empty()$List(%)
      for seg in revFacet for segn in 1..(#revFacet) repeat
        lo := low(seg)
        hi := high(seg)
        if lo ~= hi then  
-         r:List(Segment(NNI)) := empty()$List(Segment(NNI))
+         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
          for newseg in revFacet for newsegn in 1..(#revFacet) repeat
-           s:Segment(NNI) := if newsegn ~= segn then newseg else segment(lo,lo)
+           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(lo,lo)
            r:=concat(r,s)
          r1:% := cubicalFacet(1,r)
          res:=concat(res,r1)$List(%)
-         r:List(Segment(NNI)) := empty()$List(Segment(NNI))
+         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
          for newseg in revFacet for newsegn in 1..(#revFacet) repeat
-           s:Segment(NNI) := if newsegn ~= segn then newseg else segment(hi,hi)
+           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(hi,hi)
            r:=concat(r,s)
          r1:% := cubicalFacet(1,r)
          res:=concat(res,r1)$List(%)
@@ -1757,9 +1757,9 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
   Exports ==> SetCategory() with
     cubicalComplex: (v:VS,f:List(CubicalFacet)) -> %
      ++ constructor where the cubes are supplied
-    cubicalComplex: (v:VS,f:List(List(Segment(NNI)))) -> %
+    cubicalComplex: (v:VS,f:List(List(Segment(Integer)))) -> %
      ++ constructor where the cubes are supplied
-    cubicalComplex: (v:VS,f:List(List(List(NNI)))) -> %
+    cubicalComplex: (v:VS,f:List(List(List(Integer)))) -> %
      ++ constructor where the cubes are supplied
     cubicalComplex: (v:VS) -> %
      ++ construct empty cubical complex
@@ -1791,7 +1791,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      [v,res]
 
    -- constructor where the vertex set and cubes are supplied
-   cubicalComplex(v:VS,fs:List(List(Segment(NNI)))):% ==
+   cubicalComplex(v:VS,fs:List(List(Segment(Integer)))):% ==
      res:List(CubicalFacet) := empty()$List(CubicalFacet)
      for f in fs repeat
        res := concat(res,cubicalFacet(1,f))
@@ -1799,7 +1799,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      cubicalComplex(v,res)
 
    -- constructor where the vertex set and cubes are supplied
-   cubicalComplex(v:VS,fs:List(List(List(NNI)))):% ==
+   cubicalComplex(v:VS,fs:List(List(List(Integer)))):% ==
      res:List(CubicalFacet) := empty()$List(CubicalFacet)
      for f in fs repeat
        res := concat(res,cubicalFacet(1,f))
@@ -2496,7 +2496,9 @@ SimplicialComplexFactory() : with
 
 )if false
 \section{Cubical Complex Factory}
-
+Provides functions to construct various Cubical complexes.
+For more information see:
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/factory/}
 )endif
 
 )abbrev package CUBECF CubicalComplexFactory
@@ -2505,6 +2507,8 @@ SimplicialComplexFactory() : with
 ++ Date Last Updated: APR 2016
 ++ Description:
 ++  Provides functions to construct various Cubical complexes.
+++  For more information see:
+++  http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/factory/
 PI ==> PositiveInteger
 NNI==> NonNegativeInteger
 x<<y ==> hconcat(x::OutputForm,y::OutputForm)
@@ -2541,7 +2545,7 @@ CubicalComplexFactory() : with
   -- cube.
   sphereSolid(dim:NNI):FiniteCubicalComplex(VertexSetAbstract) ==
     ASIMP := FiniteCubicalComplex(VertexSetAbstract)
-    v1:List(List(List(NNI))) := [[[1::NNI,2::NNI] for n in 1..dim]]
+    v1:List(List(List(Integer))) := [[[1,2] for n in 1..dim]]
     vs1:VertexSetAbstract := vertexSeta(dim)
     r:=cubicalComplex(vs1,v1)$ASIMP
     --print("sphereSolid="::Symbol << r)
@@ -2566,7 +2570,7 @@ CubicalComplexFactory() : with
   band() : FiniteCubicalComplex(VertexSetAbstract) ==
     a:=sphereSurface(2)
     ASIMP := FiniteCubicalComplex(VertexSetAbstract)
-    v1:List(List(List(NNI))) := [[[1,2]]]
+    v1:List(List(List(Integer))) := [[[1,2]]]
     vs1:VertexSetAbstract := vertexSeta(2::NNI)
     b := cubicalComplex(vs1,[v1])$ASIMP
     product(a,b)
@@ -2585,7 +2589,7 @@ CubicalComplexFactory() : with
   -- see [13] for details
   projectivePlane():FiniteCubicalComplex(VertexSetAbstract) ==
     ASIMP := FiniteCubicalComplex(VertexSetAbstract)
-    v1:List(List(List(NNI))) := [[[1,2], [1,1], [1,1], [1,2], [1,1]],_
+    v1:List(List(List(Integer))) := [[[1,2], [1,1], [1,1], [1,2], [1,1]],_
             [[1,2], [1,1], [1,1], [1,1], [1,2]],_
             [[1,1], [1,2], [1,2], [1,1], [1,1]],_
             [[1,1], [1,2], [1,1], [1,2], [1,1]],_
@@ -2606,7 +2610,7 @@ CubicalComplexFactory() : with
             [[1,1], [1,1], [1,2], [2,2], [1,2]],_
             [[1,1], [1,1], [2,2], [1,2], [1,2]]]
     vs1:VertexSetAbstract := vertexSeta(6::NNI)
-    r := cubicalComplex(vs1,[v1])$ASIMP
+    r := cubicalComplex(vs1,v1)$ASIMP
     --print("projectivePlane="::Symbol << r)
     r
 
