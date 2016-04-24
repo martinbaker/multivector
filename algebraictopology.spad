@@ -595,8 +595,7 @@ OrientedFacet() : Exports == Impl where
      orf.mul := m
      orf
 
-   -- construct the boundary. This is like hollowing out
-   -- the facet.
+   -- construct the boundary. This is like hollowing out the facet.
    delta(orf:%):List(%) ==
      facet:List(NNI) := orf.fac
      revFacet:List(NNI) := reverse(facet) -- reverse outer list to get in numeric order
@@ -1042,7 +1041,7 @@ CubicalFacet() : Exports == Impl where
      ++ Copy constructor which can change mul
     getIntervals: (orf:%) -> List(Segment(Integer))
      ++ returns intervals in face one for each dimension
-    setMult! :(orf:%,m:Integer) -> %
+    setMult :(orf:%,m:Integer) -> %
      ++ sets multipier of face
     product:(a:%,b:%) -> %
      ++ This function returns the product of two cubicalfacets.
@@ -1108,9 +1107,9 @@ CubicalFacet() : Exports == Impl where
      orf.mul
 
    -- sets multipier of face
-   setMult!(orf:%,m:Integer):% ==
-     orf.mul := m
-     orf
+   setMult(orf:%,m:Integer):% ==
+     fac2:List(Segment(Integer)) := getIntervals(orf)
+     cubicalFacet(m,fac2)
 
    -- This function returns the product of two cubicalfacets.
    -- Unlike the simplex case, the product is a sinle facet
@@ -1121,30 +1120,70 @@ CubicalFacet() : Exports == Impl where
      bint:List(Segment(Integer)) := getIntervals(b)
      cubicalFacet(1,concat(aint,bint))
 
-   -- construct the boundary. This is like hollowing out
-   -- the facet.
-   delta(orf:%):List(%) ==
+   -- local function used by boundary operator.
+   deltaOneDimension(orf:%,dim:NNI,invert:Boolean):List(%) ==
      facet:List(Segment(Integer)) := orf.fac
-     revFacet:List(Segment(Integer)) := reverse(facet) -- reverse outer list to get in numeric order
      mult:Integer := orf.mul
-     res:List(%) := empty()$List(%)
-     for seg in revFacet for segn in 1..(#revFacet) repeat
+     subFacet1:List(Segment(Integer)) := empty()$List(Segment(Integer))
+     subFacet2:List(Segment(Integer)) := empty()$List(Segment(Integer))
+     for seg in facet for segn in 1..(#facet) repeat
        lo := low(seg)
        hi := high(seg)
-       if lo ~= hi then  
-         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
-         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
-           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(lo,lo)
-           r:=concat(r,s)
-         r1:% := cubicalFacet(1,r)
-         res:=concat(res,r1)$List(%)
-         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
-         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
-           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(hi,hi)
-           r:=concat(r,s)
-         r1:% := cubicalFacet(1,r)
-         res:=concat(res,r1)$List(%)
+       if segn=dim
+         then
+           subFacet1 := concat(subFacet1,segment(lo,lo))
+           subFacet2 := concat(subFacet2,segment(hi,hi))
+         else
+           subFacet1 := concat(subFacet1,seg)
+           subFacet2 := concat(subFacet2,seg)
+     if invert then mult := -mult
+     res:List(%) := empty()$List(%)
+     r1:% := cubicalFacet(mult,subFacet1)
+     res:=concat(res,r1)$List(%)
+     r2:% := cubicalFacet(-mult,subFacet2)
+     res:=concat(res,r2)$List(%)
      res
+
+   -- Boundary operator. This is like hollowing out the facet.
+   delta(orf:%):List(%) ==
+     facet:List(Segment(Integer)) := orf.fac
+     mult:Integer := orf.mul
+     -- dims will hold array of indexes of non-degenerate intervals
+     dims:List(NNI) := empty()$List(NNI)
+     for seg in facet for segn in 1..(#facet) repeat
+       lo := low(seg)
+       hi := high(seg)
+       if (lo ~= hi) then dims := concat(dims,segn)
+     res:List(%) := empty()$List(%)
+     invert:Boolean := false
+     -- for each non-degenerate interval add boundary
+     for dim in dims repeat
+       --print("delta("::Symbol << orf << ","::Symbol << dim << ")"::Symbol)
+       res := concat(res,deltaOneDimension(orf,dim,invert))
+       invert := not invert
+     --print("delta res="::Symbol << res)
+     res
+
+--     revFacet:List(Segment(Integer)) := orf.fac --reverse(facet) -- reverse outer list to get in numeric order
+--     mult:Integer := orf.mul
+--     res:List(%) := empty()$List(%)
+--     for seg in revFacet for segn in 1..(#revFacet) repeat
+--       lo := low(seg)
+--       hi := high(seg)
+--       if lo ~= hi then  
+--         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
+--         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
+--           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(lo,lo)
+--           r:=concat(r,s)
+--         r1:% := cubicalFacet(mult,r)
+--         res:=concat(res,r1)$List(%)
+--         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
+--         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
+--           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(hi,hi)
+--           r:=concat(r,s)
+--         r1:% := cubicalFacet(-mult,r)
+--         res:=concat(res,r1)$List(%)
+--     res
 
    -- Returns true if x equals y.
    -- Assumes indexes are in order as this is forced by constructor.
@@ -1770,7 +1809,8 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
     product:(a:%,b:%) -> %
      ++ Forms product of two cubical complexes.
     delta:(s:%) -> %
-     ++ Step down to the next lower dimension, this is like hollowing out the complex.
+     ++ Boundary operator. Step down to the next lower dimension, this is
+     ++ like hollowing out the complex.
      ++ It takes the highest dimension entries and replaces them with their boundaries,
      ++ cancelling out where it can.
 
@@ -1784,11 +1824,11 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
 
    -- constructor where the vertex set and cubes are supplied
    cubicalComplex(v:VS,fs:List(CubicalFacet)):% ==
-     res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for f in fs repeat
-       res := concat(res,cubicalFacet(1,f))
+     --res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     --for f in fs repeat
+     --  res := concat(res,cubicalFacet(1,f))
      --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
-     [v,res]
+     [v,fs]
 
    -- constructor where the vertex set and cubes are supplied
    cubicalComplex(v:VS,fs:List(List(Segment(Integer)))):% ==
@@ -1811,42 +1851,29 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      res:List(CubicalFacet) := empty()$List(CubicalFacet)
      [v,res]
 
-   -- Add a facet to this simplex
-   -- If the facet is also in the list then, dont append, instead
-   -- change the multiplier.
+   -- Add a facet to this cube
+   -- If the facet is also in the list then: add the multipliers.
    addCube(a:%,f:CubicalFacet):% ==
      res:List(CubicalFacet) := a.CUBE
+     res2:List(CubicalFacet) := empty()$List(CubicalFacet)
      -- check for duplicates
      found:Boolean:=false
      for orf in res repeat
-       if getIntervals(orf)=getIntervals(f) then
-         m:Integer := getMult(orf)+getMult(f)
-         setMult!(orf,m)
-         found:=true
+       if getIntervals(orf)=getIntervals(f)
+         then
+           m:Integer := getMult(orf)+getMult(f)
+           if m~=0 then
+             res2 := concat(res2,setMult(orf,m))
+           found:=true
+         else
+           res2 := concat(res2,orf)
      if not found then
-       res := concat(res,f)
-     -- look for empty faces
-     res2:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for orf in res repeat
-       if getMult(orf) ~= 0 then
-         res2 := concat(res2,orf)     
-     [a.VERTSET,res2]
+       res2 := concat(res2,f)
+     --print("addCube("::Symbol << a << ","::Symbol << f << ") res="::Symbol << res2)
+     cubicalComplex(a.VERTSET,res2)
 
-   -- Forms product of two cubucal complexes.
-   -- For more detailed explanation of simplex product code see:
-   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/}
-   product(a:%,b:%):% ==
-     cubesa:List(CubicalFacet) := a.CUBE
-     cubesb:List(CubicalFacet) := b.CUBE
-     vs:VS := prod(a.VERTSET,b.VERTSET)
-     res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for cubea in cubesa repeat
-       for cubeb in cubesb repeat
-         p:CubicalFacet := product(cubea,cubeb)
-         res := concat(res,p)
-     [vs,res]
-
-   -- Step down to the next lower dimension, this is like hollowing out the complex.
+   -- Boundary operator. Step down to the next lower dimension, this is
+   -- like hollowing out the complex.
    -- It takes the highest dimension entries and replaces them with their boundaries,
    -- cancelling out where it can.
    delta(s:%):% ==
@@ -1859,6 +1886,20 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          --facets := concat(facets,y)$List(CubicalFacet)
          res:=addCube(res,y)
      res
+
+   -- Forms product of two cubucal complexes.
+   -- For more detailed explanation of cube product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
+   product(a:%,b:%):% ==
+     cubesa:List(CubicalFacet) := a.CUBE
+     cubesb:List(CubicalFacet) := b.CUBE
+     vs:VS := prod(a.VERTSET,b.VERTSET)
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for cubea in cubesa repeat
+       for cubeb in cubesb repeat
+         p:CubicalFacet := product(cubea,cubeb)
+         res := concat(res,p)
+     cubicalComplex(vs,res)
 
    -- Returns true if x equals y.
    -- That is, they contain the same simplexes, although not necessarily in the
