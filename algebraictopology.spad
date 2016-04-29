@@ -1138,9 +1138,9 @@ CubicalFacet() : Exports == Impl where
            subFacet2 := concat(subFacet2,seg)
      if invert then mult := -mult
      res:List(%) := empty()$List(%)
-     r1:% := cubicalFacet(mult,subFacet1)
+     r1:% := cubicalFacet(-mult,subFacet1)
      res:=concat(res,r1)$List(%)
-     r2:% := cubicalFacet(-mult,subFacet2)
+     r2:% := cubicalFacet(mult,subFacet2)
      res:=concat(res,r2)$List(%)
      res
 
@@ -1163,27 +1163,6 @@ CubicalFacet() : Exports == Impl where
        invert := not invert
      --print("delta res="::Symbol << res)
      res
-
---     revFacet:List(Segment(Integer)) := orf.fac --reverse(facet) -- reverse outer list to get in numeric order
---     mult:Integer := orf.mul
---     res:List(%) := empty()$List(%)
---     for seg in revFacet for segn in 1..(#revFacet) repeat
---       lo := low(seg)
---       hi := high(seg)
---       if lo ~= hi then  
---         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
---         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
---           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(lo,lo)
---           r:=concat(r,s)
---         r1:% := cubicalFacet(mult,r)
---         res:=concat(res,r1)$List(%)
---         r:List(Segment(Integer)) := empty()$List(Segment(Integer))
---         for newseg in revFacet for newsegn in 1..(#revFacet) repeat
---           s:Segment(Integer) := if newsegn ~= segn then newseg else segment(hi,hi)
---           r:=concat(r,s)
---         r1:% := cubicalFacet(-mult,r)
---         res:=concat(res,r1)$List(%)
---     res
 
    -- Returns true if x equals y.
    -- Assumes indexes are in order as this is forced by constructor.
@@ -1756,6 +1735,349 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    -- coerce SimplicialComplex to DeltaComplex
    coerce(s:%) : DeltaComplex(VS) ==
      deltaComplex(s pretend FiniteSimplicialComplex(VS))
+
+)if false
+\section{Delta Complex}
+
+The FiniteSimplicialComplex representation defines faces, of any dimension, by
+their vertices. This is an efficient way to define them, a disadvantage
+is that intermediate parts, such as edges, are not indexed. It is
+sometimes useful to be able to do this, for example, when generating
+homotopy groups such as the fundamental group.
+
+Therefore the following alternative representation can be used instead.
+)endif
+
+)abbrev domain DELTAC DeltaComplex
+++ Author: Martin Baker
+++ Description: 
+++   Similar to Simplicial Complex but faces (edges, tringles, etc.) are
+++   indexed by 'face maps' into the next lower face map until we get
+++   down to the verticies.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/delta/
+++ Date Created: Feb 2016
+++ Date Last Updated: Feb 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains: FiniteSimplicialComplex is a simpler and more compact
+++    representation which can be used if edges, triangles, etc. don't need
+++    to be indexed.
+++ Also See:
+++ AMS Classifications:
+++ Keywords: topology, finite, simplicial, complex, edge, triangle
+++ Examples:
+++ References:
+
+DeltaComplex(VS:VertexSet) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    deltaComplex: (v:VS,f:List(List(List(Integer)))) -> %
+     ++ constructor where the simplices are supplied
+    deltaComplex:(fsc:FiniteSimplicialComplex(VS)) -> %
+     ++ construct from FiniteSimplicialComplex. This builds indexes of
+     ++ edges, triangles and so on.
+    link:(a:NNI,b:NNI) -> %
+     ++ a simplical complex with one link
+    triangle:(a:NNI,b:NNI,c:NNI) -> %
+     ++ a simplical complex with one triangle
+    faceMap:(s:%,n:NNI) -> List(List(Integer))
+     ++ returns an individual face map specified by n.
+     ++ Where 'n' is the dimension required, so n=1 returns
+     ++ one dimentional faces (edges), n=2 returns
+     ++ two dimentional faces (triamgles), and so on.
+    chain:(s:%) -> ChainComplex
+     ++ returns a matrix sequence representing the face maps
+     ++ in linear algebra form
+    oneSkeleton:(s:%) -> UndirectedGraph(NNI)
+     ++ generates graph AKA 1-skeleton
+    fundamentalGroup:(s:%) -> GroupPresentation
+     ++ Generates fundamental group from this simplicial complex.
+    fundamentalGroup:(s:%,simplify:Boolean,trace:Boolean) -> GroupPresentation
+     ++ Generates fundamental group from this simplicial complex.
+    homology:(a:%) -> List(Matrix(Integer))
+     ++ calculate homology using SmithNormalForm
+    coerce:(s:%) -> FiniteSimplicialComplex(VS)
+     ++ coerce DeltaComplex to FiniteSimplicialComplex
+
+  Impl ==> add
+
+   -- Representation holds whole Complex. This consists of
+   -- a vertex set, here represented as a vertex list so that we can
+   -- index it.
+   -- Also a sequence of tables (known as 'face maps') representing
+   -- edges, triangles, tetrahedrons, etc. containing indexes into
+   -- the next lower map.
+   -- Since edges, triangles, tetrahedrons, etc. are oriented we use
+   -- a positive or negative index to indicate winding direction. 
+   Rep := Record(VERTSET:VS,MAPS:List(List(List(Integer))))
+
+   -- constructor where the vertex set and simplices are supplied
+   deltaComplex(v:VS,f:List(List(List(Integer)))):% == [v,f]
+
+   -- construct from FiniteSimplicialComplex. This builds indexes of
+   -- edges, triangles and so on.
+   deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
+     -- first grade and add implied faces
+     allFacets:List(List(OrientedFacet)) := addImpliedFaces(fsc)
+     --print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
+     -- sort each grade
+     allFacetsGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
+     for gradedList in allFacets repeat
+       --print("deltaComplex gradedList="::Symbol << gradedList )
+       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
+     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
+     -- now change base indexed to heirarcical indexed
+     faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+     previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
+     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
+       faceMaps := concat(faceMaps,empty()$List(List(Integer)))
+       if grn=1 then
+         -- edges
+         for x in gradeList repeat
+           -- x is an OrientedFacet
+           fm:List(Integer) := getIndexesSigned(x)
+           -- fm is signed list of vericies
+           faceMaps.grn := concat(faceMaps.grn,fm)
+       if grn>1 then
+         -- triangles and above
+         -- we need to build up a map from oldFaceHigh to oldFacesLow
+         newMap:List(List(Integer))  := empty()$List(List(Integer)) 
+         for oldFaceHigh in gradeList repeat
+           --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
+           oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
+           --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
+           newIndexes:List(Integer) := empty()$List(Integer)
+           for oldFaceLow in oldFacesLow repeat
+             --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
+             --      " previousFaceList="::Symbol << previousFaceList << _
+             --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
+             i:=position(oldFaceLow,previousFaceList)$OrientedFacet
+             i2:Integer := abs(i)
+             if i2 < 1 then
+               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
+                 " not found in previousFaceList="::Symbol << previousFaceList )
+               error concat("cant find index:",string(i))
+             newIndexes := concat(newIndexes,i)
+           newMap := concat(newMap,newIndexes)
+         faceMaps.grn := newMap
+       previousFaceList := gradeList
+     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
+     --print("deltaComplex faceMaps="::Symbol << faceMaps )
+     [vs ,faceMaps]
+
+   -- a simplical complex with one link
+   link(a:NNI,b:NNI):% ==
+     vs:VS := (vertexSeta(2::NNI)$VertexSetAbstract) pretend VS
+     simp:List(List(List(Integer))) := [[[a,b]]]
+     [vs,simp]
+
+   -- a simplical complex with one triangle
+   triangle(a:NNI,b:NNI,c:NNI):% ==
+     vs:VS := (vertexSeta(3::NNI)$VertexSetAbstract) pretend VS
+     edges:List(List(Integer)) := [[a,b],[a,c],[b,c]]
+     triangles:List(List(Integer)) := [[a,-b,c]]
+     simp:List(List(List(Integer))) := [edges,triangles]
+     [vs,simp]
+
+   -- returns an individual face map specified by n.
+   -- Where 'n' is the dimension required, so n=1 returns
+   -- one dimensional faces (edges), n=2 returns
+   -- two dimensional faces (triangles), and so on.
+   faceMap(s:%,n:NNI):List(List(Integer)) ==
+     maps1:List(List(List(Integer))) := s.MAPS
+     if n > #maps1 then return empty()$List(List(Integer))
+     maps1.n
+
+   -- returns a matrix sequence representing the face maps
+   -- in linear algebra form
+   chain(s:%):ChainComplex ==
+     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
+     maps1:List(List(List(Integer))) := s.MAPS
+     for faces in maps1 repeat
+       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
+       nCols:NNI := #(faces)
+       if nCols<1 then return chainComplex(res)
+       nRows:NNI := 0
+       for u in faces repeat
+         for v in u repeat
+           if abs(v)>nRows then nRows := abs(v) pretend NNI
+       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+       m : Matrix(Integer) := new(nRows,nCols,0)
+       for u in faces for nu in 1..(#faces) repeat
+         for v in u for nv in 1..(#u) repeat
+           v2:Integer := abs(v)
+           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
+           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+           ele:Integer := 1
+           if even?(nv) then ele := -1
+           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
+       res := concat(res,m)
+     chainComplex(res)
+
+   -- calculate homology using SmithNormalForm
+   homology(a:%):List(Matrix(Integer)) ==
+     cc:ChainComplex := chain(a)
+     validate(cc)
+     homology(cc)
+
+   -- Generates graph AKA 1-skeleton.
+   -- Used to generate fundamental group
+   oneSkeleton(s:%):UndirectedGraph(NNI) ==
+     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
+           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
+     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
+     GS := UndirectedGraph(NNI)
+     nodes:List(OBJT) := empty()$List(OBJT)
+     edges:List(ARROW) := empty()$List(ARROW)
+     m:NNI := maxFaces(s.VERTSET)
+     edgeIndexes:List(List(Integer)) := first(s.MAPS)
+     for x in edgeIndexes repeat
+         --print("oneSkeleton x="::Symbol << x)
+         from1:NNI := abs(x.1) pretend NNI
+         if from1>m then m:=from1
+         to1:NNI := abs(x.2) pretend NNI
+         if to1>m then m:=to1
+         y:ARROW := ["x",0::NNI,from1,to1,0::Integer,0::Integer,[]]
+         edges := concat(edges,y)$List(ARROW)
+     setMaxFaces(s.VERTSET,m)
+     --print("oneSkeleton nodes="::Symbol << nodes << " edges="::Symbol << edges  << _
+     --     " maxVerts="::Symbol << m  << " maxVerts="::Symbol << maxFaces(s.VERTSET))
+     for m1 in 1..m repeat
+       nodes:= concat(nodes,[m1,0::NNI,0::NNI])$List(OBJT)
+     undirectedGraph(nodes,edges)$GS
+
+   -- local function to list all the links in a given tree
+   linksInTree(res:List(List(Integer)),a:Tree(Integer)):List(List(Integer)) ==
+     --print("linksInTree value="::Symbol << value(a) << " children="::Symbol << children(a))
+     fromNode:Integer := value(a)
+     for x in children(a) repeat
+       toNode:Integer := value(x)
+       newLink:List(Integer) := [fromNode,toNode]
+       res := concat(res,newLink)
+     for x in children(a) repeat
+       res := linksInTree(res,x)
+     res
+
+   -- local function used by fundamentalGroup
+   unsignedEdge(e:List(Integer)):List(Integer) ==
+     res:List(Integer) := empty()$List(Integer)
+     for a in e repeat res:=concat(res,abs(a))
+     res
+
+   -- Generates fundamental group from this delta complex.
+   fundamentalGroup(s:%):GroupPresentation ==
+     fundamentalGroup(s,true,false)
+
+   fundamentalGroup(s:%,simplify:Boolean,trace:Boolean):GroupPresentation ==
+     -- Generates fundamental group from this delta complex.
+     if trace then print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
+     -- fundamental group is about triangles so get face map
+     -- for triangles (2 dimensional)
+     -- compute edge-path group
+     graph:UndirectedGraph(NNI) := oneSkeleton(s)
+     --print("fundamentalGroup graph="::Symbol << graph )
+     -- choose a spanning tree for the 1-skeleton
+     span:Tree(Integer) := spanningTreeNode(graph,1::NNI)$UndirectedGraph(NNI)
+     if trace then print("fundamentalGroup span="::Symbol << span )
+     edges:List(List(Integer)) := faceMap(s,1::NNI)
+     res:List(List(Integer)) := empty()$List(List(Integer))
+     res := linksInTree(res,span)
+     edgesInTree:List(Boolean) := [false for y in edges]
+     if trace then print("fundamentalGroup edges="::Symbol << edges << " res="::Symbol << res)
+     for edge in edges for edgen in 1..(#edges) repeat
+       if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
+     if trace then print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
+     triangles:List(List(Integer)) := faceMap(s,2::NNI)
+     rules:List(List(Integer)) := empty()$List(List(Integer))
+     if trace then print("fundamentalGroup triangles="::Symbol << triangles )
+     for t in triangles repeat
+       rule:List(Integer) := empty()$List(Integer)
+       if not edgesInTree.(abs(t.1)) then rule:= concat(rule,t.1)
+       if not edgesInTree.(abs(t.2)) then rule:= concat(rule,t.2)
+       if not edgesInTree.(abs(t.3)) then rule:= concat(rule,t.3)
+       if not empty?(rule) then rules := concat(rules,rule)
+     if trace then print("fundamentalGroup rules="::Symbol << rules )
+     -- groups generators: edges in 1-skeleton
+     -- groups relations: for every 2-simplex
+     --                   e0 e1^-1 e2
+     --                   (e0,e1,e2 are edges)
+     -- set m to maximum index in the face map
+     m:NNI := #edges
+     generators:List(NNI) := empty()$List(NNI)
+     for x in 1..m repeat
+       if not edgesInTree.x then
+         generators := concat(generators,x::NNI)
+     --print("fundamentalGroup generators="::Symbol << generators )
+     gp:GroupPresentation := groupPresentation(generators,rules)$GroupPresentation
+     --print("fundamentalGroup GroupPresentation unsimplified="::Symbol << gp )
+     if not simplify then return gp
+     simplify(gp,trace)$GroupPresentation
+
+   -- Local function used by '=' to check if two simplexes are equal.
+   -- To be equal they must contain the same indexes, wound in the same
+   -- direction but not necessarily starting at the same value.
+   equalSimplex(a:List(Integer),b:List(Integer)):Boolean ==
+     --print("equalSimplex:"::Symbol << a << ","::Symbol << b)
+     len:NNI := #a
+     if len ~= #b then return false
+     if len = 0 then return true
+     fst:Integer := first a
+     offset:Integer := position(fst,b)
+     if offset <1 then return false
+     for n in 1..#a repeat
+       if a.n ~= b.offset then return false
+       offset := offset+1
+       if offset > #b then offset := 1
+     true
+
+   -- Returns true if x equals y.
+   -- That is, they contain the same simplexes, although not necessarily in the
+   -- same order.
+   -- TODO - Assumes point set is exactly the same, for more generality we should allow
+   -- the points to be defined in a different order.
+   _=(a : %, b : %) : Boolean ==
+     as := a.MAPS
+     bs := b.MAPS
+     --print("equal:"::Symbol << as << ","::Symbol << bs)
+     len:NNI := #as
+     if len ~= #bs then return false
+--     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+     --print("empty flags "::Symbol << flags)
+--     for a1 in as repeat
+--       x:NNI := 1
+--       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
+--         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+--         x:=x+1
+--         if x > #as then return false
+--       flags.x := true
+       --print("flags."::Symbol << x << "=true "::Symbol << flags)
+     --print("final flags "::Symbol << flags)
+--     for f in flags repeat
+--       if f=false then return false
+     true
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     res:OutputForm :=empty()$OutputForm -- holds result
+     if empty?(s.MAPS) then return res
+     tabNum:NNI := 1::NNI
+     for a in s.MAPS repeat
+       if tabNum = 1::NNI then res := hconcat(res,message("edge:"))
+       if tabNum = 2::NNI then res := hconcat(res,message(" triangle:"))
+       if tabNum = 3::NNI then res := hconcat(res,message(" tetrahedron:"))
+       if tabNum > 3::NNI then res := hconcat(res,message(" higher:"))
+       res := hconcat(res,a::OutputForm)
+       tabNum := tabNum+1
+     res
+
+   -- coerce DeltaComplex to FiniteSimplicialComplex
+   coerce(s:%) : FiniteSimplicialComplex(VS) ==
+     simplicialComplex(s pretend DeltaComplex(VS))
+
 )if false
 \section{FiniteCubicalComplex}
 
@@ -1808,6 +2130,11 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      ++ change the multiplier.
     product:(a:%,b:%) -> %
      ++ Forms product of two cubical complexes.
+    chain:(s:%) -> ChainComplex
+     ++ returns a matrix sequence representing the face maps
+     ++ in linear algebra form
+    homology:(a:%) -> List(Matrix(Integer))
+     ++ calculate homology using SmithNormalForm
     delta:(s:%) -> %
      ++ Boundary operator. Step down to the next lower dimension, this is
      ++ like hollowing out the complex.
@@ -1851,7 +2178,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      res:List(CubicalFacet) := empty()$List(CubicalFacet)
      [v,res]
 
-   -- Add a facet to this cube
+   -- Add a facet to this cubical complex
    -- If the facet is also in the list then: add the multipliers.
    addCube(a:%,f:CubicalFacet):% ==
      res:List(CubicalFacet) := a.CUBE
@@ -1900,6 +2227,38 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          p:CubicalFacet := product(cubea,cubeb)
          res := concat(res,p)
      cubicalComplex(vs,res)
+
+   -- returns a matrix sequence representing the face maps
+   -- in linear algebra form
+   chain(s:%):ChainComplex ==
+     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
+--     maps1:List(List(List(Integer))) := s.MAPS
+--     for faces in maps1 repeat
+       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
+--       nCols:NNI := #(faces)
+--       if nCols<1 then return chainComplex(res)
+--       nRows:NNI := 0
+--       for u in faces repeat
+--         for v in u repeat
+--           if abs(v)>nRows then nRows := abs(v) pretend NNI
+       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+--       m : Matrix(Integer) := new(nRows,nCols,0)
+--       for u in faces for nu in 1..(#faces) repeat
+--         for v in u for nv in 1..(#u) repeat
+--           v2:Integer := abs(v)
+--           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
+--           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+--           ele:Integer := 1
+--           if even?(nv) then ele := -1
+--           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
+--       res := concat(res,m)
+     chainComplex(res)
+
+   -- calculate homology using SmithNormalForm
+   homology(a:%):List(Matrix(Integer)) ==
+     cc:ChainComplex := chain(a)
+     validate(cc)
+     homology(cc)
 
    -- Returns true if x equals y.
    -- That is, they contain the same simplexes, although not necessarily in the
@@ -2074,348 +2433,6 @@ ChainComplex() : Exports == Impl where
    coerce(s : %) : OutputForm ==
      lst: List(OutputForm) := [x::OutputForm for x in s]
      commaSeparate(lst)
-
-)if false
-\section{Delta Complex}
-
-The FiniteSimplicialComplex representation defines faces, of any dimension, by
-their vertices. This is an efficient way to define them, a disadvantage
-is that intermediate parts, such as edges, are not indexed. It is
-sometimes useful to be able to do this, for example, when generating
-homotopy groups such as the fundamental group.
-
-Therefore the following alternative representation can be used instead.
-)endif
-
-)abbrev domain DELTAC DeltaComplex
-++ Author: Martin Baker
-++ Description: 
-++   Similar to Simplicial Complex but faces (edges, tringles, etc.) are
-++   indexed by 'face maps' into the next lower face map until we get
-++   down to the verticies.
-++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/delta/
-++ Date Created: Feb 2016
-++ Date Last Updated: Feb 2016
-++ Basic Operations:
-++ Related packages:
-++ Related categories:
-++ Related Domains: FiniteSimplicialComplex is a simpler and more compact
-++    representation which can be used if edges, triangles, etc. don't need
-++    to be indexed.
-++ Also See:
-++ AMS Classifications:
-++ Keywords: topology, finite, simplicial, complex, edge, triangle
-++ Examples:
-++ References:
-
-DeltaComplex(VS:VertexSet) : Exports == Impl where
-  NNI==> NonNegativeInteger
-  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
-
-  Exports ==> SetCategory() with
-    deltaComplex: (v:VS,f:List(List(List(Integer)))) -> %
-     ++ constructor where the simplices are supplied
-    deltaComplex:(fsc:FiniteSimplicialComplex(VS)) -> %
-     ++ construct from FiniteSimplicialComplex. This builds indexes of
-     ++ edges, triangles and so on.
-    link:(a:NNI,b:NNI) -> %
-     ++ a simplical complex with one link
-    triangle:(a:NNI,b:NNI,c:NNI) -> %
-     ++ a simplical complex with one triangle
-    faceMap:(s:%,n:NNI) -> List(List(Integer))
-     ++ returns an individual face map specified by n.
-     ++ Where 'n' is the dimension required, so n=1 returns
-     ++ one dimentional faces (edges), n=2 returns
-     ++ two dimentional faces (triamgles), and so on.
-    faceMapMatrixAll:(s:%) -> ChainComplex
-     ++ returns a matrix sequence representing the face maps
-     ++ in linear algebra form
-    oneSkeleton:(s:%) -> UndirectedGraph(NNI)
-     ++ generates graph AKA 1-skeleton
-    fundamentalGroup:(s:%) -> GroupPresentation
-     ++ Generates fundamental group from this simplicial complex.
-    fundamentalGroup:(s:%,simplify:Boolean,trace:Boolean) -> GroupPresentation
-     ++ Generates fundamental group from this simplicial complex.
-    homology:(a:%) -> List(Matrix(Integer))
-     ++ calculate homology using SmithNormalForm
-    coerce:(s:%) -> FiniteSimplicialComplex(VS)
-     ++ coerce DeltaComplex to FiniteSimplicialComplex
-
-  Impl ==> add
-
-   -- Representation holds whole Complex. This consists of
-   -- a vertex set, here represented as a vertex list so that we can
-   -- index it.
-   -- Also a sequence of tables (known as 'face maps') representing
-   -- edges, triangles, tetrahedrons, etc. containing indexes into
-   -- the next lower map.
-   -- Since edges, triangles, tetrahedrons, etc. are oriented we use
-   -- a positive or negative index to indicate winding direction. 
-   Rep := Record(VERTSET:VS,MAPS:List(List(List(Integer))))
-
-   -- constructor where the vertex set and simplices are supplied
-   deltaComplex(v:VS,f:List(List(List(Integer)))):% == [v,f]
-
-   -- construct from FiniteSimplicialComplex. This builds indexes of
-   -- edges, triangles and so on.
-   deltaComplex(fsc:FiniteSimplicialComplex(VS)):% ==
-     -- first grade and add implied faces
-     allFacets:List(List(OrientedFacet)) := addImpliedFaces(fsc)
-     --print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
-     -- sort each grade
-     allFacetsGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
-     for gradedList in allFacets repeat
-       --print("deltaComplex gradedList="::Symbol << gradedList )
-       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
-     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
-     -- now change base indexed to heirarcical indexed
-     faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
-     previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
-     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
-       faceMaps := concat(faceMaps,empty()$List(List(Integer)))
-       if grn=1 then
-         -- edges
-         for x in gradeList repeat
-           -- x is an OrientedFacet
-           fm:List(Integer) := getIndexesSigned(x)
-           -- fm is signed list of vericies
-           faceMaps.grn := concat(faceMaps.grn,fm)
-       if grn>1 then
-         -- triangles and above
-         -- we need to build up a map from oldFaceHigh to oldFacesLow
-         newMap:List(List(Integer))  := empty()$List(List(Integer)) 
-         for oldFaceHigh in gradeList repeat
-           --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
-           oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
-           --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
-           newIndexes:List(Integer) := empty()$List(Integer)
-           for oldFaceLow in oldFacesLow repeat
-             --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
-             --      " previousFaceList="::Symbol << previousFaceList << _
-             --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
-             i:=position(oldFaceLow,previousFaceList)$OrientedFacet
-             i2:Integer := abs(i)
-             if i2 < 1 then
-               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
-                 " not found in previousFaceList="::Symbol << previousFaceList )
-               error concat("cant find index:",string(i))
-             newIndexes := concat(newIndexes,i)
-           newMap := concat(newMap,newIndexes)
-         faceMaps.grn := newMap
-       previousFaceList := gradeList
-     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
-     --print("deltaComplex faceMaps="::Symbol << faceMaps )
-     [vs ,faceMaps]
-
-   -- a simplical complex with one link
-   link(a:NNI,b:NNI):% ==
-     vs:VS := (vertexSeta(2::NNI)$VertexSetAbstract) pretend VS
-     simp:List(List(List(Integer))) := [[[a,b]]]
-     [vs,simp]
-
-   -- a simplical complex with one triangle
-   triangle(a:NNI,b:NNI,c:NNI):% ==
-     vs:VS := (vertexSeta(3::NNI)$VertexSetAbstract) pretend VS
-     edges:List(List(Integer)) := [[a,b],[a,c],[b,c]]
-     triangles:List(List(Integer)) := [[a,-b,c]]
-     simp:List(List(List(Integer))) := [edges,triangles]
-     [vs,simp]
-
-   -- returns an individual face map specified by n.
-   -- Where 'n' is the dimension required, so n=1 returns
-   -- one dimensional faces (edges), n=2 returns
-   -- two dimensional faces (triangles), and so on.
-   faceMap(s:%,n:NNI):List(List(Integer)) ==
-     maps1:List(List(List(Integer))) := s.MAPS
-     if n > #maps1 then return empty()$List(List(Integer))
-     maps1.n
-
-   -- returns a matrix sequence representing the face maps
-   -- in linear algebra form
-   faceMapMatrixAll(s:%):ChainComplex ==
-     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
-     maps1:List(List(List(Integer))) := s.MAPS
-     for faces in maps1 repeat
-       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
-       nCols:NNI := #(faces)
-       if nCols<1 then return chainComplex(res)
-       nRows:NNI := 0
-       for u in faces repeat
-         for v in u repeat
-           if abs(v)>nRows then nRows := abs(v) pretend NNI
-       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
-       m : Matrix(Integer) := new(nRows,nCols,0)
-       for u in faces for nu in 1..(#faces) repeat
-         for v in u for nv in 1..(#u) repeat
-           v2:Integer := abs(v)
-           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
-           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
-           ele:Integer := 1
-           if even?(nv) then ele := -1
-           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
-       res := concat(res,m)
-     chainComplex(res)
-
-   -- calculate homology using SmithNormalForm
-   homology(a:%):List(Matrix(Integer)) ==
-     cc:ChainComplex := faceMapMatrixAll(a)
-     validate(cc)
-     homology(cc)
-
-   -- Generates graph AKA 1-skeleton.
-   -- Used to generate fundamental group
-   oneSkeleton(s:%):UndirectedGraph(NNI) ==
-     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
-           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
-     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
-     GS := UndirectedGraph(NNI)
-     nodes:List(OBJT) := empty()$List(OBJT)
-     edges:List(ARROW) := empty()$List(ARROW)
-     m:NNI := maxFaces(s.VERTSET)
-     edgeIndexes:List(List(Integer)) := first(s.MAPS)
-     for x in edgeIndexes repeat
-         --print("oneSkeleton x="::Symbol << x)
-         from1:NNI := abs(x.1) pretend NNI
-         if from1>m then m:=from1
-         to1:NNI := abs(x.2) pretend NNI
-         if to1>m then m:=to1
-         y:ARROW := ["x",0::NNI,from1,to1,0::Integer,0::Integer,[]]
-         edges := concat(edges,y)$List(ARROW)
-     setMaxFaces(s.VERTSET,m)
-     --print("oneSkeleton nodes="::Symbol << nodes << " edges="::Symbol << edges  << _
-     --     " maxVerts="::Symbol << m  << " maxVerts="::Symbol << maxFaces(s.VERTSET))
-     for m1 in 1..m repeat
-       nodes:= concat(nodes,[m1,0::NNI,0::NNI])$List(OBJT)
-     undirectedGraph(nodes,edges)$GS
-
-   -- local function to list all the links in a given tree
-   linksInTree(res:List(List(Integer)),a:Tree(Integer)):List(List(Integer)) ==
-     --print("linksInTree value="::Symbol << value(a) << " children="::Symbol << children(a))
-     fromNode:Integer := value(a)
-     for x in children(a) repeat
-       toNode:Integer := value(x)
-       newLink:List(Integer) := [fromNode,toNode]
-       res := concat(res,newLink)
-     for x in children(a) repeat
-       res := linksInTree(res,x)
-     res
-
-   -- local function used by fundamentalGroup
-   unsignedEdge(e:List(Integer)):List(Integer) ==
-     res:List(Integer) := empty()$List(Integer)
-     for a in e repeat res:=concat(res,abs(a))
-     res
-
-   -- Generates fundamental group from this delta complex.
-   fundamentalGroup(s:%):GroupPresentation ==
-     fundamentalGroup(s,true,false)
-
-   fundamentalGroup(s:%,simplify:Boolean,trace:Boolean):GroupPresentation ==
-     -- Generates fundamental group from this delta complex.
-     if trace then print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
-     -- fundamental group is about triangles so get face map
-     -- for triangles (2 dimensional)
-     -- compute edge-path group
-     graph:UndirectedGraph(NNI) := oneSkeleton(s)
-     --print("fundamentalGroup graph="::Symbol << graph )
-     -- choose a spanning tree for the 1-skeleton
-     span:Tree(Integer) := spanningTreeNode(graph,1::NNI)$UndirectedGraph(NNI)
-     if trace then print("fundamentalGroup span="::Symbol << span )
-     edges:List(List(Integer)) := faceMap(s,1::NNI)
-     res:List(List(Integer)) := empty()$List(List(Integer))
-     res := linksInTree(res,span)
-     edgesInTree:List(Boolean) := [false for y in edges]
-     if trace then print("fundamentalGroup edges="::Symbol << edges << " res="::Symbol << res)
-     for edge in edges for edgen in 1..(#edges) repeat
-       if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
-     if trace then print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
-     triangles:List(List(Integer)) := faceMap(s,2::NNI)
-     rules:List(List(Integer)) := empty()$List(List(Integer))
-     if trace then print("fundamentalGroup triangles="::Symbol << triangles )
-     for t in triangles repeat
-       rule:List(Integer) := empty()$List(Integer)
-       if not edgesInTree.(abs(t.1)) then rule:= concat(rule,t.1)
-       if not edgesInTree.(abs(t.2)) then rule:= concat(rule,t.2)
-       if not edgesInTree.(abs(t.3)) then rule:= concat(rule,t.3)
-       if not empty?(rule) then rules := concat(rules,rule)
-     if trace then print("fundamentalGroup rules="::Symbol << rules )
-     -- groups generators: edges in 1-skeleton
-     -- groups relations: for every 2-simplex
-     --                   e0 e1^-1 e2
-     --                   (e0,e1,e2 are edges)
-     -- set m to maximum index in the face map
-     m:NNI := #edges
-     generators:List(NNI) := empty()$List(NNI)
-     for x in 1..m repeat
-       if not edgesInTree.x then
-         generators := concat(generators,x::NNI)
-     --print("fundamentalGroup generators="::Symbol << generators )
-     gp:GroupPresentation := groupPresentation(generators,rules)$GroupPresentation
-     --print("fundamentalGroup GroupPresentation unsimplified="::Symbol << gp )
-     if not simplify then return gp
-     simplify(gp,trace)$GroupPresentation
-
-   -- Local function used by '=' to check if two simplexes are equal.
-   -- To be equal they must contain the same indexes, wound in the same
-   -- direction but not necessarily starting at the same value.
-   equalSimplex(a:List(Integer),b:List(Integer)):Boolean ==
-     --print("equalSimplex:"::Symbol << a << ","::Symbol << b)
-     len:NNI := #a
-     if len ~= #b then return false
-     if len = 0 then return true
-     fst:Integer := first a
-     offset:Integer := position(fst,b)
-     if offset <1 then return false
-     for n in 1..#a repeat
-       if a.n ~= b.offset then return false
-       offset := offset+1
-       if offset > #b then offset := 1
-     true
-
-   -- Returns true if x equals y.
-   -- That is, they contain the same simplexes, although not necessarily in the
-   -- same order.
-   -- TODO - Assumes point set is exactly the same, for more generality we should allow
-   -- the points to be defined in a different order.
-   _=(a : %, b : %) : Boolean ==
-     as := a.MAPS
-     bs := b.MAPS
-     --print("equal:"::Symbol << as << ","::Symbol << bs)
-     len:NNI := #as
-     if len ~= #bs then return false
---     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
-     --print("empty flags "::Symbol << flags)
---     for a1 in as repeat
---       x:NNI := 1
---       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
---         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
---         x:=x+1
---         if x > #as then return false
---       flags.x := true
-       --print("flags."::Symbol << x << "=true "::Symbol << flags)
-     --print("final flags "::Symbol << flags)
---     for f in flags repeat
---       if f=false then return false
-     true
-
-   -- output
-   coerce(s : %) : OutputForm ==
-     res:OutputForm :=empty()$OutputForm -- holds result
-     if empty?(s.MAPS) then return res
-     tabNum:NNI := 1::NNI
-     for a in s.MAPS repeat
-       if tabNum = 1::NNI then res := hconcat(res,message("edge:"))
-       if tabNum = 2::NNI then res := hconcat(res,message(" triangle:"))
-       if tabNum = 3::NNI then res := hconcat(res,message(" tetrahedron:"))
-       if tabNum > 3::NNI then res := hconcat(res,message(" higher:"))
-       res := hconcat(res,a::OutputForm)
-       tabNum := tabNum+1
-     res
-
-   -- coerce DeltaComplex to FiniteSimplicialComplex
-   coerce(s:%) : FiniteSimplicialComplex(VS) ==
-     simplicialComplex(s pretend DeltaComplex(VS))
 
 )if false
 \section{SimplicialComplex Factory}
