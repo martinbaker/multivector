@@ -1101,10 +1101,17 @@ CubicalFacet() : Exports == Impl where
    getIntervals(orf:%):List(Segment(Integer)) ==
      orf.fac
 
-   -- number of vertices
+   -- The number of non-degenerate intervals.
+   -- In simplex this would be the number of vertices but here it is
+   -- more like the number of degrees of freedom.
    order(f:%):NNI ==
-     ints := #getIntervals(f)
-     2^ints
+     value:NNI := 0
+     facet:List(Segment(Integer)) := f.fac
+     for seg in facet repeat
+       lo := low(seg)
+       hi := high(seg)
+       value := value + abs(hi-lo)::NNI
+     value
 
    -- returns multipier of face
    getMult(orf:%):Integer ==
@@ -1741,6 +1748,286 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      deltaComplex(s pretend FiniteSimplicialComplex(VS))
 
 )if false
+\section{FiniteCubicalComplex}
+
+Defines a set of n-dimensional facets. 
+
+This representation defines faces, of any dimension, by their intervals.
+The representation is in two parts:
+\begin{itemize}
+\item The verities themselves which may either geometric (actual
+  coordinates) or abstract.
+\item A set of facets, each one represented by a set intervals.
+\end{itemize}
+
+)endif
+
+)abbrev domain CUBEC FiniteCubicalComplex
+++ Author: Martin Baker
+++ Description: 
+++   A Finite Cubical Complex
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
+++ Date Created: April 2016
+++ Date Last Updated: April 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: topology, finite, cubical, complex, edge, triangle
+++ Examples:
+++ References:
+
+FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    cubicalComplex: (v:VS,f:List(CubicalFacet)) -> %
+     ++ constructor where the cubes are supplied
+    cubicalComplex: (v:VS,f:List(List(Segment(Integer)))) -> %
+     ++ constructor where the cubes are supplied
+    cubicalComplex: (v:VS,f:List(List(List(Integer)))) -> %
+     ++ constructor where the cubes are supplied
+    cubicalComplex: (v:VS) -> %
+     ++ construct empty cubical complex
+    addCube: (a:%,f:CubicalFacet) -> %
+     ++ Add a facet to this simplex
+     ++ If the facet is also in the list then, dont append, instead
+     ++ change the multiplier.
+    grade: (s:%) -> List(List(CubicalFacet))
+     ++ a function to grade simplexes according to their lengths.
+     ++ This nests the lists according to their length.
+     ++ It starts with edges then squares and so on.
+    addImpliedFaces:(s:%) -> List(List(CubicalFacet))
+     ++ a function to take a set of faces and add those that are implied
+     ++ by the cubicalComplex conventions (if they don't already exist).
+     ++ For example, if the input is a square [1..2,1..2] then we would add
+     ++ its edges [1..1,1..2],[2..2,1..2],[1..2,1..1], and [1..2,2..2].
+    product:(a:%,b:%) -> %
+     ++ Forms product of two cubical complexes.
+    chain:(s:%) -> ChainComplex
+     ++ returns a matrix sequence representing the face maps
+     ++ in linear algebra form
+    homology:(a:%) -> List(Matrix(Integer))
+     ++ calculate homology using SmithNormalForm
+    delta:(s:%) -> %
+     ++ Boundary operator. Step down to the next lower dimension, this is
+     ++ like hollowing out the complex.
+     ++ It takes the highest dimension entries and replaces them with their boundaries,
+     ++ cancelling out where it can.
+
+  Impl ==> add
+
+   -- Representation holds whole Cubical Complex. This consists of
+   -- a vertex set, here represented as a vertex list so that we can
+   -- index it.
+   -- Also a list of hypercubes.
+   Rep := Record(VERTSET:VS,CUBE:List(CubicalFacet))
+
+   -- constructor where the vertex set and cubes are supplied
+   cubicalComplex(v:VS,fs:List(CubicalFacet)):% ==
+     --res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     --for f in fs repeat
+     --  res := concat(res,cubicalFacet(1,f))
+     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
+     [v,fs]
+
+   -- constructor where the vertex set and cubes are supplied
+   cubicalComplex(v:VS,fs:List(List(Segment(Integer)))):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for f in fs repeat
+       res := concat(res,cubicalFacet(1,f))
+     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
+     cubicalComplex(v,res)
+
+   -- constructor where the vertex set and cubes are supplied
+   cubicalComplex(v:VS,fs:List(List(List(Integer)))):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for f in fs repeat
+       res := concat(res,cubicalFacet(1,f))
+     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
+     cubicalComplex(v,res)
+
+   -- construct empty cubical complex
+   cubicalComplex(v:VS):% ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     [v,res]
+
+   -- Add a facet to this cubical complex
+   -- If the facet is also in the list then: add the multipliers.
+   addCube(a:%,f:CubicalFacet):% ==
+     res:List(CubicalFacet) := a.CUBE
+     res2:List(CubicalFacet) := empty()$List(CubicalFacet)
+     -- check for duplicates
+     found:Boolean:=false
+     for orf in res repeat
+       if getIntervals(orf)=getIntervals(f)
+         then
+           m:Integer := getMult(orf)+getMult(f)
+           if m~=0 then
+             res2 := concat(res2,setMult(orf,m))
+           found:=true
+         else
+           res2 := concat(res2,orf)
+     if not found then
+       res2 := concat(res2,f)
+     --print("addCube("::Symbol << a << ","::Symbol << f << ") res="::Symbol << res2)
+     cubicalComplex(a.VERTSET,res2)
+
+   -- Boundary operator. Step down to the next lower dimension, this is
+   -- like hollowing out the complex.
+   -- It takes the highest dimension entries and replaces them with their boundaries,
+   -- cancelling out where it can.
+   delta(s:%):% ==
+     res:% := cubicalComplex(s.VERTSET)
+     --facets:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for facet in s.CUBE repeat
+       x:List(CubicalFacet) := delta(facet)
+       --print("delta("::Symbol << s.CUBE << ") x="::Symbol << x)
+       for y in x repeat
+         --facets := concat(facets,y)$List(CubicalFacet)
+         res:=addCube(res,y)
+     res
+
+   -- A function to grade simplexes according to their lengths.
+   -- This nests the lists according to their length.
+   -- It starts with verticies then edges then squares and so on.
+   grade(s:%):List(List(CubicalFacet)) ==
+     simp:List(CubicalFacet) := s.CUBE
+     maxGrade:NNI := 0
+     for face in simp repeat
+       if order(face) > maxGrade then maxGrade := order(face)
+     res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
+     if maxGrade < 2 then return res
+     for a in 2..maxGrade repeat
+       res := concat(res,empty()$List(CubicalFacet))
+     for face in simp repeat
+       gr:Integer := order(face) - 1
+       if gr > 0 then
+         res.gr := concat(res.gr,face)
+     res     
+
+   -- A function to take a set of faces and add those that are implied
+   -- by the cubical complex conventions (if they don't already exist).
+   -- For example, if the input is a square [1..2,1..2] then we would add
+   -- its edges [1..1,1..2],[2..2,1..2],[1..2,1..1], and [1..2,2..2].
+   addImpliedFaces(s:%):List(List(CubicalFacet)) ==
+     --print("addImpliedFaces s="::Symbol << s)
+--     inputList:List(List(CubicalFacet)) := reverse(grade(s))
+     res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
+--     maxGrade:NNI := #inputList
+--     if (maxGrade) < 1 then
+       --print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
+--       return res
+     -- create an empty list for each grade
+--     for a in 1..(maxGrade) repeat
+--       res := concat(res,empty()$List(CubicalFacet))
+--     newFaces:List(CubicalFacet) := empty()$List(CubicalFacet)
+--     for gr in inputList for grn in 1..(maxGrade) repeat
+       --print("addImpliedFaces grade number grn="::Symbol << grn)
+       -- add old faces
+--       for face in gr repeat
+--         res.grn := concat(res.grn,face)
+       -- add new faces
+--       for face in newFaces repeat
+--         res.grn := concat(res.grn,face)
+       --print("addImpliedFaces empty newFaces. res.grn="::Symbol << res.grn)
+--       newFaces := empty()$List(CubicalFacet)
+       --print("addImpliedFaces res.grn="::Symbol << res.grn)
+--       for face in res.grn repeat
+--         len: NNI := (order(face) -1) pretend NNI
+--         if len > 0 then
+--           newFaces := listUnion(newFaces,allSubsets(face,len,len))
+       --print("addImpliedFaces get next grade res="::Symbol << res)
+     --print("addImpliedFaces result="::Symbol << reverse(res))
+     reverse(res)
+
+   -- Forms product of two cubucal complexes.
+   -- For more detailed explanation of cube product code see:
+   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
+   product(a:%,b:%):% ==
+     cubesa:List(CubicalFacet) := a.CUBE
+     cubesb:List(CubicalFacet) := b.CUBE
+     vs:VS := prod(a.VERTSET,b.VERTSET)
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for cubea in cubesa repeat
+       for cubeb in cubesb repeat
+         p:CubicalFacet := product(cubea,cubeb)
+         res := concat(res,p)
+     cubicalComplex(vs,res)
+
+   -- returns a matrix sequence representing the face maps
+   -- in linear algebra form
+   chain(s:%):ChainComplex ==
+     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
+--     maps1:List(List(List(Integer))) := s.MAPS
+--     for faces in maps1 repeat
+       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
+--       nCols:NNI := #(faces)
+--       if nCols<1 then return chainComplex(res)
+--       nRows:NNI := 0
+--       for u in faces repeat
+--         for v in u repeat
+--           if abs(v)>nRows then nRows := abs(v) pretend NNI
+       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+--       m : Matrix(Integer) := new(nRows,nCols,0)
+--       for u in faces for nu in 1..(#faces) repeat
+--         for v in u for nv in 1..(#u) repeat
+--           v2:Integer := abs(v)
+--           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
+--           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+--           ele:Integer := 1
+--           if even?(nv) then ele := -1
+--           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
+--       res := concat(res,m)
+     chainComplex(res)
+
+   -- calculate homology using SmithNormalForm
+   homology(a:%):List(Matrix(Integer)) ==
+     cc:ChainComplex := chain(a)
+     validate(cc)
+     homology(cc)
+
+   -- Returns true if x equals y.
+   -- That is, they contain the same simplexes, although not necessarily in the
+   -- same order.
+   -- TODO - Assumes point set is exactly the same, for more generality we should allow
+   -- the points to be defined in a different order.
+   _=(a : %, b : %) : Boolean ==
+     as:List(CubicalFacet) := a.CUBE
+     bs:List(CubicalFacet) := b.CUBE
+     --print("equal:"::Symbol << as << ","::Symbol << bs)
+     len:NNI := #as
+     if len ~= #bs then return false
+     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
+     --print("empty flags "::Symbol << flags)
+     for a1 in as repeat
+       x:NNI := 1
+       while (a1 ~= bs.x) or (flags.x) repeat
+         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
+         x:=x+1
+         if x > #as then return false
+       flags.x := true
+       --print("flags."::Symbol << x << "=true "::Symbol << flags)
+     --print("final flags "::Symbol << flags)
+     for f in flags repeat
+       if f=false then return false
+     true
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     res:OutputForm := empty()$OutputForm
+     if empty?(s.CUBE) then return bracket("empty"::Symbol::OutputForm)
+     for a in s.CUBE repeat
+       -- a is OrientedFacet
+       res:=vconcat(res,a::OutputForm)
+     --print("FiniteCubicialComplex coerce num="::Symbol << #(s.CUBE))
+     res
+
+)if false
 \section{Delta Complex}
 
 The FiniteSimplicialComplex representation defines faces, of any dimension, by
@@ -1784,6 +2071,9 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
     deltaComplex:(fsc:FiniteSimplicialComplex(VS)) -> %
      ++ construct from FiniteSimplicialComplex. This builds indexes of
      ++ edges, triangles and so on.
+    deltaComplex:(fsc:FiniteCubicalComplex(VS)) -> %
+     ++ construct from FiniteCubicalComplex. This builds indexes of
+     ++ edges, squares and so on.
     link:(a:NNI,b:NNI) -> %
      ++ a simplical complex with one link
     triangle:(a:NNI,b:NNI,c:NNI) -> %
@@ -1806,6 +2096,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      ++ calculate homology using SmithNormalForm
     coerce:(s:%) -> FiniteSimplicialComplex(VS)
      ++ coerce DeltaComplex to FiniteSimplicialComplex
+--    coerce:(s:%) -> FiniteCubicalComplex(VS)
+     ++ coerce CubicalDeltaComplex to FiniteCubicalComplex
 
   Impl ==> add
 
@@ -1872,6 +2164,58 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      --print("deltaComplex faceMaps="::Symbol << faceMaps )
      [vs ,faceMaps]
+
+   -- construct from FiniteCubicalComplex. This builds indexes of
+   -- edges, squares and so on.
+   deltaComplex(fsc:FiniteCubicalComplex(VS)):% ==
+     -- first grade and add implied faces
+     allFacets:List(List(CubicalFacet)) := addImpliedFaces(fsc)
+     --print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
+     -- sort each grade
+--     allFacetsGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
+--     for gradedList in allFacets repeat
+       --print("deltaComplex gradedList="::Symbol << gradedList )
+--       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
+     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
+     -- now change base indexed to heirarcical indexed
+     faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
+--     previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
+--     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
+--       faceMaps := concat(faceMaps,empty()$List(Segment(Integer)))
+--       if grn=1 then
+--         -- edges
+--         for x in gradeList repeat
+--           -- x is an OrientedFacet
+--           fm:Segment(Integer) := getIndexesSigned(x)
+--           -- fm is signed list of vericies
+--           faceMaps.grn := concat(faceMaps.grn,fm)
+--       if grn>1 then
+         -- triangles and above
+         -- we need to build up a map from oldFaceHigh to oldFacesLow
+--         newMap:List(Segment(Integer))  := empty()$List(Segment(Integer)) 
+--         for oldFaceHigh in gradeList repeat
+           --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
+--           oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
+           --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
+--           newIndexes:Segment(Integer) := segment(0,0)
+--           for oldFaceLow in oldFacesLow repeat
+             --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
+             --      " previousFaceList="::Symbol << previousFaceList << _
+             --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
+--             i:=position(oldFaceLow,previousFaceList)$OrientedFacet
+--             i2:Integer := abs(i)
+--             if i2 < 1 then
+--               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
+--                 " not found in previousFaceList="::Symbol << previousFaceList )
+--               error concat("cant find index:",string(i))
+--             newIndexes := segment(i,i)
+--           newMap := concat(newMap,newIndexes)
+--         faceMaps.grn := newMap
+--       previousFaceList := gradeList
+     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
+     --print("deltaComplex faceMaps="::Symbol << faceMaps )
+     [vs ,faceMaps]
+
 
    -- a simplical complex with one link
    link(a:NNI,b:NNI):% ==
@@ -2081,485 +2425,6 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- coerce DeltaComplex to FiniteSimplicialComplex
    coerce(s:%) : FiniteSimplicialComplex(VS) ==
      simplicialComplex(s pretend DeltaComplex(VS))
-
-)if false
-\section{FiniteCubicalComplex}
-
-Defines a set of n-dimensional facets. 
-
-This representation defines faces, of any dimension, by their intervals.
-The representation is in two parts:
-\begin{itemize}
-\item The verities themselves which may either geometric (actual
-  coordinates) or abstract.
-\item A set of facets, each one represented by a set intervals.
-\end{itemize}
-
-)endif
-
-)abbrev domain CUBEC FiniteCubicalComplex
-++ Author: Martin Baker
-++ Description: 
-++   A Finite Cubical Complex
-++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
-++ Date Created: April 2016
-++ Date Last Updated: April 2016
-++ Basic Operations:
-++ Related packages:
-++ Related categories:
-++ Related Domains:
-++ Also See:
-++ AMS Classifications:
-++ Keywords: topology, finite, cubical, complex, edge, triangle
-++ Examples:
-++ References:
-
-FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
-  NNI==> NonNegativeInteger
-  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
-
-  Exports ==> SetCategory() with
-    cubicalComplex: (v:VS,f:List(CubicalFacet)) -> %
-     ++ constructor where the cubes are supplied
-    cubicalComplex: (v:VS,f:List(List(Segment(Integer)))) -> %
-     ++ constructor where the cubes are supplied
-    cubicalComplex: (v:VS,f:List(List(List(Integer)))) -> %
-     ++ constructor where the cubes are supplied
-    cubicalComplex: (v:VS) -> %
-     ++ construct empty cubical complex
-    addCube: (a:%,f:CubicalFacet) -> %
-     ++ Add a facet to this simplex
-     ++ If the facet is also in the list then, dont append, instead
-     ++ change the multiplier.
-    product:(a:%,b:%) -> %
-     ++ Forms product of two cubical complexes.
-    chain:(s:%) -> ChainComplex
-     ++ returns a matrix sequence representing the face maps
-     ++ in linear algebra form
-    homology:(a:%) -> List(Matrix(Integer))
-     ++ calculate homology using SmithNormalForm
-    delta:(s:%) -> %
-     ++ Boundary operator. Step down to the next lower dimension, this is
-     ++ like hollowing out the complex.
-     ++ It takes the highest dimension entries and replaces them with their boundaries,
-     ++ cancelling out where it can.
-
-  Impl ==> add
-
-   -- Representation holds whole Cubical Complex. This consists of
-   -- a vertex set, here represented as a vertex list so that we can
-   -- index it.
-   -- Also a list of hypercubes.
-   Rep := Record(VERTSET:VS,CUBE:List(CubicalFacet))
-
-   -- constructor where the vertex set and cubes are supplied
-   cubicalComplex(v:VS,fs:List(CubicalFacet)):% ==
-     --res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     --for f in fs repeat
-     --  res := concat(res,cubicalFacet(1,f))
-     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
-     [v,fs]
-
-   -- constructor where the vertex set and cubes are supplied
-   cubicalComplex(v:VS,fs:List(List(Segment(Integer)))):% ==
-     res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for f in fs repeat
-       res := concat(res,cubicalFacet(1,f))
-     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
-     cubicalComplex(v,res)
-
-   -- constructor where the vertex set and cubes are supplied
-   cubicalComplex(v:VS,fs:List(List(List(Integer)))):% ==
-     res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for f in fs repeat
-       res := concat(res,cubicalFacet(1,f))
-     --print("cubicalComplex("::Symbol << fs << ") res="::Symbol<< res)
-     cubicalComplex(v,res)
-
-   -- construct empty cubical complex
-   cubicalComplex(v:VS):% ==
-     res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     [v,res]
-
-   -- Add a facet to this cubical complex
-   -- If the facet is also in the list then: add the multipliers.
-   addCube(a:%,f:CubicalFacet):% ==
-     res:List(CubicalFacet) := a.CUBE
-     res2:List(CubicalFacet) := empty()$List(CubicalFacet)
-     -- check for duplicates
-     found:Boolean:=false
-     for orf in res repeat
-       if getIntervals(orf)=getIntervals(f)
-         then
-           m:Integer := getMult(orf)+getMult(f)
-           if m~=0 then
-             res2 := concat(res2,setMult(orf,m))
-           found:=true
-         else
-           res2 := concat(res2,orf)
-     if not found then
-       res2 := concat(res2,f)
-     --print("addCube("::Symbol << a << ","::Symbol << f << ") res="::Symbol << res2)
-     cubicalComplex(a.VERTSET,res2)
-
-   -- Boundary operator. Step down to the next lower dimension, this is
-   -- like hollowing out the complex.
-   -- It takes the highest dimension entries and replaces them with their boundaries,
-   -- cancelling out where it can.
-   delta(s:%):% ==
-     res:% := cubicalComplex(s.VERTSET)
-     --facets:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for facet in s.CUBE repeat
-       x:List(CubicalFacet) := delta(facet)
-       --print("delta("::Symbol << s.CUBE << ") x="::Symbol << x)
-       for y in x repeat
-         --facets := concat(facets,y)$List(CubicalFacet)
-         res:=addCube(res,y)
-     res
-
-   -- Forms product of two cubucal complexes.
-   -- For more detailed explanation of cube product code see:
-   -- \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/}
-   product(a:%,b:%):% ==
-     cubesa:List(CubicalFacet) := a.CUBE
-     cubesb:List(CubicalFacet) := b.CUBE
-     vs:VS := prod(a.VERTSET,b.VERTSET)
-     res:List(CubicalFacet) := empty()$List(CubicalFacet)
-     for cubea in cubesa repeat
-       for cubeb in cubesb repeat
-         p:CubicalFacet := product(cubea,cubeb)
-         res := concat(res,p)
-     cubicalComplex(vs,res)
-
-   -- returns a matrix sequence representing the face maps
-   -- in linear algebra form
-   chain(s:%):ChainComplex ==
-     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
---     maps1:List(List(List(Integer))) := s.MAPS
---     for faces in maps1 repeat
-       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
---       nCols:NNI := #(faces)
---       if nCols<1 then return chainComplex(res)
---       nRows:NNI := 0
---       for u in faces repeat
---         for v in u repeat
---           if abs(v)>nRows then nRows := abs(v) pretend NNI
-       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
---       m : Matrix(Integer) := new(nRows,nCols,0)
---       for u in faces for nu in 1..(#faces) repeat
---         for v in u for nv in 1..(#u) repeat
---           v2:Integer := abs(v)
---           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
---           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
---           ele:Integer := 1
---           if even?(nv) then ele := -1
---           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
---       res := concat(res,m)
-     chainComplex(res)
-
-   -- calculate homology using SmithNormalForm
-   homology(a:%):List(Matrix(Integer)) ==
-     cc:ChainComplex := chain(a)
-     validate(cc)
-     homology(cc)
-
-   -- Returns true if x equals y.
-   -- That is, they contain the same simplexes, although not necessarily in the
-   -- same order.
-   -- TODO - Assumes point set is exactly the same, for more generality we should allow
-   -- the points to be defined in a different order.
-   _=(a : %, b : %) : Boolean ==
-     as:List(CubicalFacet) := a.CUBE
-     bs:List(CubicalFacet) := b.CUBE
-     --print("equal:"::Symbol << as << ","::Symbol << bs)
-     len:NNI := #as
-     if len ~= #bs then return false
-     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
-     --print("empty flags "::Symbol << flags)
-     for a1 in as repeat
-       x:NNI := 1
-       while (a1 ~= bs.x) or (flags.x) repeat
-         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
-         x:=x+1
-         if x > #as then return false
-       flags.x := true
-       --print("flags."::Symbol << x << "=true "::Symbol << flags)
-     --print("final flags "::Symbol << flags)
-     for f in flags repeat
-       if f=false then return false
-     true
-
-   -- output
-   coerce(s : %) : OutputForm ==
-     res:OutputForm := empty()$OutputForm
-     if empty?(s.CUBE) then return bracket("empty"::Symbol::OutputForm)
-     for a in s.CUBE repeat
-       -- a is OrientedFacet
-       res:=vconcat(res,a::OutputForm)
-     --print("FiniteCubicialComplex coerce num="::Symbol << #(s.CUBE))
-     res
-
-)if false
-\section{Cubical Delta Complex}
-
-Similar to Delta Complex but instead works with Cubical Complexes.
-)endif
-
-)abbrev domain CDELTC CubicalDeltaComplex
-++ Author: Martin Baker
-++ Description: 
-++   Similar to Cubical Complex but faces (edges, tringles, etc.) are
-++   indexed by 'face maps' into the next lower face map until we get
-++   down to the verticies.
-++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/homology/
-++ Date Created: May 2016
-++ Date Last Updated: May 2016
-++ Basic Operations:
-++ Related packages:
-++ Related categories:
-++ Related Domains: FiniteCubicalComplex is a simpler and more compact
-++    representation which can be used if edges, triangles, etc. don't need
-++    to be indexed.
-++ Also See:
-++ AMS Classifications:
-++ Keywords: topology, finite, simplicial, complex, edge, triangle
-++ Examples:
-++ References:
-
-CubicalDeltaComplex(VS:VertexSet) : Exports == Impl where
-  NNI==> NonNegativeInteger
-  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
-
-  Exports ==> SetCategory() with
-    deltaComplex: (v:VS,f:List(List(Segment(Integer)))) -> %
-     ++ constructor where the simplices are supplied
-    deltaComplex:(fsc:FiniteCubicalComplex(VS)) -> %
-     ++ construct from FiniteCubicalComplex. This builds indexes of
-     ++ edges, triangles and so on.
-    link:(a:NNI,b:NNI) -> %
-     ++ a simplical complex with one link
---    triangle:(a:NNI,b:NNI,c:NNI) -> %
-     ++ a simplical complex with one triangle
-    faceMap:(s:%,n:NNI) -> List(Segment(Integer))
-     ++ returns an individual face map specified by n.
-     ++ Where 'n' is the dimension required, so n=1 returns
-     ++ one dimentional faces (edges), n=2 returns
-     ++ two dimentional faces (triamgles), and so on.
-    chain:(s:%) -> ChainComplex
-     ++ returns a matrix sequence representing the face maps
-     ++ in linear algebra form
---    oneSkeleton:(s:%) -> UndirectedGraph(NNI)
-     ++ generates graph AKA 1-skeleton
-    homology:(a:%) -> List(Matrix(Integer))
-     ++ calculate homology using SmithNormalForm
---    coerce:(s:%) -> FiniteCubicalComplex(VS)
-     ++ coerce CubicalDeltaComplex to FiniteCubicalComplex
-
-  Impl ==> add
-
-   -- Representation holds whole Complex. This consists of
-   -- a vertex set, here represented as a vertex list so that we can
-   -- index it.
-   -- Also a sequence of tables (known as 'face maps') representing
-   -- edges, triangles, tetrahedrons, etc. containing indexes into
-   -- the next lower map.
-   -- Since edges, triangles, tetrahedrons, etc. are oriented we use
-   -- a positive or negative index to indicate winding direction. 
-   Rep := Record(VERTSET:VS,MAPS:List(List(Segment(Integer))))
-
-   -- constructor where the vertex set and simplices are supplied
-   deltaComplex(v:VS,f:List(List(Segment(Integer)))):% == [v,f]
-
-   -- construct from FiniteCubicalComplex. This builds indexes of
-   -- edges, triangles and so on.
-   deltaComplex(fsc:FiniteCubicalComplex(VS)):% ==
-     -- first grade and add implied faces
---     allFacets:List(List(OrientedFacet)) := addImpliedFaces(fsc)
-     --print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
-     -- sort each grade
---     allFacetsGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
---     for gradedList in allFacets repeat
-       --print("deltaComplex gradedList="::Symbol << gradedList )
---       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
-     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
-     -- now change base indexed to heirarcical indexed
-     faceMaps:List(List(Segment(Integer))) := empty()$List(List(Segment(Integer)))
---     previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
---     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
---       faceMaps := concat(faceMaps,empty()$List(Segment(Integer)))
---       if grn=1 then
---         -- edges
---         for x in gradeList repeat
---           -- x is an OrientedFacet
---           fm:Segment(Integer) := getIndexesSigned(x)
---           -- fm is signed list of vericies
---           faceMaps.grn := concat(faceMaps.grn,fm)
---       if grn>1 then
-         -- triangles and above
-         -- we need to build up a map from oldFaceHigh to oldFacesLow
---         newMap:List(Segment(Integer))  := empty()$List(Segment(Integer)) 
---         for oldFaceHigh in gradeList repeat
-           --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
---           oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
-           --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
---           newIndexes:Segment(Integer) := segment(0,0)
---           for oldFaceLow in oldFacesLow repeat
-             --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
-             --      " previousFaceList="::Symbol << previousFaceList << _
-             --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
---             i:=position(oldFaceLow,previousFaceList)$OrientedFacet
---             i2:Integer := abs(i)
---             if i2 < 1 then
---               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
---                 " not found in previousFaceList="::Symbol << previousFaceList )
---               error concat("cant find index:",string(i))
---             newIndexes := segment(i,i)
---           newMap := concat(newMap,newIndexes)
---         faceMaps.grn := newMap
---       previousFaceList := gradeList
-     vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
-     --print("deltaComplex faceMaps="::Symbol << faceMaps )
-     [vs ,faceMaps]
-
-   -- a simplical complex with one link
-   link(a:NNI,b:NNI):% ==
-     vs:VS := (vertexSeta(2::NNI)$VertexSetAbstract) pretend VS
-     simp:List(List(Segment(Integer))) := [[segment(a,b)]]
-     [vs,simp]
-
-   -- a simplical complex with one triangle
---   triangle(a:NNI,b:NNI,c:NNI):% ==
---     vs:VS := (vertexSeta(3::NNI)$VertexSetAbstract) pretend VS
---     edges:List(Segment(Integer)) := [segment(a,b),segment(a,c),segment(b,c)]
---     triangles:List(Segment(Integer)) := [[a,-b,c]]
---     simp:List(List(Segment(Integer))) := [edges,triangles]
---     [vs,simp]
-
-   -- returns an individual face map specified by n.
-   -- Where 'n' is the dimension required, so n=1 returns
-   -- one dimensional faces (edges), n=2 returns
-   -- two dimensional faces (triangles), and so on.
-   faceMap(s:%,n:NNI):List(Segment(Integer)) ==
-     maps1:List(List(Segment(Integer))) := s.MAPS
-     if n > #maps1 then return empty()$List(Segment(Integer))
-     maps1.n
-
-   -- returns a matrix sequence representing the face maps
-   -- in linear algebra form
-   chain(s:%):ChainComplex ==
-     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
---     maps1:List(List(Segment(Integer))) := s.MAPS
---     for faces in maps1 repeat
-       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
---       nCols:NNI := #(faces)
---       if nCols<1 then return chainComplex(res)
---       nRows:NNI := 0
---       for u in faces repeat
---         for v in u repeat
---           if abs(v)>nRows then nRows := abs(v) pretend NNI
-       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
---       m : Matrix(Integer) := new(nRows,nCols,0)
---       for u in faces for nu in 1..(#faces) repeat
---         for v in u for nv in 1..(#u) repeat
---           v2:Integer := abs(v)
---           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
---           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
---           ele:Integer := 1
---           if even?(nv) then ele := -1
---           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
---       res := concat(res,m)
-     chainComplex(res)
-
-   -- calculate homology using SmithNormalForm
-   homology(a:%):List(Matrix(Integer)) ==
-     cc:ChainComplex := chain(a)
-     validate(cc)
-     homology(cc)
-
-   -- Generates graph AKA 1-skeleton.
-   -- Used to generate fundamental group
---   oneSkeleton(s:%):UndirectedGraph(NNI) ==
---     ARROW ==> Record(name : String, arrType : NNI, fromOb : NNI, _
---           toOb : NNI, xOffset : Integer, yOffset : Integer, map : List NNI)
---     OBJT ==> Record(value : NNI, posX : NNI, posY : NNI)
---     GS := UndirectedGraph(NNI)
---     nodes:List(OBJT) := empty()$List(OBJT)
---     edges:List(ARROW) := empty()$List(ARROW)
---     m:NNI := maxFaces(s.VERTSET)
---     edgeIndexes:List(Segment(Integer)) := first(s.MAPS)
---     for x in edgeIndexes repeat
---         --print("oneSkeleton x="::Symbol << x)
---         from1:NNI := abs(x.1) pretend NNI
---         if from1>m then m:=from1
---         to1:NNI := abs(x.2) pretend NNI
---         if to1>m then m:=to1
- --        y:ARROW := ["x",0::NNI,from1,to1,0::Integer,0::Integer,[]]
---         edges := concat(edges,y)$List(ARROW)
---     setMaxFaces(s.VERTSET,m)
---     --print("oneSkeleton nodes="::Symbol << nodes << " edges="::Symbol << edges  << _
-     --     " maxVerts="::Symbol << m  << " maxVerts="::Symbol << maxFaces(s.VERTSET))
---     for m1 in 1..m repeat
---       nodes:= concat(nodes,[m1,0::NNI,0::NNI])$List(OBJT)
---     undirectedGraph(nodes,edges)$GS
-
-   -- Local function used by '=' to check if two simplexes are equal.
-   -- To be equal they must contain the same indexes, wound in the same
-   -- direction but not necessarily starting at the same value.
-   equalSimplex(a:Segment(Integer),b:Segment(Integer)):Boolean ==
-     --print("equalSimplex:"::Symbol << a << ","::Symbol << b)
---     len:NNI := #a
---     if len ~= #b then return false
---     if len = 0 then return true
---     fst:Integer := first a
---     offset:Integer := position(fst,b)
---     if offset <1 then return false
---     for n in 1..#a repeat
---       if a.n ~= b.offset then return false
---       offset := offset+1
---       if offset > #b then offset := 1
-     true
-
-   -- Returns true if x equals y.
-   -- That is, they contain the same simplexes, although not necessarily in the
-   -- same order.
-   -- TODO - Assumes point set is exactly the same, for more generality we should allow
-   -- the points to be defined in a different order.
-   _=(a : %, b : %) : Boolean ==
-     as := a.MAPS
-     bs := b.MAPS
-     --print("equal:"::Symbol << as << ","::Symbol << bs)
-     len:NNI := #as
-     if len ~= #bs then return false
---     flags:List(Boolean) := [false for x in as] -- flag for every entry in b
-     --print("empty flags "::Symbol << flags)
---     for a1 in as repeat
---       x:NNI := 1
---       while (not equalSimplex(a1,bs.x)) or (flags.x) repeat
---         --print("loop:"::Symbol << x << " flags"::Symbol << flags)
---         x:=x+1
---         if x > #as then return false
---       flags.x := true
-       --print("flags."::Symbol << x << "=true "::Symbol << flags)
-     --print("final flags "::Symbol << flags)
---     for f in flags repeat
---       if f=false then return false
-     true
-
-   -- output
-   coerce(s : %) : OutputForm ==
-     res:OutputForm :=empty()$OutputForm -- holds result
-     if empty?(s.MAPS) then return res
-     tabNum:NNI := 1::NNI
-     for a in s.MAPS repeat
-       if tabNum = 1::NNI then res := hconcat(res,message("edge:"))
-       if tabNum = 2::NNI then res := hconcat(res,message(" triangle:"))
-       if tabNum = 3::NNI then res := hconcat(res,message(" tetrahedron:"))
-       if tabNum > 3::NNI then res := hconcat(res,message(" higher:"))
-       res := hconcat(res,a::OutputForm)
-       tabNum := tabNum+1
-     res
 
    -- coerce CubicalDeltaComplex to FiniteCubicalComplex
 --   coerce(s:%) : FiniteCubicalComplex(VS) ==
