@@ -642,12 +642,9 @@ OrientedFacet() : Exports == Impl where
        --print("allSubsets out 1 orf"::Symbol << orf << " order(orf)="::Symbol << _
        --      order(orf) << " result="::Symbol << res)
        return res
-     --even:Boolean := false
      for x in facet repeat
        --print("allSubsets 2 x="::Symbol << x << " in facet="::Symbol << facet)
        r:List(NNI) := remove(x,facet)
-       --m:Integer := if even then -mult else mult
-       --even := not even
        r1:% := orientedFacet(1,r)
        res:=addIfNew(res,r1)
        --print("allSubsets 3 order(r1)="::Symbol << order(r1) << " minDim="::Symbol << minDim)
@@ -792,8 +789,8 @@ OrientedFacet() : Exports == Impl where
     f := concat(f,v)
     orientedFacet(1,f)
 
-     ++ true if this is the same face although the orientation
-     ++ may be different
+   -- true if this is the same face although the orientation
+   -- may be different
    sameFace?(a:%,b:%):Boolean ==
      vertsa:List(NNI) := a.fac
      vertsb:List(NNI) := b.fac
@@ -1052,6 +1049,17 @@ CubicalFacet() : Exports == Impl where
     delta:(orf:%) -> List(%)
      ++ construct the boundary. This is like hollowing out
      ++ the facet.
+    sameFace?:(a:%,b:%) -> Boolean
+     ++ true if this is the same face although the orientation
+     ++ may be different
+    allSubsets:(orf:%,minDim:NNI) -> List(%)
+     ++ allSubsets of a given facet
+     ++ returned in reverse order
+     ++ subsets returned are not oriented
+    allSubsets:(orf:%,minDim:NNI,maxDim:NNI) -> List(%)
+     ++ allSubsets of a given length
+     ++ returned in reverse order
+     ++ subsets returned are not oriented
 
   Impl ==> add
 
@@ -1174,6 +1182,70 @@ CubicalFacet() : Exports == Impl where
        invert := not invert
      --print("delta res="::Symbol << res)
      res
+
+   -- local function to add if new
+   addIfNew(lst:List(%),orf:%):List(%) ==
+     --print("addIfNew("::Symbol << lst << ","::Symbol << orf << ")"::Symbol)
+     if not empty?(orf) and member?(orf,lst)$List(%) then return lst
+     concat(lst,orf)
+
+   -- local function to add list if new
+   addIfNew2(lst:List(%),orfs:List(%)):List(%) ==
+     --print("addIfNew2("::Symbol << lst << ","::Symbol << orfs << ")"::Symbol)
+     if empty?(orfs) then return lst
+     res:List(%) := copy(lst)
+     for orf in orfs repeat
+       if not empty?(orf) and not member?(orf,res)$List(%) then
+         res := concat(res,orf)
+     --print("addIfNew2("::Symbol << lst << ","::Symbol << orfs << _
+     --    ") res="::Symbol<< res)
+     res
+
+   -- allSubsets of given facet
+   -- returned in reverse order
+   -- subsets returned are not oriented
+   allSubsets(orf:%,minDim:NNI):List(%) ==
+     print("allSubsets in ("::Symbol << orf << ","::Symbol << minDim << ")"::Symbol)
+     facet:List(Segment(Integer)) := orf.fac
+     mult:Integer := orf.mul
+     res:List(%) := empty()$List(%)
+     if order(orf) <= minDim then
+       print("allSubsets out 1 orf"::Symbol << orf << " order(orf)="::Symbol << _
+             order(orf) << " result="::Symbol << res)
+       return res
+     for x in facet repeat
+       print("allSubsets 2 x="::Symbol << x << " in facet="::Symbol << facet)
+       r:List(Segment(Integer)) := remove(x,facet)
+       r1:% := cubicalFacet(1,r)
+       res:=addIfNew(res,r1)
+       --print("allSubsets 3 order(r1)="::Symbol << order(r1) << " minDim="::Symbol << minDim)
+       if order(r1) > minDim then
+         sub:List(%) := allSubsets(r1,minDim)
+         if not empty?(sub) then res:=addIfNew2(res,sub)
+     print("allSubsets out orf="::Symbol << orf << " result="::Symbol << res)
+     res
+
+   -- allSubsets of a given length
+   -- returned in reverse order
+   -- subsets returned are not oriented
+   allSubsets(orf:%,minDim:NNI,maxDim:NNI):List(%) ==
+     print("allSubsets("::Symbol << orf << ","::Symbol << _
+            minDim << ","::Symbol << maxDim << ")"::Symbol)
+     res:List(%) := allSubsets(orf,minDim)
+     --print("allSubsets res="::Symbol << res)
+     res2:List(%) := empty()$List(%)
+     for y in res repeat
+       if order(y) <= maxDim then
+         res2:=concat(res2,y)$List(%)       
+     --print("allSubsets result="::Symbol << res2)
+     res2
+
+   -- true if this is the same face although the orientation
+   -- may be different
+   sameFace?(a:%,b:%):Boolean ==
+     vertsa:List(Segment(Integer)) := a.fac
+     vertsb:List(Segment(Integer)) := b.fac
+     not(vertsa ~= vertsb)
 
    -- Returns true if x equals y.
    -- Assumes indexes are in order as this is forced by constructor.
@@ -1808,9 +1880,6 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      ++ its edges [1..1,1..2],[2..2,1..2],[1..2,1..1], and [1..2,2..2].
     product:(a:%,b:%) -> %
      ++ Forms product of two cubical complexes.
-    chain:(s:%) -> ChainComplex
-     ++ returns a matrix sequence representing the face maps
-     ++ in linear algebra form
     homology:(a:%) -> List(Matrix(Integer))
      ++ calculate homology using SmithNormalForm
     delta:(s:%) -> %
@@ -1910,37 +1979,57 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          res.gr := concat(res.gr,face)
      res     
 
+   -- local function used in listUnion in addImpliedFaces
+   isNewFace?(lst:List(CubicalFacet),b:CubicalFacet):Boolean ==
+     --print("isNewFace?("::Symbol << a << ","::Symbol << b << ")"::Symbol)
+     for a in lst repeat
+       if sameFace?(a,b) then return false
+       --if member?(b,a)$List(CubicalFacet) then return false
+     true
+
+   -- local function used in addImpliedFaces
+   listUnion(a:List(CubicalFacet),b:List(CubicalFacet)):List(CubicalFacet) ==
+     res:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for a1 in a repeat
+       res:=concat(res,a1)
+     for b1 in b repeat
+       if isNewFace?(a,b1) then
+         res:=concat(res,b1)
+     --print("listUnion("::Symbol << a << ","::Symbol << b << ") = "::Symbol << res)
+     res
+
    -- A function to take a set of faces and add those that are implied
    -- by the cubical complex conventions (if they don't already exist).
    -- For example, if the input is a square [1..2,1..2] then we would add
    -- its edges [1..1,1..2],[2..2,1..2],[1..2,1..1], and [1..2,2..2].
    addImpliedFaces(s:%):List(List(CubicalFacet)) ==
-     --print("addImpliedFaces s="::Symbol << s)
---     inputList:List(List(CubicalFacet)) := reverse(grade(s))
+     print("addImpliedFaces s="::Symbol << s)
+     inputList:List(List(CubicalFacet)) := reverse(grade(s))
+     print("addImpliedFaces inputList="::Symbol << inputList)
      res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
---     maxGrade:NNI := #inputList
---     if (maxGrade) < 1 then
-       --print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
---       return res
+     maxGrade:NNI := #inputList
+     if (maxGrade) < 1 then
+       print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
+       return res
      -- create an empty list for each grade
---     for a in 1..(maxGrade) repeat
---       res := concat(res,empty()$List(CubicalFacet))
---     newFaces:List(CubicalFacet) := empty()$List(CubicalFacet)
---     for gr in inputList for grn in 1..(maxGrade) repeat
-       --print("addImpliedFaces grade number grn="::Symbol << grn)
+     for a in 1..(maxGrade) repeat
+       res := concat(res,empty()$List(CubicalFacet))
+     newFaces:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for gr in inputList for grn in 1..(maxGrade) repeat
+       print("addImpliedFaces grade number grn="::Symbol << grn)
        -- add old faces
---       for face in gr repeat
---         res.grn := concat(res.grn,face)
+       for face in gr repeat
+         res.grn := concat(res.grn,face)
        -- add new faces
---       for face in newFaces repeat
---         res.grn := concat(res.grn,face)
-       --print("addImpliedFaces empty newFaces. res.grn="::Symbol << res.grn)
---       newFaces := empty()$List(CubicalFacet)
-       --print("addImpliedFaces res.grn="::Symbol << res.grn)
---       for face in res.grn repeat
---         len: NNI := (order(face) -1) pretend NNI
---         if len > 0 then
---           newFaces := listUnion(newFaces,allSubsets(face,len,len))
+       for face in newFaces repeat
+         res.grn := concat(res.grn,face)
+       print("addImpliedFaces empty newFaces. res.grn="::Symbol << res.grn)
+       newFaces := empty()$List(CubicalFacet)
+       print("addImpliedFaces res.grn="::Symbol << res.grn)
+       for face in res.grn repeat
+         len: NNI := (order(face) -1) pretend NNI
+         if len > 0 then
+           newFaces := listUnion(newFaces,allSubsets(face,len,len))
        --print("addImpliedFaces get next grade res="::Symbol << res)
      --print("addImpliedFaces result="::Symbol << reverse(res))
      reverse(res)
@@ -1959,37 +2048,10 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          res := concat(res,p)
      cubicalComplex(vs,res)
 
-   -- returns a matrix sequence representing the face maps
-   -- in linear algebra form
-   chain(s:%):ChainComplex ==
-     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
---     maps1:List(List(List(Integer))) := s.MAPS
---     for faces in maps1 repeat
-       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
---       nCols:NNI := #(faces)
---       if nCols<1 then return chainComplex(res)
---       nRows:NNI := 0
---       for u in faces repeat
---         for v in u repeat
---           if abs(v)>nRows then nRows := abs(v) pretend NNI
-       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
---       m : Matrix(Integer) := new(nRows,nCols,0)
---       for u in faces for nu in 1..(#faces) repeat
---         for v in u for nv in 1..(#u) repeat
---           v2:Integer := abs(v)
---           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
---           --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
---           ele:Integer := 1
---           if even?(nv) then ele := -1
---           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
---       res := concat(res,m)
-     chainComplex(res)
-
    -- calculate homology using SmithNormalForm
-   homology(a:%):List(Matrix(Integer)) ==
-     cc:ChainComplex := chain(a)
-     validate(cc)
-     homology(cc)
+   homology(s:%):List(Matrix(Integer)) ==
+     dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteCubicalComplex(VS))
+     homology(dc)
 
    -- Returns true if x equals y.
    -- That is, they contain the same simplexes, although not necessarily in the
