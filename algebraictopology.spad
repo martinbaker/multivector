@@ -1041,6 +1041,8 @@ CubicalFacet() : Exports == Impl where
      ++ Copy constructor which can change mul
     getIntervals: (orf:%) -> List(Segment(Integer))
      ++ returns intervals in face one for each dimension
+    getIndexesSigned:(orf:%) -> List(Integer)
+     ++ returns indexes in face with sign to give orientation
     setMult :(orf:%,m:Integer) -> %
      ++ sets multipier of face
     product:(a:%,b:%) -> %
@@ -1130,6 +1132,16 @@ CubicalFacet() : Exports == Impl where
      fac2:List(Segment(Integer)) := getIntervals(orf)
      cubicalFacet(m,fac2)
 
+   -- returns indexes in face with sign to give orientation
+   getIndexesSigned(orf:%):List(Integer) ==
+     res:List(Integer) := empty()$List(Integer)
+     neg:Boolean := (sign(orf.mul) = -1)
+--     for i in orf.fac repeat
+--       i2:Integer := if neg then (-i)::Integer else i::Integer
+--       res := concat(res,i2)
+--       neg := not neg
+     res
+
    -- This function returns the product of two cubicalfacets.
    -- Unlike the simplex case, the product is a sinle facet
    -- For more detailed explanation of cubical product code see:
@@ -1205,32 +1217,45 @@ CubicalFacet() : Exports == Impl where
    -- returned in reverse order
    -- subsets returned are not oriented
    allSubsets(orf:%,minDim:NNI):List(%) ==
-     print("allSubsets in ("::Symbol << orf << ","::Symbol << minDim << ")"::Symbol)
+     --print("allSubsets in ("::Symbol << orf << ","::Symbol << minDim << ")"::Symbol)
      facet:List(Segment(Integer)) := orf.fac
      mult:Integer := orf.mul
      res:List(%) := empty()$List(%)
      if order(orf) <= minDim then
-       print("allSubsets out 1 orf"::Symbol << orf << " order(orf)="::Symbol << _
-             order(orf) << " result="::Symbol << res)
+       --print("allSubsets out 1 orf="::Symbol << orf << " order(orf)="::Symbol << _
+       --      order(orf) << " result="::Symbol << res)
        return res
-     for x in facet repeat
-       print("allSubsets 2 x="::Symbol << x << " in facet="::Symbol << facet)
-       r:List(Segment(Integer)) := remove(x,facet)
-       r1:% := cubicalFacet(1,r)
-       res:=addIfNew(res,r1)
-       --print("allSubsets 3 order(r1)="::Symbol << order(r1) << " minDim="::Symbol << minDim)
-       if order(r1) > minDim then
-         sub:List(%) := allSubsets(r1,minDim)
-         if not empty?(sub) then res:=addIfNew2(res,sub)
-     print("allSubsets out orf="::Symbol << orf << " result="::Symbol << res)
+     for x in facet for xn in 1..(#facet) repeat
+       --print("allSubsets 2 x="::Symbol << x << " in facet="::Symbol << facet)
+       lo := low(x)
+       hi := high(x)
+       if lo ~= hi then
+         segLo:Segment(Integer) := segment(lo,lo)
+         segHi:Segment(Integer) := segment(hi,hi)
+         rLo:List(Segment(Integer)) := copy(facet)
+         setelt!(rLo,xn,segLo)
+         rLo1:% := cubicalFacet(1,rLo)
+         res:=addIfNew(res,rLo1)
+         rHi:List(Segment(Integer)) := copy(facet)
+         setelt!(rHi,xn,segHi)
+         rHi1:% := cubicalFacet(1,rHi)
+         res:=addIfNew(res,rHi1)
+         --print("allSubsets 3 order(rLo1)="::Symbol << order(rLo1) << " minDim="::Symbol << minDim)
+         if order(rLo1) > minDim then
+           sub:List(%) := allSubsets(rLo1,minDim)
+           if not empty?(sub) then res:=addIfNew2(res,sub)
+         if order(rHi1) > minDim then
+           sub:List(%) := allSubsets(rHi1,minDim)
+           if not empty?(sub) then res:=addIfNew2(res,sub)
+     --print("allSubsets out orf="::Symbol << orf << " result="::Symbol << res)
      res
 
    -- allSubsets of a given length
    -- returned in reverse order
    -- subsets returned are not oriented
    allSubsets(orf:%,minDim:NNI,maxDim:NNI):List(%) ==
-     print("allSubsets("::Symbol << orf << ","::Symbol << _
-            minDim << ","::Symbol << maxDim << ")"::Symbol)
+     --print("allSubsets("::Symbol << orf << ","::Symbol << _
+     --       minDim << ","::Symbol << maxDim << ")"::Symbol)
      res:List(%) := allSubsets(orf,minDim)
      --print("allSubsets res="::Symbol << res)
      res2:List(%) := empty()$List(%)
@@ -1246,6 +1271,42 @@ CubicalFacet() : Exports == Impl where
      vertsa:List(Segment(Integer)) := a.fac
      vertsb:List(Segment(Integer)) := b.fac
      not(vertsa ~= vertsb)
+
+   -- less than Local
+   ltLocal(a:List(Segment(Integer)),b:List(Segment(Integer))):Boolean ==
+     if a=b then return false
+     -- if lists are different lengths then shortest first
+     if ((#a) < 1) then return true
+     if ((#b) < 1) then return false
+     for a1 in a for b1 in b repeat
+       loa := low(a1)
+       hia := high(a1)
+       lob := low(b1)
+       hib := high(b1)
+       if loa<lob then return true
+       if loa>lob then return false
+       if hia<hib then return true
+       if hia>hib then return false
+     false
+
+   -- less than
+   -- define an order so we can sort lists
+   ((ain : %) < (bin : %)) : Boolean ==
+     --"<"(ain:%,bin:%):Boolean ==
+     --print("<("::Symbol << ain << ","::Symbol << bin << ")"::Symbol)
+     a:List(Segment(Integer)) := ain.fac
+     b:List(Segment(Integer)) := bin.fac
+     ltLocal(a,b)
+
+   -- less than or equal
+   -- define an order so we can sort lists
+   ((ain : %) <= (bin : %)) : Boolean ==
+     --"<="(ain:%,bin:%):Boolean ==
+     --print("<=("::Symbol << ain << ","::Symbol << bin << ")"::Symbol)
+     a:List(Segment(Integer)) := ain.fac
+     b:List(Segment(Integer)) := bin.fac
+     if a=b then return true
+     ltLocal(a,b)
 
    -- Returns true if x equals y.
    -- Assumes indexes are in order as this is forced by constructor.
@@ -1325,7 +1386,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
     grade: (s:%) -> List(List(OrientedFacet))
      ++ a function to grade simplexes according to their lengths.
      ++ This nests the lists according to their length.
-     ++ It starts with edges then triangles and so on.
+     ++ Verticies, edges, trianges and so on.
+     ++ The list is returned in reverse order, that is, it starts
+     ++ at highest grade and works down.
     sort:(s:%) -> %
      ++ sort
     addImpliedFaces:(s:%) -> List(List(OrientedFacet))
@@ -1480,7 +1543,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
 
    -- A function to grade simplexes according to their lengths.
    -- This nests the lists according to their length.
-   -- It starts with verticies then edges then triangles and so on.
+   -- Verticies, edges, trianges and so on.
+   -- The list is returned in reverse order, that is, it starts
+   -- at highest grade and works down.
    grade(s:%):List(List(OrientedFacet)) ==
      simp:List(OrientedFacet) := s.SIMP
      maxGrade:NNI := 0
@@ -1872,7 +1937,9 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
     grade: (s:%) -> List(List(CubicalFacet))
      ++ a function to grade simplexes according to their lengths.
      ++ This nests the lists according to their length.
-     ++ It starts with edges then squares and so on.
+     ++ Verticies, edges, squares and so on.
+     ++ The list is returned in reverse order, that is, it starts
+     ++ at highest grade and works down.
     addImpliedFaces:(s:%) -> List(List(CubicalFacet))
      ++ a function to take a set of faces and add those that are implied
      ++ by the cubicalComplex conventions (if they don't already exist).
@@ -1963,21 +2030,25 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
 
    -- A function to grade simplexes according to their lengths.
    -- This nests the lists according to their length.
-   -- It starts with verticies then edges then squares and so on.
+   -- Verticies, edges, squares and so on.
+   -- The list is returned in reverse order, that is, it starts
+   -- at highest grade and works down.
    grade(s:%):List(List(CubicalFacet)) ==
      simp:List(CubicalFacet) := s.CUBE
      maxGrade:NNI := 0
      for face in simp repeat
        if order(face) > maxGrade then maxGrade := order(face)
+     --print("grade("::Symbol << s << ") maxGrade="::Symbol << maxGrade)
      res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
-     if maxGrade < 2 then return res
-     for a in 2..maxGrade repeat
+     if maxGrade < 0 then return res
+     for a in 0..maxGrade repeat
        res := concat(res,empty()$List(CubicalFacet))
      for face in simp repeat
        gr:Integer := order(face) - 1
        if gr > 0 then
          res.gr := concat(res.gr,face)
-     res     
+     --print("grade("::Symbol << s << ") res="::Symbol << res)
+     res    
 
    -- local function used in listUnion in addImpliedFaces
    isNewFace?(lst:List(CubicalFacet),b:CubicalFacet):Boolean ==
@@ -2003,32 +2074,33 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
    -- For example, if the input is a square [1..2,1..2] then we would add
    -- its edges [1..1,1..2],[2..2,1..2],[1..2,1..1], and [1..2,2..2].
    addImpliedFaces(s:%):List(List(CubicalFacet)) ==
-     print("addImpliedFaces s="::Symbol << s)
-     inputList:List(List(CubicalFacet)) := reverse(grade(s))
-     print("addImpliedFaces inputList="::Symbol << inputList)
+     --print("addImpliedFaces s="::Symbol << s)
+     -- start at highest grade and work down
+     inputList:List(List(CubicalFacet)) := grade(s)
      res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      maxGrade:NNI := #inputList
+     --print("addImpliedFaces inputList="::Symbol << inputList << " maxGrade="::Symbol << maxGrade)
      if (maxGrade) < 1 then
-       print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
+       --print("addImpliedFaces return because maxGrade="::Symbol << maxGrade)
        return res
      -- create an empty list for each grade
      for a in 1..(maxGrade) repeat
        res := concat(res,empty()$List(CubicalFacet))
      newFaces:List(CubicalFacet) := empty()$List(CubicalFacet)
      for gr in inputList for grn in 1..(maxGrade) repeat
-       print("addImpliedFaces grade number grn="::Symbol << grn)
+       --print("addImpliedFaces grade number grn="::Symbol << grn)
        -- add old faces
        for face in gr repeat
          res.grn := concat(res.grn,face)
        -- add new faces
        for face in newFaces repeat
          res.grn := concat(res.grn,face)
-       print("addImpliedFaces empty newFaces. res.grn="::Symbol << res.grn)
+       --print("addImpliedFaces empty newFaces. res.("::Symbol << grn <<")="::Symbol << res.grn)
        newFaces := empty()$List(CubicalFacet)
-       print("addImpliedFaces res.grn="::Symbol << res.grn)
+       --print("addImpliedFaces res.("::Symbol << grn <<")="::Symbol << res.grn)
        for face in res.grn repeat
          len: NNI := (order(face) -1) pretend NNI
-         if len > 0 then
+         if len > -1 then
            newFaces := listUnion(newFaces,allSubsets(face,len,len))
        --print("addImpliedFaces get next grade res="::Symbol << res)
      --print("addImpliedFaces result="::Symbol << reverse(res))
@@ -2192,6 +2264,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
      previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
      for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
+       -- start with a list of empty lists
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
          -- edges
@@ -2232,39 +2305,41 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    deltaComplex(fsc:FiniteCubicalComplex(VS)):% ==
      -- first grade and add implied faces
      allFacets:List(List(CubicalFacet)) := addImpliedFaces(fsc)
-     --print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
+     print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
      -- sort each grade
---     allFacetsGraded:List(List(OrientedFacet)) := empty()$List(List(OrientedFacet))
---     for gradedList in allFacets repeat
-       --print("deltaComplex gradedList="::Symbol << gradedList )
---       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
-     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
+     allFacetsGraded:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
+     for gradedList in allFacets repeat
+       print("deltaComplex gradedList="::Symbol << gradedList )
+       --following line exhausts stack
+       --allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
+     print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
      -- now change base indexed to heirarcical indexed
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
---     previousFaceList:List(OrientedFacet) := empty()$List(OrientedFacet)
---     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
---       faceMaps := concat(faceMaps,empty()$List(Segment(Integer)))
---       if grn=1 then
---         -- edges
---         for x in gradeList repeat
---           -- x is an OrientedFacet
---           fm:Segment(Integer) := getIndexesSigned(x)
---           -- fm is signed list of vericies
---           faceMaps.grn := concat(faceMaps.grn,fm)
+     previousFaceList:List(CubicalFacet) := empty()$List(CubicalFacet)
+     for gradeList in allFacetsGraded for grn in 1..(#allFacetsGraded) repeat
+       -- start with a list of empty lists
+       faceMaps := concat(faceMaps,empty()$List(List(Integer)))
+       if grn=1 then
+         -- edges
+         for x in gradeList repeat
+           -- x is an CubicalFacet
+           fm:List(Integer) := getIndexesSigned(x)
+           -- fm is signed list of vericies
+           faceMaps.grn := concat(faceMaps.grn,fm)
 --       if grn>1 then
          -- triangles and above
          -- we need to build up a map from oldFaceHigh to oldFacesLow
 --         newMap:List(Segment(Integer))  := empty()$List(Segment(Integer)) 
 --         for oldFaceHigh in gradeList repeat
            --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
---           oldFacesLow:List(OrientedFacet) := delta(oldFaceHigh)
+--           oldFacesLow:List(CubicalFacet) := delta(oldFaceHigh)
            --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
 --           newIndexes:Segment(Integer) := segment(0,0)
 --           for oldFaceLow in oldFacesLow repeat
              --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
              --      " previousFaceList="::Symbol << previousFaceList << _
              --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
---             i:=position(oldFaceLow,previousFaceList)$OrientedFacet
+--             i:=position(oldFaceLow,previousFaceList)$CubicalFacet
 --             i2:Integer := abs(i)
 --             if i2 < 1 then
 --               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
