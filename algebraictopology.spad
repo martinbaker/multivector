@@ -341,15 +341,15 @@ FacetCategory() : Category == Definition where
 
  Definition ==> Join(SetCategory(),OrderedSet()) with
    getMult:(orf:%) -> Integer
-    ++ returns multipier of face
+    ++ returns multiplier of face
    order:(orf:%) -> NNI
     ++ number of vertices
    empty? :(sa:%) -> Boolean
-    ++ is empty if it contains no verticies or if multipier is zero
+    ++ is empty if it contains no verticies or if multiplier is zero
 
   add
 
-   -- is empty if it contains no verticies or if multipier is zero
+   -- is empty if it contains no verticies or if multiplier is zero
    empty?(orf:%):Boolean ==
      if order(orf)=0 then return true
      getMult(orf) =0
@@ -426,7 +426,7 @@ OrientedFacet() : Exports == Impl where
     getIndexesSigned:(orf:%) -> List(Integer)
      ++ returns indexes in face with sign to give orientation
     setMult! :(orf:%,m:Integer) -> %
-     ++ sets multipier of face
+     ++ sets multiplier of face
     delta:(orf:%) -> List(%)
      ++ construct the boundary. This is like hollowing out
      ++ the facet.
@@ -588,11 +588,11 @@ OrientedFacet() : Exports == Impl where
        neg := not neg
      res
 
-   -- returns multipier of face
+   -- returns multiplier of face
    getMult(orf:%):Integer ==
      orf.mul
 
-   -- sets multipier of face
+   -- sets multiplier of face
    setMult!(orf:%,m:Integer):% ==
      orf.mul := m
      orf
@@ -901,7 +901,7 @@ ProductFacet() : Exports == Impl where
     getMaxRight:(orf:%) -> NNI
      ++ returns maximum right index
     setMult! :(orf:%,m:Integer) -> %
-     ++ sets multipier of face
+     ++ sets multiplier of face
     addVertex2:(sa:%,v:Record(left:NNI,right:NNI))-> %
      ++ used by cone. Adds a vertex to face.
 
@@ -946,11 +946,11 @@ ProductFacet() : Exports == Impl where
    order(f:%):NNI ==
      #getIndexs(f)
 
-   -- returns multipier of face
+   -- returns multiplier of face
    getMult(orf:%):Integer ==
      orf.mul
 
-   -- sets multipier of face
+   -- sets multiplier of face
    setMult!(orf:%,m:Integer):% ==
      orf.mul := m
      orf
@@ -1041,10 +1041,11 @@ CubicalFacet() : Exports == Impl where
      ++ Copy constructor which can change mul
     getIntervals: (orf:%) -> List(Segment(Integer))
      ++ returns intervals in face one for each dimension
-    getIndexesSigned:(orf:%) -> List(Integer)
-     ++ returns indexes in face with sign to give orientation
     setMult :(orf:%,m:Integer) -> %
-     ++ sets multipier of face
+     ++ sets multiplier of face
+    position:(e:%,lst:List(%)) -> Integer
+     ++ return index of e in lst. Index will be negative if e has
+     ++ negative multiplier.
     product:(a:%,b:%) -> %
      ++ This function returns the product of two cubicalfacets.
      ++ Unlike the simplex case, the product is a sinle facet
@@ -1123,24 +1124,26 @@ CubicalFacet() : Exports == Impl where
        value := value + abs(hi-lo)::NNI
      value
 
-   -- returns multipier of face
+   -- returns multiplier of face
    getMult(orf:%):Integer ==
      orf.mul
 
-   -- sets multipier of face
+   -- sets multiplier of face
    setMult(orf:%,m:Integer):% ==
      fac2:List(Segment(Integer)) := getIntervals(orf)
      cubicalFacet(m,fac2)
 
-   -- returns indexes in face with sign to give orientation
-   getIndexesSigned(orf:%):List(Integer) ==
-     res:List(Integer) := empty()$List(Integer)
-     neg:Boolean := (sign(orf.mul) = -1)
---     for i in orf.fac repeat
---       i2:Integer := if neg then (-i)::Integer else i::Integer
---       res := concat(res,i2)
---       neg := not neg
-     res
+   -- return index of e in lst. Index will be negative if e has
+   -- negative multiplier.
+   position(e:%,lst:List(%)):Integer ==
+     --print("position("::Symbol << e << ","::Symbol << lst << ")"::Symbol)
+     res:Integer := 1
+     for x in lst repeat
+       if e.fac = x.fac then
+         if e.mul=x.mul then return res
+         return -res
+       res:=res+1
+     return 0  
 
    -- This function returns the product of two cubicalfacets.
    -- Unlike the simplex case, the product is a sinle facet
@@ -2309,10 +2312,10 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      -- sort each grade
      allFacetsGraded:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      for gradedList in allFacets repeat
-       print("deltaComplex gradedList="::Symbol << gradedList )
+       --print("deltaComplex gradedList="::Symbol << gradedList )
        --following line exhausts stack
-       --allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
-     print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
+       allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
+     --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
      -- now change base indexed to heirarcical indexed
      faceMaps:List(List(List(Integer))) := empty()$List(List(List(Integer)))
      previousFaceList:List(CubicalFacet) := empty()$List(CubicalFacet)
@@ -2320,37 +2323,37 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        -- start with a list of empty lists
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
-         -- edges
-         for x in gradeList repeat
-           -- x is an CubicalFacet
-           fm:List(Integer) := getIndexesSigned(x)
+         -- vertices
+         vi:Integer := 1
+         fm:List(Integer) := [v for v in 1..(#gradeList)]
            -- fm is signed list of vericies
-           faceMaps.grn := concat(faceMaps.grn,fm)
---       if grn>1 then
+         faceMaps.grn := concat(faceMaps.grn,fm)
+         --print("deltaComplex vertices="::Symbol << gradeList << "faceMaps="::Symbol << faceMaps)
+       if grn>1 then
          -- triangles and above
          -- we need to build up a map from oldFaceHigh to oldFacesLow
---         newMap:List(Segment(Integer))  := empty()$List(Segment(Integer)) 
---         for oldFaceHigh in gradeList repeat
+         newMap:List(List(Integer))  := empty()$List(List(Integer)) 
+         for oldFaceHigh in gradeList repeat
            --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
---           oldFacesLow:List(CubicalFacet) := delta(oldFaceHigh)
+           oldFacesLow:List(CubicalFacet) := delta(oldFaceHigh)
            --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
---           newIndexes:Segment(Integer) := segment(0,0)
---           for oldFaceLow in oldFacesLow repeat
+           newIndexes:List(Integer) := empty()$List(Integer)
+           for oldFaceLow in oldFacesLow repeat
              --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
              --      " previousFaceList="::Symbol << previousFaceList << _
              --      " allFacetsGraded.1="::Symbol << allFacetsGraded.1)
---             i:=position(oldFaceLow,previousFaceList)$CubicalFacet
---             i2:Integer := abs(i)
---             if i2 < 1 then
---               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
---                 " not found in previousFaceList="::Symbol << previousFaceList )
---               error concat("cant find index:",string(i))
---             newIndexes := segment(i,i)
---           newMap := concat(newMap,newIndexes)
---         faceMaps.grn := newMap
---       previousFaceList := gradeList
+             i:=position(oldFaceLow,previousFaceList)$CubicalFacet
+             i2:Integer := abs(i)
+             if i2 < 1 then
+               print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
+                 " not found in previousFaceList="::Symbol << previousFaceList )
+               error concat("deltaComplex: cant find index:",string(i))
+             newIndexes := concat(newIndexes,i)
+           newMap := concat(newMap,newIndexes)
+         faceMaps.grn := newMap
+       previousFaceList := gradeList
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
-     --print("deltaComplex faceMaps="::Symbol << faceMaps )
+     print("deltaComplex faceMaps="::Symbol << faceMaps )
      [vs ,faceMaps]
 
 
