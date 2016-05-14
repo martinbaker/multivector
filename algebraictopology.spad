@@ -1487,7 +1487,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      --print("simplicialComplex("::Symbol << dc << ")"::Symbol)
      dcrep := dc pretend Record(VERTSET:VS,MAPS:List(List(List(Integer))))
      vertset:VS := dcrep.VERTSET
-     maps:List(List(List(Integer))) := dcrep.MAPS
+     maps:List(List(List(Integer))) := rest(dcrep.MAPS)
      -- res list contains list which will become the result
      res:List(OrientedFacet) := empty()$List(OrientedFacet)
      -- deleteList contains list for removal at the end
@@ -1950,6 +1950,27 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      ++ its edges [1..1,1..2],[2..2,1..2],[1..2,1..1], and [1..2,2..2].
     product:(a:%,b:%) -> %
      ++ Forms product of two cubical complexes.
+    fundamentalGroup:(s:%) -> GroupPresentation
+     ++ Generates fundamental group from this cubical complex.
+     ++ This works by converting to a DeltaComplex and then generating the
+     ++ fundamentalGroup from that. This is not the most efficient method
+     ++ because the conversion generates lots of higher order faceMaps
+     ++ which are not used.
+     ++ This will attempt to simplify the group presentation, if you
+     ++ don't want this use alternative function of same name.
+     ++ TODO write a faster implemetation which only generates edge and 
+     ++ square faceMaps.
+    fundamentalGroup:(s:%,simplify:Boolean,trace:Boolean) -> GroupPresentation
+     ++ Generates fundamental group from this cubical complex.
+     ++ This works by converting to a DeltaComplex and then generating the
+     ++ fundamentalGroup from that. This is not the most efficient method
+     ++ because the conversion generates lots of higher order faceMaps
+     ++ which are not used.
+     ++ TODO write a faster implemetation which only generates edge and 
+     ++ square faceMaps.
+     ++ This version has options to:
+     ++ simplify - if true attempts to simplify the group presentation
+     ++ trace - if true outputs trace of simplification rules used.
     homology:(a:%) -> List(Matrix(Integer))
      ++ calculate homology using SmithNormalForm
     delta:(s:%) -> %
@@ -1957,6 +1978,8 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      ++ like hollowing out the complex.
      ++ It takes the highest dimension entries and replaces them with their boundaries,
      ++ cancelling out where it can.
+    coerce:(s:%) -> DeltaComplex(VS)
+     ++ coerce CubicalComplex to DeltaComplex
 
   Impl ==> add
 
@@ -2044,10 +2067,12 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      --print("grade("::Symbol << s << ") maxGrade="::Symbol << maxGrade)
      res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      if maxGrade < 0 then return res
+     -- create empty list for each grade
      for a in 0..maxGrade repeat
        res := concat(res,empty()$List(CubicalFacet))
      for face in simp repeat
-       gr:Integer := order(face) - 1
+       gr:Integer := order(face)
+       --print("grade("::Symbol << s << ") face="::Symbol << face << " gr="::Symbol << gr)
        if gr > 0 then
          res.gr := concat(res.gr,face)
      --print("grade("::Symbol << s << ") res="::Symbol << res)
@@ -2091,7 +2116,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
        res := concat(res,empty()$List(CubicalFacet))
      newFaces:List(CubicalFacet) := empty()$List(CubicalFacet)
      for gr in inputList for grn in 1..(maxGrade) repeat
-       --print("addImpliedFaces grade number grn="::Symbol << grn)
+       --print("addImpliedFaces grade number grn="::Symbol << grn << " gr="::Symbol << gr)
        -- add old faces
        for face in gr repeat
          res.grn := concat(res.grn,face)
@@ -2105,7 +2130,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          len: NNI := (order(face) -1) pretend NNI
          if len > -1 then
            newFaces := listUnion(newFaces,allSubsets(face,len,len))
-       --print("addImpliedFaces get next grade res="::Symbol << res)
+       --print("addImpliedFaces get next grade res="::Symbol << res << " newFaces="::Symbol << newFaces)
      --print("addImpliedFaces result="::Symbol << reverse(res))
      reverse(res)
 
@@ -2122,6 +2147,32 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          p:CubicalFacet := product(cubea,cubeb)
          res := concat(res,p)
      cubicalComplex(vs,res)
+
+   -- Generates fundamental group from this cubucal complex.
+   -- This works by converting to a DeltaComplex and then generating the
+   -- fundamentalGroup from that. This is not the most efficient method
+   -- because the conversion generates lots of higher order faceMaps
+   -- which are not used.
+   -- This will attempt to simplify the group presentation, if you
+   -- don't want this use alternative function of same name.
+   -- TODO write a faster implemetation which only generates edge and 
+   -- square faceMaps.
+   fundamentalGroup(s:%):GroupPresentation ==
+     fundamentalGroup(s,true,false) 
+
+   -- Generates fundamental group from this cubucal complex.
+   -- This works by converting to a DeltaComplex and then generating the
+   -- fundamentalGroup from that. This is not the most efficient method
+   -- because the conversion generates lots of higher order faceMaps
+   -- which are not used.
+   -- TODO write a faster implemetation which only generates edge and 
+   -- square faceMaps.
+   -- This version has options to:
+   -- simplify - if true attempts to simplify the group presentation
+   -- trace - if true outputs trace of simplification rules used.
+   fundamentalGroup(s:%,simplify:Boolean,trace:Boolean):GroupPresentation ==
+     dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteCubicalComplex(VS))
+     fundamentalGroup(dc,simplify,trace)
 
    -- calculate homology using SmithNormalForm
    homology(s:%):List(Matrix(Integer)) ==
@@ -2163,6 +2214,10 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
        res:=vconcat(res,a::OutputForm)
      --print("FiniteCubicialComplex coerce num="::Symbol << #(s.CUBE))
      res
+
+   -- coerce CubicalComplex to DeltaComplex
+   coerce(s:%) : DeltaComplex(VS) ==
+     deltaComplex(s pretend FiniteCubicalComplex(VS))
 
 )if false
 \section{Delta Complex}
@@ -2270,12 +2325,17 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        -- start with a list of empty lists
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
+         -- verticies
+         fm2:List(List(Integer)) := [[v pretend Integer] for v in 1..(#gradeList)]
+         faceMaps.grn := fm2
          -- edges
+         faceMaps := concat(faceMaps,empty()$List(List(Integer)))
          for x in gradeList repeat
            -- x is an OrientedFacet
            fm:List(Integer) := getIndexesSigned(x)
-           -- fm is signed list of vericies
-           faceMaps.grn := concat(faceMaps.grn,fm)
+           --print("  deltaComplex getIndexesSigned("::Symbol << x << ")"::Symbol << fm)
+           -- fm is signed list of verticies
+           faceMaps.(grn+1) := concat(faceMaps.(grn+1),fm)
        if grn>1 then
          -- triangles and above
          -- we need to build up a map from oldFaceHigh to oldFacesLow
@@ -2297,7 +2357,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
                error concat("cant find index:",string(i))
              newIndexes := concat(newIndexes,i)
            newMap := concat(newMap,newIndexes)
-         faceMaps.grn := newMap
+         faceMaps.(grn+1) := newMap
        previousFaceList := gradeList
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      --print("deltaComplex faceMaps="::Symbol << faceMaps )
@@ -2308,7 +2368,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    deltaComplex(fsc:FiniteCubicalComplex(VS)):% ==
      -- first grade and add implied faces
      allFacets:List(List(CubicalFacet)) := addImpliedFaces(fsc)
-     print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
+     --print("deltaComplex("::Symbol << fsc << ") allFacets="::Symbol << allFacets)
      -- sort each grade
      allFacetsGraded:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      for gradedList in allFacets repeat
@@ -2324,10 +2384,10 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
          -- vertices
-         vi:Integer := 1
-         fm:List(Integer) := [v for v in 1..(#gradeList)]
-           -- fm is signed list of vericies
-         faceMaps.grn := concat(faceMaps.grn,fm)
+         fm:List(List(Integer)) := [[v pretend Integer] for v in 1..(#gradeList)]
+         --fm:List(List(Integer)) := [[v pretend Integer for v in 1..(#gradeList)]]
+         -- fm is signed list of verticies
+         faceMaps.grn := fm
          --print("deltaComplex vertices="::Symbol << gradeList << "faceMaps="::Symbol << faceMaps)
        if grn>1 then
          -- triangles and above
@@ -2353,7 +2413,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
          faceMaps.grn := newMap
        previousFaceList := gradeList
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
-     print("deltaComplex faceMaps="::Symbol << faceMaps )
+     --print("deltaComplex faceMaps="::Symbol << faceMaps )
      [vs ,faceMaps]
 
 
@@ -2385,25 +2445,27 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    chain(s:%):ChainComplex ==
      res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
      maps1:List(List(List(Integer))) := s.MAPS
+     fst:Boolean := true
      for faces in maps1 repeat
-       --print("faceMapMatrix faces="::Symbol << faces << " res="::Symbol << res)
+       --print("chain faces="::Symbol << faces << " res="::Symbol << res)
        nCols:NNI := #(faces)
        if nCols<1 then return chainComplex(res)
        nRows:NNI := 0
        for u in faces repeat
          for v in u repeat
            if abs(v)>nRows then nRows := abs(v) pretend NNI
-       --print("faceMapMatrix nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
+       --print("chain nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
        m : Matrix(Integer) := new(nRows,nCols,0)
        for u in faces for nu in 1..(#faces) repeat
          for v in u for nv in 1..(#u) repeat
            v2:Integer := abs(v)
-           --print("faceMapMatrix row="::Symbol << nu << " col="::Symbol << v2 << _
+           --print("chain row="::Symbol << nu << " col="::Symbol << v2 << _
            --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
            ele:Integer := 1
            if even?(nv) then ele := -1
            setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
-       res := concat(res,m)
+       if not fst then res := concat(res,m)
+       fst := false
      chainComplex(res)
 
    -- calculate homology using SmithNormalForm
@@ -2422,7 +2484,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      nodes:List(OBJT) := empty()$List(OBJT)
      edges:List(ARROW) := empty()$List(ARROW)
      m:NNI := maxFaces(s.VERTSET)
-     edgeIndexes:List(List(Integer)) := first(s.MAPS)
+     --edgeIndexes:List(List(Integer)) := first(s.MAPS)
+     edgeIndexes:List(List(Integer)) := second(s.MAPS)
      for x in edgeIndexes repeat
          --print("oneSkeleton x="::Symbol << x)
          from1:NNI := abs(x.1) pretend NNI
@@ -2471,7 +2534,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      -- choose a spanning tree for the 1-skeleton
      span:Tree(Integer) := spanningTreeNode(graph,1::NNI)$UndirectedGraph(NNI)
      if trace then print("fundamentalGroup span="::Symbol << span )
-     edges:List(List(Integer)) := faceMap(s,1::NNI)
+     edges:List(List(Integer)) := faceMap(s,2::NNI)
      res:List(List(Integer)) := empty()$List(List(Integer))
      res := linksInTree(res,span)
      edgesInTree:List(Boolean) := [false for y in edges]
@@ -2479,7 +2542,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      for edge in edges for edgen in 1..(#edges) repeat
        if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
      if trace then print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
-     triangles:List(List(Integer)) := faceMap(s,2::NNI)
+     triangles:List(List(Integer)) := faceMap(s,3::NNI)
      rules:List(List(Integer)) := empty()$List(List(Integer))
      if trace then print("fundamentalGroup triangles="::Symbol << triangles )
      for t in triangles repeat
@@ -2554,11 +2617,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      if empty?(s.MAPS) then return res
      tabNum:NNI := 1::NNI
      for a in s.MAPS repeat
-       if tabNum = 1::NNI then res := hconcat(res,message("edge:"))
-       if tabNum = 2::NNI then res := hconcat(res,message(" triangle:"))
-       if tabNum = 3::NNI then res := hconcat(res,message(" tetrahedron:"))
-       if tabNum > 3::NNI then res := hconcat(res,message(" higher:"))
-       res := hconcat(res,a::OutputForm)
+       res := hconcat([res,message(" "),tabNum::OutputForm,message("D:"),a::OutputForm])
        tabNum := tabNum+1
      res
 
@@ -2689,8 +2748,8 @@ ChainComplex() : Exports == Impl where
          return false
        prod:Matrix(Integer):= last*m
        if not zero?(prod) then
-         print("validate failed "::Symbol << last << " * "::Symbol <<_
-           m << " = "::Symbol << prod)
+         print("validate failed: product of adjacent maps should be zero"::Symbol _
+           << last << " * "::Symbol << m << " = "::Symbol << prod)
          return false
        last:=m     
      true
