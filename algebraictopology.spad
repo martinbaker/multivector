@@ -1938,11 +1938,9 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      ++ If the facet is also in the list then, dont append, instead
      ++ change the multiplier.
     grade: (s:%) -> List(List(CubicalFacet))
-     ++ a function to grade simplexes according to their lengths.
-     ++ This nests the lists according to their length.
+     ++ A function to grade faces according to the number of non-degenerate intevals.
+     ++ This nests the lists according to their order.
      ++ Verticies, edges, squares and so on.
-     ++ The list is returned in reverse order, that is, it starts
-     ++ at highest grade and works down.
     addImpliedFaces:(s:%) -> List(List(CubicalFacet))
      ++ a function to take a set of faces and add those that are implied
      ++ by the cubicalComplex conventions (if they don't already exist).
@@ -2054,27 +2052,31 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
          res:=addCube(res,y)
      res
 
-   -- A function to grade simplexes according to their lengths.
-   -- This nests the lists according to their length.
+   -- A function to grade faces according to the number of non-degenerate intevals.
+   -- This nests the lists according to their order.
    -- Verticies, edges, squares and so on.
-   -- The list is returned in reverse order, that is, it starts
-   -- at highest grade and works down.
    grade(s:%):List(List(CubicalFacet)) ==
      simp:List(CubicalFacet) := s.CUBE
+     -- set maxGrade to be the maximum number of non-degenerate intervals
+     -- in any face
      maxGrade:NNI := 0
      for face in simp repeat
        if order(face) > maxGrade then maxGrade := order(face)
-     --print("grade("::Symbol << s << ") maxGrade="::Symbol << maxGrade)
+     --print("grade("::Symbol << s << ") maxGrade="::Symbol << maxGrade << " simp="::Symbol << simp)
      res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      if maxGrade < 0 then return res
      -- create empty list for each grade
      for a in 0..maxGrade repeat
        res := concat(res,empty()$List(CubicalFacet))
      for face in simp repeat
-       gr:Integer := order(face)
+       -- order is the number of non-degenerate intervals
+       gr:Integer := order(face) +1
        --print("grade("::Symbol << s << ") face="::Symbol << face << " gr="::Symbol << gr)
-       if gr > 0 then
-         res.gr := concat(res.gr,face)
+       if gr > 0
+         then
+           res.gr := concat(res.gr,face)
+         else
+           print("grade face:"::Symbol << face << " gr="::Symbol << res << "<1"::Symbol)
      --print("grade("::Symbol << s << ") res="::Symbol << res)
      res    
 
@@ -2104,7 +2106,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
    addImpliedFaces(s:%):List(List(CubicalFacet)) ==
      --print("addImpliedFaces s="::Symbol << s)
      -- start at highest grade and work down
-     inputList:List(List(CubicalFacet)) := grade(s)
+     inputList:List(List(CubicalFacet)) := reverse(grade(s))
      res:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      maxGrade:NNI := #inputList
      --print("addImpliedFaces inputList="::Symbol << inputList << " maxGrade="::Symbol << maxGrade)
@@ -2373,7 +2375,6 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      allFacetsGraded:List(List(CubicalFacet)) := empty()$List(List(CubicalFacet))
      for gradedList in allFacets repeat
        --print("deltaComplex gradedList="::Symbol << gradedList )
-       --following line exhausts stack
        allFacetsGraded := concat(allFacetsGraded,sort(gradedList))
      --print("deltaComplex allFacetsGraded="::Symbol << allFacetsGraded )
      -- now change base indexed to heirarcical indexed
@@ -2617,7 +2618,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      if empty?(s.MAPS) then return res
      tabNum:NNI := 1::NNI
      for a in s.MAPS repeat
-       res := hconcat([res,message(" "),tabNum::OutputForm,message("D:"),a::OutputForm])
+       row:OutputForm := hconcat([message(" "),tabNum::OutputForm,message("D:"),a::OutputForm])
+       res := vconcat(res,row)
        tabNum := tabNum+1
      res
 
