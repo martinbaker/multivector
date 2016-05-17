@@ -2391,13 +2391,13 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
          faceMaps.grn := fm
          --print("deltaComplex vertices="::Symbol << gradeList << "faceMaps="::Symbol << faceMaps)
        if grn>1 then
-         -- triangles and above
+         -- edges and above
          -- we need to build up a map from oldFaceHigh to oldFacesLow
          newMap:List(List(Integer))  := empty()$List(List(Integer)) 
          for oldFaceHigh in gradeList repeat
-           --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh )
            oldFacesLow:List(CubicalFacet) := delta(oldFaceHigh)
-           --print("  deltaComplex oldFacesLow="::Symbol << oldFacesLow )
+           --print("  deltaComplex oldFaceHigh="::Symbol << oldFaceHigh << _
+           --      " oldFacesLow="::Symbol << oldFacesLow )
            newIndexes:List(Integer) := empty()$List(Integer)
            for oldFaceLow in oldFacesLow repeat
              --print("    deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
@@ -2409,8 +2409,14 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
                print("  deltaComplex oldFaceLow="::Symbol << oldFaceLow << _
                  " not found in previousFaceList="::Symbol << previousFaceList )
                error concat("deltaComplex: cant find index:",string(i))
-             newIndexes := concat(newIndexes,i)
-           newMap := concat(newMap,newIndexes)
+             newIndexes := sort(concat(newIndexes,i2))
+           invert:Boolean := true
+           newIndexes2:List(Integer) := empty()$List(Integer)
+           for newIndex in newIndexes repeat
+             if invert then newIndex:= -newIndex
+             newIndexes2 := concat(newIndexes2,newIndex)
+             invert := not invert
+           newMap := concat(newMap,newIndexes2)
          faceMaps.grn := newMap
        previousFaceList := gradeList
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
