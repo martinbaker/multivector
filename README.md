@@ -2,8 +2,8 @@ Multivector
 -----------
 Code to use with FriCAS program - I should really change the name from 'Multivector' becaulse its no longer just about Clifford algebra but is a place to publish my new FriCAS code on any subject.
 
-Changes March 2016
-------------------
+Changes Upto June 2016
+----------------------
 I have made some changes and additions to some of my code. Would you be interested in including this in the FriCAS library?
 
 The changed/new files are:
@@ -72,12 +72,11 @@ algebraictopology.spad
 ----------------------
 This is new code.
 
-This includes simplicial complexes. At the moment only abstract simplicial complexes (purely combinitorial) are operational. The plan is to add geometric complexes later.
-
-My aim is also to export to homotopy and homotopy groups.
+This includes simplicial complexes and cubical complexes.
 
 For further information see the documentation here:
 http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
+http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
 
 computation.spad
 ----------------
@@ -102,8 +101,5 @@ Some improvements I would like to make at some time in the future are:
 
 2) The code that Franz Lehner sent to me also included isomorphism testing and drawing (using algorithms from Freese's book on "Free Lattices"). I would like to merge this with my code. (it may not all be generalisable to graphs/complexes but parts of it may be and the remainder can still be used for posets).
 
-3) Homology - Can we use simplicial complex to generate the Smith normal form which already exists in FriCAS?
-
-4) Homotopy - Although a lot of stuff in homotopy does not have a general algorithmic solution, I would still like to be able to generate groups from complexes. This would require implementing groups as presentations (free groups). I realise there are limitations on what can be done with these but, as an example GAP can do some simplifications of such groups. Franz tells me he has implemented code for free products of groups so it would be interesting to see if this could be merged in.
 
 
