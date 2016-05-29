@@ -74,10 +74,10 @@ This is new code.
 
 This includes simplicial complexes and cubical complexes.
 
-For further information see the documentation here:
-http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
-http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
-
+For further information see the documentation here:<ul>
+  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/</li>
+  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/</li>
+</ul>
 computation.spad
 ----------------
 There are some updates to existing code, this includes:
