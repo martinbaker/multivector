@@ -543,7 +543,8 @@ GroupPresentation() : Exports == Impl where
 ++ References:
 
 Homology() : Exports == Impl where
-  NNI==> NonNegativeInteger
+  NNI ==> NonNegativeInteger
+  GEN ==> Record(vec:Vector(Fraction(Integer)),ord:Fraction(Integer))
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
@@ -552,27 +553,48 @@ Homology() : Exports == Impl where
 
   Impl ==> add
    -- Representation holds delta as matrix.
-   -- 
-   Rep := Matrix(Integer)
+   Rep := List(GEN)
 
    -- construct from differential
-   homologyGroup(delta:Matrix(Integer)):% ==
+   homologyGroup(deltaInt:Matrix(Integer)):% ==
      --print("  groupPresentation construct ("::Symbol << delta << ")"::Symbol)
-     delta
+     -- first convert from matrix over Integer to matrix over Fraction(Integer)
+     deltaLL:List(List(Integer)) := listOfLists(deltaInt)
+     deltaLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in deltaLL]
+     delta:Matrix(Fraction(Integer)) := matrix(deltaLLF)
+     res: List(GEN) := empty()$List(GEN)
+     SMNF ==> SmithNormalForm(Fraction(Integer),_
+                Vector(Fraction(Integer)),_
+                Vector(Fraction(Integer)),_
+                Matrix(Fraction(Integer)))
+     SRES ==> Record(Smith: Matrix(Fraction(Integer)),_
+                leftEqMat: Matrix(Fraction(Integer)),_
+                rightEqMat: Matrix(Fraction(Integer)))
+     smit:SRES := completeSmith(delta)$SMNF
+     left:Matrix(Fraction(Integer)) := smit.leftEqMat
+     m:Matrix(Fraction(Integer)) := smit.Smith
+     leftNRows:NNI := nrows(left)
+     mNRows:NNI := nrows(m)
+     mNCols:NNI := ncols(m)
+     for nr in 1..leftNRows repeat
+       r:Vector(Fraction(Integer)) := row(left,nr)
+       order:Fraction(Integer) := 1::Fraction(Integer)
+       if nr <= mNRows and nr <= mNCols then
+         order := elt(m,nr,nr)
+       g:GEN := [r,order]
+       res := concat(res,g)
+     res
      
-   smith(a:%):Matrix(Integer) ==
-     m2:Matrix(Integer):=smith(a pretend Matrix(Integer))$IntegerSmithNormalForm
+   --smith(a:%):Matrix(Integer) ==
+   --  m2:Matrix(Integer):=smith(a pretend Matrix(Integer))$IntegerSmithNormalForm
 
    -- output
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
-     res:="Input Matrix"::Symbol::OutputForm
-     deltaIn:Matrix(Integer) := s pretend Matrix(Integer)
-     a:List(List(Integer)) := listOfLists(deltaIn)
-     res:=vconcat(res,a::OutputForm)
-     res:=vconcat(res,"SmithNormalForm"::Symbol::OutputForm)
-     SMNF==>SmithNormalForm(Integer,Vector Integer,Vector Integer,Matrix Integer)
-     res:=vconcat(res,completeSmith(deltaIn)$SMNF::OutputForm)
+     for g in s pretend List(GEN) repeat
+       ln := hconcat(["gen="::Symbol::OutputForm,(g.vec)::OutputForm,_
+         " ord="::Symbol::OutputForm,(g.ord)::OutputForm])$OutputForm
+       res:= vconcat(res,ln)
      res
 
 --Copyright (c) 2016, Martin J Baker.
