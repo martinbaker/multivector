@@ -1448,7 +1448,7 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ This version has options to:
      ++ simplify - if true attempts to simplify the group presentation
      ++ trace - if true outputs trace of simplification rules used.
-    homology:(a:%) -> List(Matrix(Integer))
+    homology:(a:%) -> List(Homology)
      ++ calculate homology using SmithNormalForm
     coerce:(s:%) -> DeltaComplex(VS)
      ++ coerce SimplicialComplex to DeltaComplex
@@ -1780,9 +1780,9 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      fundamentalGroup(dc,simplify,trace)
 
    -- calculate homology using SmithNormalForm
-   homology(s:%):List(Matrix(Integer)) ==
+   homology(s:%):List(Homology) ==
      dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteSimplicialComplex(VS))
-     homology(dc)
+     homology(dc)$DeltaComplex(VS)
 
    -- Forms product of two simplicial complexes.
    -- For more detailed explanation of simplex product code see:
@@ -1969,7 +1969,7 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      ++ This version has options to:
      ++ simplify - if true attempts to simplify the group presentation
      ++ trace - if true outputs trace of simplification rules used.
-    homology:(a:%) -> List(Matrix(Integer))
+    homology:(a:%) -> List(Homology)
      ++ calculate homology using SmithNormalForm
     delta:(s:%) -> %
      ++ Boundary operator. Step down to the next lower dimension, this is
@@ -2177,9 +2177,9 @@ FiniteCubicalComplex(VS:VertexSet) : Exports == Impl where
      fundamentalGroup(dc,simplify,trace)
 
    -- calculate homology using SmithNormalForm
-   homology(s:%):List(Matrix(Integer)) ==
+   homology(s:%):List(Homology) ==
      dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteCubicalComplex(VS))
-     homology(dc)
+     homology(dc)$DeltaComplex(VS)
 
    -- Returns true if x equals y.
    -- That is, they contain the same simplexes, although not necessarily in the
@@ -2286,7 +2286,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      ++ Generates fundamental group from this simplicial complex.
     fundamentalGroup:(s:%,simplify:Boolean,trace:Boolean) -> GroupPresentation
      ++ Generates fundamental group from this simplicial complex.
-    homology:(a:%) -> List(Matrix(Integer))
+    homology:(a:%) -> List(Homology)
      ++ calculate homology using SmithNormalForm
     coerce:(s:%) -> FiniteSimplicialComplex(VS)
      ++ coerce DeltaComplex to FiniteSimplicialComplex
@@ -2476,7 +2476,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      chainComplex(res)
 
    -- calculate homology using SmithNormalForm
-   homology(a:%):List(Matrix(Integer)) ==
+   homology(a:%):List(Homology) ==
      cc:ChainComplex := chain(a)
      validate(cc)
      homology(cc)
@@ -2728,7 +2728,7 @@ ChainComplex() : Exports == Impl where
      ++ true if this is a valid chain complex, that is:
      ++ 1) maps compose
      ++ 2) product of adjacent maps is zero
-    homology:(a:%) -> List(Matrix(Integer))
+    homology:(a:%) -> List(Homology)
      ++ calculate homology using SmithNormalForm
 
   Impl ==> add
@@ -2763,10 +2763,10 @@ ChainComplex() : Exports == Impl where
      true
 
    -- calculate homology using SmithNormalForm
-   homology(a:%):List(Matrix(Integer)) ==
-     res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
+   homology(a:%):List(Homology) ==
+     res:List(Homology) := empty()$List(Homology)
      for m1 in a repeat
-       m2:Matrix(Integer):=smith(m1)$IntegerSmithNormalForm
+       m2:Homology:=homologyGroup(m1)
        res := concat(res,m2)
      res
 

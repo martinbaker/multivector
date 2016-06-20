@@ -525,6 +525,56 @@ GroupPresentation() : Exports == Impl where
        outputForm(" | "::Symbol),r,_
        outputForm(">"::Symbol)])
 
+)abbrev domain HOMOL Homology
+++ Author: Martin Baker based on FreeAbelianMonoid by Manuel Bronstein
+++ Description: 
+++   Intended to hold homology which is calculated using IntegerSmithNormalForm:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/homology/
+++ Date Created: June 2016
+++ Date Last Updated: June 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains: FreeAbelianMonoid, FiniteSimplicialComplex
+++ Also See:
+++ AMS Classifications:
+++ Keywords:
+++ Examples:
+++ References:
+
+Homology() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> SetCategory() with
+    homologyGroup: (delta:Matrix(Integer)) -> %
+     ++ construct from differential
+
+  Impl ==> add
+   -- Representation holds delta as matrix.
+   -- 
+   Rep := Matrix(Integer)
+
+   -- construct from differential
+   homologyGroup(delta:Matrix(Integer)):% ==
+     --print("  groupPresentation construct ("::Symbol << delta << ")"::Symbol)
+     delta
+     
+   smith(a:%):Matrix(Integer) ==
+     m2:Matrix(Integer):=smith(a pretend Matrix(Integer))$IntegerSmithNormalForm
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     res:OutputForm := empty()$OutputForm
+     res:="Input Matrix"::Symbol::OutputForm
+     deltaIn:Matrix(Integer) := s pretend Matrix(Integer)
+     a:List(List(Integer)) := listOfLists(deltaIn)
+     res:=vconcat(res,a::OutputForm)
+     res:=vconcat(res,"SmithNormalForm"::Symbol::OutputForm)
+     SMNF==>SmithNormalForm(Integer,Vector Integer,Vector Integer,Matrix Integer)
+     res:=vconcat(res,completeSmith(deltaIn)$SMNF::OutputForm)
+     res
+
 --Copyright (c) 2016, Martin J Baker.
 --All rights reserved.
 --
