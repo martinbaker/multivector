@@ -2765,9 +2765,11 @@ ChainComplex() : Exports == Impl where
    -- calculate homology using SmithNormalForm
    homology(a:%):List(Homology) ==
      res:List(Homology) := empty()$List(Homology)
+     prev:Matrix(Integer) := empty()$Matrix(Integer)
      for m1 in a repeat
-       m2:Homology:=homologyGroup(m1)
+       m2:Homology :=homologyGroup(m1,prev)
        res := concat(res,m2)
+       prev := m1
      res
 
    -- output

@@ -545,32 +545,67 @@ GroupPresentation() : Exports == Impl where
 Homology() : Exports == Impl where
   NNI ==> NonNegativeInteger
   GEN ==> Record(vec:Vector(Fraction(Integer)),ord:Fraction(Integer))
+  SMNF ==> SmithNormalForm(Fraction(Integer),_
+             Vector(Fraction(Integer)),_
+             Vector(Fraction(Integer)),_
+             Matrix(Fraction(Integer)))
+  SRES ==> Record(Smith: Matrix(Fraction(Integer)),_
+             leftEqMat: Matrix(Fraction(Integer)),_
+             rightEqMat: Matrix(Fraction(Integer)))
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
 
   Exports ==> SetCategory() with
-    homologyGroup: (delta:Matrix(Integer)) -> %
-     ++ construct from differential
+    homologyGroup: (AInt:Matrix(Integer),BInt:Matrix(Integer)) -> %
+     ++ construct from differential over integers
+    homologyGroup: (A:Matrix(Fraction(Integer)),B:Matrix(Fraction(Integer))) -> %
+     ++ construct from differential over rationals
+     ++ uses method described by Waldek Hebisch here:
+     ++ https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
 
   Impl ==> add
-   -- Representation holds delta as matrix.
+   -- Representation holds torsion as vector+order
    Rep := List(GEN)
 
-   -- construct from differential
-   homologyGroup(deltaInt:Matrix(Integer)):% ==
-     --print("  groupPresentation construct ("::Symbol << delta << ")"::Symbol)
+   -- construct from differential over integers
+   -- AInt is input delta as matrix
+   -- BInt is output delta as matrix
+   -- where BInt*AInt = 0
+   homologyGroup(AInt:Matrix(Integer),BInt:Matrix(Integer)):% ==
+     --print("homologyGroup("::Symbol << AInt << ")"::Symbol)
      -- first convert from matrix over Integer to matrix over Fraction(Integer)
-     deltaLL:List(List(Integer)) := listOfLists(deltaInt)
-     deltaLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in deltaLL]
-     delta:Matrix(Fraction(Integer)) := matrix(deltaLLF)
+     ADLL:List(List(Integer)) := listOfLists(AInt)
+     ADLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in ADLL]
+     A:Matrix(Fraction(Integer)) := matrix(ADLLF)
+     BDLL:List(List(Integer)) := listOfLists(BInt)
+     BDLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in BDLL]
+     B:Matrix(Fraction(Integer)) := matrix(BDLLF)
+     homologyGroup(A,B)
+
+   -- construct from differential over rationals
+   -- A is input delta as matrix
+   -- B is output delta as matrix
+   -- where B*A = 0
+   -- uses method described by Waldek Hebisch here:
+   -- https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
+   homologyGroup(A:Matrix(Fraction(Integer)),B:Matrix(Fraction(Integer))):% ==
+     print("homologyGroup("::Symbol << A << ","::Symbol << B << ")"::Symbol)
+     --
+     -- validate input
+     --
+     if not empty?(B) then
+       if nrows(A) ~= ncols(B)
+        then
+         print("homologyGroup validation error - A rows:"::Symbol <<_
+                nrows(A) << "~= B cols:"::Symbol << ncols(B))
+        else
+         zero:Matrix(Fraction(Integer)) := zero(nrows(B),ncols(A))
+         if B*A ~= zero then
+           print("homologyGroup validation error - B*A ~= 0:"::Symbol << B*A << "  ~= 0:"::Symbol << zero)
+     --
+     -- calculate torsion part
+     --
      res: List(GEN) := empty()$List(GEN)
-     SMNF ==> SmithNormalForm(Fraction(Integer),_
-                Vector(Fraction(Integer)),_
-                Vector(Fraction(Integer)),_
-                Matrix(Fraction(Integer)))
-     SRES ==> Record(Smith: Matrix(Fraction(Integer)),_
-                leftEqMat: Matrix(Fraction(Integer)),_
-                rightEqMat: Matrix(Fraction(Integer)))
-     smit:SRES := completeSmith(delta)$SMNF
+     smit:SRES := completeSmith(A)$SMNF
      left:Matrix(Fraction(Integer)) := smit.leftEqMat
      m:Matrix(Fraction(Integer)) := smit.Smith
      leftNRows:NNI := nrows(left)
@@ -583,11 +618,23 @@ Homology() : Exports == Impl where
          order := elt(m,nr,nr)
        g:GEN := [r,order]
        res := concat(res,g)
+     --
+     -- calculate free part
+     --
+     C:Matrix(Fraction(Integer)) := A
+     if not empty?(B) then
+       --print("homologyGroup A rows:"::Symbol <<_
+       --         nrows(A) << " A cols:"::Symbol << ncols(A))
+       --print("homologyGroup B rows:"::Symbol <<_
+       --         nrows(B) << " B cols:"::Symbol << ncols(B))
+       C := horizConcat(A, transpose(B))
+       print("homologyGroup free="::Symbol << C)
+     smitFree:SRES := completeSmith(A)$SMNF
+     leftFree:Matrix(Fraction(Integer)) := smitFree.leftEqMat
+     mFree:Matrix(Fraction(Integer)) := smitFree.Smith
+     print("homology free:"::Symbol << leftFree << ","::Symbol << mFree << ")"::Symbol)
      res
      
-   --smith(a:%):Matrix(Integer) ==
-   --  m2:Matrix(Integer):=smith(a pretend Matrix(Integer))$IntegerSmithNormalForm
-
    -- output
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
@@ -649,6 +696,10 @@ For more details see:
 
 [6] A Macaulay2 package for working with simplicial complexes
 \url{http://www.math.uiuc.edu/Macaulay2/doc/Macaulay2-1.8.2/share/doc/Macaulay2/SimplicialComplexes/html}
+
+[7] Homology group method described by Waldek Hebisch here:
+\url{https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0}
+
 
 \end{thebibliography}
 \end{document}
