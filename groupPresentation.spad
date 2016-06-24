@@ -588,7 +588,7 @@ Homology() : Exports == Impl where
    -- uses method described by Waldek Hebisch here:
    -- https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
    homologyGroup(A:Matrix(Fraction(Integer)),B:Matrix(Fraction(Integer))):% ==
-     print("homologyGroup("::Symbol << A << ","::Symbol << B << ")"::Symbol)
+     --print("homologyGroup("::Symbol << A << ","::Symbol << B << ")"::Symbol)
      --
      -- validate input
      --
@@ -621,18 +621,18 @@ Homology() : Exports == Impl where
      --
      -- calculate free part
      --
-     C:Matrix(Fraction(Integer)) := A
+     Augmented:Matrix(Fraction(Integer)) := A
      if not empty?(B) then
        --print("homologyGroup A rows:"::Symbol <<_
        --         nrows(A) << " A cols:"::Symbol << ncols(A))
        --print("homologyGroup B rows:"::Symbol <<_
        --         nrows(B) << " B cols:"::Symbol << ncols(B))
-       C := horizConcat(A, transpose(B))
-       print("homologyGroup free="::Symbol << C)
+       Augmented := horizConcat(A, transpose(B))
+       --print("homologyGroup free: augmented="::Symbol << Augmented)
      smitFree:SRES := completeSmith(A)$SMNF
      leftFree:Matrix(Fraction(Integer)) := smitFree.leftEqMat
      mFree:Matrix(Fraction(Integer)) := smitFree.Smith
-     print("homology free:"::Symbol << leftFree << ","::Symbol << mFree << ")"::Symbol)
+     --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
      res
      
    -- output
