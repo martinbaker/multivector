@@ -564,7 +564,7 @@ Homology() : Exports == Impl where
 
   Impl ==> add
    -- Representation holds torsion as vector+order
-   Rep := List(GEN)
+   Rep := Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
 
    -- construct from differential over integers
    -- AInt is input delta as matrix
@@ -632,16 +632,21 @@ Homology() : Exports == Impl where
      smitFree:SRES := completeSmith(A)$SMNF
      leftFree:Matrix(Fraction(Integer)) := smitFree.leftEqMat
      mFree:Matrix(Fraction(Integer)) := smitFree.Smith
+     kernelFree:List(Vector(Fraction(Integer))) := nullSpace(mFree)
      --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
-     res
+     --print("homology kernel="::Symbol << kernelFree)
+     [res,kernelFree]
      
    -- output
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
-     for g in s pretend List(GEN) repeat
+     s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     for g in s1.torsionPart pretend List(GEN) repeat
        ln := hconcat(["gen="::Symbol::OutputForm,(g.vec)::OutputForm,_
          " ord="::Symbol::OutputForm,(g.ord)::OutputForm])$OutputForm
        res:= vconcat(res,ln)
+     ln2 := hconcat([" free part="::Symbol::OutputForm,(s1.freePart)::OutputForm])$OutputForm
+     res:= vconcat(res,ln2)
      res
 
 --Copyright (c) 2016, Martin J Baker.
