@@ -561,6 +561,8 @@ Homology() : Exports == Impl where
      ++ construct from differential over rationals
      ++ uses method described by Waldek Hebisch here:
      ++ https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
+    dispGenerators: (s : %) -> OutputForm
+     ++ more detailed output with generators
 
   Impl ==> add
    -- Representation holds torsion as vector+order
@@ -637,16 +639,35 @@ Homology() : Exports == Impl where
      --print("homology kernel="::Symbol << kernelFree)
      [res,kernelFree]
      
-   -- output
-   coerce(s : %) : OutputForm ==
+   -- more detailed output with generators
+   dispGenerators(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
      s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
-     for g in s1.torsionPart pretend List(GEN) repeat
+     for g in s1.torsionPart repeat
        ln := hconcat(["gen="::Symbol::OutputForm,(g.vec)::OutputForm,_
          " ord="::Symbol::OutputForm,(g.ord)::OutputForm])$OutputForm
        res:= vconcat(res,ln)
      ln2 := hconcat([" free part="::Symbol::OutputForm,(s1.freePart)::OutputForm])$OutputForm
      res:= vconcat(res,ln2)
+     res
+     
+   -- output
+   coerce(s : %) : OutputForm ==
+     res:OutputForm := empty()$OutputForm
+     firstTermRead:Boolean := false
+     s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     for f in s1.freePart repeat
+       if firstTermRead then res:= hconcat(res,"*"::Symbol::OutputForm)
+       res:= hconcat(res,"Z"::Symbol::OutputForm)
+       firstTermRead := true
+     for t in s1.torsionPart repeat
+       if not (t.ord = 0 or t.ord = 1) then
+         if firstTermRead then res:= hconcat(res,"*"::Symbol::OutputForm)
+         ln2 := hconcat(["C"::Symbol::OutputForm,(t.ord)::OutputForm])$OutputForm
+         res:= hconcat(res,ln2)
+         firstTermRead := true
+     if not firstTermRead then
+       res:= hconcat(res,"0"::Symbol::OutputForm)
      res
 
 --Copyright (c) 2016, Martin J Baker.
