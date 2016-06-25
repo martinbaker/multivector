@@ -638,7 +638,7 @@ Homology() : Exports == Impl where
      --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
      --print("homology kernel="::Symbol << kernelFree)
      [res,kernelFree]
-     
+
    -- more detailed output with generators
    dispGenerators(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
@@ -650,19 +650,21 @@ Homology() : Exports == Impl where
      ln2 := hconcat([" free part="::Symbol::OutputForm,(s1.freePart)::OutputForm])$OutputForm
      res:= vconcat(res,ln2)
      res
-     
-   -- output
+
+   -- output in terms of Z (free) and C (cycles)
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
      firstTermRead:Boolean := false
      s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
-     for f in s1.freePart repeat
-       if firstTermRead then res:= hconcat(res,"*"::Symbol::OutputForm)
+     nFree := #(s1.freePart)
+     if nFree > 0 then
        res:= hconcat(res,"Z"::Symbol::OutputForm)
+       if nFree > 1 then
+         res:= hconcat([res,"*"::Symbol::OutputForm,nFree::OutputForm])$OutputForm
        firstTermRead := true
      for t in s1.torsionPart repeat
        if not (t.ord = 0 or t.ord = 1) then
-         if firstTermRead then res:= hconcat(res,"*"::Symbol::OutputForm)
+         if firstTermRead then res:= hconcat(res,"+"::Symbol::OutputForm)
          ln2 := hconcat(["C"::Symbol::OutputForm,(t.ord)::OutputForm])$OutputForm
          res:= hconcat(res,ln2)
          firstTermRead := true
