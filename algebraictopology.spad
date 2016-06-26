@@ -2327,17 +2327,20 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        -- start with a list of empty lists
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
-         -- verticies
-         fm2:List(List(Integer)) := [[v pretend Integer] for v in 1..(#gradeList)]
-         faceMaps.grn := fm2
          -- edges
+         maxVert:NNI := 0
          faceMaps := concat(faceMaps,empty()$List(List(Integer)))
          for x in gradeList repeat
            -- x is an OrientedFacet
            fm:List(Integer) := getIndexesSigned(x)
+           maxInd:NNI := maxIndex(x)
+           if maxInd>maxVert then maxVert := maxInd
            --print("  deltaComplex getIndexesSigned("::Symbol << x << ")"::Symbol << fm)
            -- fm is signed list of verticies
            faceMaps.(grn+1) := concat(faceMaps.(grn+1),fm)
+         -- verticies
+         fm2:List(List(Integer)) := [[1::Integer] for v in 1..maxVert]
+         faceMaps.grn := fm2
        if grn>1 then
          -- triangles and above
          -- we need to build up a map from oldFaceHigh to oldFacesLow
@@ -2385,9 +2388,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
          -- vertices
-         fm:List(List(Integer)) := [[v pretend Integer] for v in 1..(#gradeList)]
-         --fm:List(List(Integer)) := [[v pretend Integer for v in 1..(#gradeList)]]
-         -- fm is signed list of verticies
+         fm:List(List(Integer)) := [[1::Integer] for v in 1..(#gradeList)]
+         -- delta0 maps verticies to 0
          faceMaps.grn := fm
          --print("deltaComplex vertices="::Symbol << gradeList << "faceMaps="::Symbol << faceMaps)
        if grn>1 then
@@ -2452,7 +2454,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    chain(s:%):ChainComplex ==
      res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
      maps1:List(List(List(Integer))) := s.MAPS
-     fst:Boolean := true
+     --fst:Boolean := true
      for faces in maps1 repeat
        --print("chain faces="::Symbol << faces << " res="::Symbol << res)
        nCols:NNI := #(faces)
@@ -2471,8 +2473,9 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
            ele:Integer := 1
            if even?(nv) then ele := -1
            setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
-       if not fst then res := concat(res,m)
-       fst := false
+       res := concat(res,m)
+       --if not fst then res := concat(res,m)
+       --fst := false
      chainComplex(res)
 
    -- calculate homology using SmithNormalForm
