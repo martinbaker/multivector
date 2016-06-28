@@ -568,20 +568,28 @@ Homology() : Exports == Impl where
    -- Representation holds torsion as vector+order
    Rep := Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
 
+   -- local function to convert from matrix over int to matrix over rational
+   matrixOverRational(AInt:Matrix(Integer)):Matrix(Fraction(Integer)) ==
+     -- It is important that zero dimensions 0*0 and n*0 retain these dimenstions
+     -- so first handle this as a special case:
+     ARows:NNI := nrows(AInt)
+     ACols:NNI := ncols(AInt)
+     if (ARows = 0) or (ACols = 0) then
+       a:Matrix(Fraction(Integer)) := new(ARows,ACols,0::Fraction(Integer))
+       return a
+     -- convert from matrix over Integer to matrix over Fraction(Integer)
+     ADLL:List(List(Integer)) := listOfLists(AInt)
+     ADLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in ADLL]
+     a:Matrix(Fraction(Integer)) := matrix(ADLLF)
+     a
+
    -- construct from differential over integers
    -- AInt is input delta as matrix
    -- BInt is output delta as matrix
    -- where BInt*AInt = 0
    homologyGroup(AInt:Matrix(Integer),BInt:Matrix(Integer)):% ==
      --print("homologyGroup("::Symbol << AInt << ")"::Symbol)
-     -- first convert from matrix over Integer to matrix over Fraction(Integer)
-     ADLL:List(List(Integer)) := listOfLists(AInt)
-     ADLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in ADLL]
-     A:Matrix(Fraction(Integer)) := matrix(ADLLF)
-     BDLL:List(List(Integer)) := listOfLists(BInt)
-     BDLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in BDLL]
-     B:Matrix(Fraction(Integer)) := matrix(BDLLF)
-     homologyGroup(A,B)
+     homologyGroup(matrixOverRational(AInt),matrixOverRational(BInt))
 
    -- construct from differential over rationals
    -- A is input delta as matrix
@@ -591,18 +599,20 @@ Homology() : Exports == Impl where
    -- https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
    homologyGroup(A:Matrix(Fraction(Integer)),B:Matrix(Fraction(Integer))):% ==
      --print("homologyGroup("::Symbol << A << ","::Symbol << B << ")"::Symbol)
+     --print("homologyGroup("::Symbol << nrows(A) << "*"::Symbol << ncols(A) <<_
+     --      " by "::Symbol << nrows(B) << "*"::Symbol << ncols(B)<< ")"::Symbol)
      --
      -- validate input
      --
-     if not empty?(B) then
-       if nrows(A) ~= ncols(B)
-        then
-         print("homologyGroup validation error - A rows:"::Symbol <<_
-                nrows(A) << "~= B cols:"::Symbol << ncols(B))
-        else
-         zero:Matrix(Fraction(Integer)) := zero(nrows(B),ncols(A))
-         if B*A ~= zero then
-           print("homologyGroup validation error - B*A ~= 0:"::Symbol << B*A << "  ~= 0:"::Symbol << zero)
+     --if not empty?(B) then
+     if nrows(A) ~= ncols(B)
+      then
+       print("homologyGroup validation error - A rows:"::Symbol <<_
+              nrows(A) << "~= B cols:"::Symbol << ncols(B))
+      else
+       zero:Matrix(Fraction(Integer)) := zero(nrows(B),ncols(A))
+       if B*A ~= zero then
+         print("homologyGroup validation error - B*A ~= 0:"::Symbol << B*A << "  ~= 0:"::Symbol << zero)
      --
      -- calculate torsion part
      --
@@ -623,15 +633,15 @@ Homology() : Exports == Impl where
      --
      -- calculate free part
      --
-     Augmented:Matrix(Fraction(Integer)) := A
-     if not empty?(B) then
+     --augmented:Matrix(Fraction(Integer)) := A
+     --if not empty?(B) then
        --print("homologyGroup A rows:"::Symbol <<_
        --         nrows(A) << " A cols:"::Symbol << ncols(A))
        --print("homologyGroup B rows:"::Symbol <<_
        --         nrows(B) << " B cols:"::Symbol << ncols(B))
-       Augmented := horizConcat(A, transpose(B))
-       --print("homologyGroup free: augmented="::Symbol << Augmented)
-     smitFree:SRES := completeSmith(A)$SMNF
+     augmented:Matrix(Fraction(Integer)) := horizConcat(A, transpose(B))
+       --print("homologyGroup free: augmented="::Symbol << augmented)
+     smitFree:SRES := completeSmith(augmented)$SMNF
      leftFree:Matrix(Fraction(Integer)) := smitFree.leftEqMat
      mFree:Matrix(Fraction(Integer)) := smitFree.Smith
      kernelFree:List(Vector(Fraction(Integer))) := nullSpace(mFree)
@@ -656,12 +666,14 @@ Homology() : Exports == Impl where
      res:OutputForm := empty()$OutputForm
      firstTermRead:Boolean := false
      s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     --res:= hconcat(res,"gen="::Symbol << s1.freePart)
      nFree := #(s1.freePart)
      if nFree > 0 then
        res:= hconcat(res,"Z"::Symbol::OutputForm)
        if nFree > 1 then
          res:= hconcat([res,"*"::Symbol::OutputForm,nFree::OutputForm])$OutputForm
        firstTermRead := true
+     --res:= hconcat(res,"tor="::Symbol << s1.torsionPart)
      for t in s1.torsionPart repeat
        if not (t.ord = 0 or t.ord = 1) then
          if firstTermRead then res:= hconcat(res,"+"::Symbol::OutputForm)

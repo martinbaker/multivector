@@ -2339,7 +2339,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
            -- fm is signed list of verticies
            faceMaps.(grn+1) := concat(faceMaps.(grn+1),fm)
          -- verticies
-         fm2:List(List(Integer)) := [[1::Integer] for v in 1..maxVert]
+         fm2:List(List(Integer)) := [[0::Integer] for v in 1..maxVert]
          faceMaps.grn := fm2
        if grn>1 then
          -- triangles and above
@@ -2421,6 +2421,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
            newMap := concat(newMap,newIndexes2)
          faceMaps.grn := newMap
        previousFaceList := gradeList
+     --fm3:List(List(Integer)) := [[0::Integer for v in 1..(#previousFaceList)]]
+     --faceMaps := concat(faceMaps,fm3)
      vs:VS := (fsc pretend Record(VERTSET:VS,SIMP:List(List(NNI)))).VERTSET
      --print("deltaComplex faceMaps="::Symbol << faceMaps )
      [vs ,faceMaps]
@@ -2454,32 +2456,37 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    chain(s:%):ChainComplex ==
      res:List(Matrix(Integer)) := empty()$List(Matrix(Integer))
      maps1:List(List(List(Integer))) := s.MAPS
-     --fst:Boolean := true
+     nCols:NNI := 0
      for faces in maps1 repeat
        --print("chain faces="::Symbol << faces << " res="::Symbol << res)
-       nCols:NNI := #(faces)
-       if nCols<1 then return chainComplex(res)
+       nCols := #(faces)
+       --if nCols<1 then return chainComplex(res)
        nRows:NNI := 0
        for u in faces repeat
          for v in u repeat
            if abs(v)>nRows then nRows := abs(v) pretend NNI
        --print("chain nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
        m : Matrix(Integer) := new(nRows,nCols,0)
+       --print("chain 2 nrows="::Symbol << nrows(m) << " ncols="::Symbol << ncols(m))
        for u in faces for nu in 1..(#faces) repeat
          for v in u for nv in 1..(#u) repeat
            v2:Integer := abs(v)
-           --print("chain row="::Symbol << nu << " col="::Symbol << v2 << _
+           --print("chain("::Symbol << maps1 << ") row="::Symbol << nu << " col="::Symbol << v2 << _
            --  " nRows="::Symbol << nRows << " nCols="::Symbol << nCols)
            ele:Integer := 1
            if even?(nv) then ele := -1
-           setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
+           if v2 ~= 0 then
+             setelt!(m,v2,nu,ele) -- params are (matrix,row number,col number, value)
        res := concat(res,m)
-       --if not fst then res := concat(res,m)
-       --fst := false
+     -- add matrix with zero cols
+     --print("chain nRows="::Symbol << nCols << " nCols="::Symbol << 0)
+     mLast : Matrix(Integer) := new(nCols,0,0)
+     res := concat(res,mLast)
      chainComplex(res)
 
    -- calculate homology using SmithNormalForm
    homology(a:%):List(Homology) ==
+     --print("DeltaComplex homology("::Symbol  << a << ")"::Symbol)
      cc:ChainComplex := chain(a)
      validate(cc)
      homology(cc)
@@ -2767,11 +2774,17 @@ ChainComplex() : Exports == Impl where
 
    -- calculate homology using SmithNormalForm
    homology(a:%):List(Homology) ==
+     --print("ChainComplex homology("::Symbol  << a << ")"::Symbol)
      res:List(Homology) := empty()$List(Homology)
      prev:Matrix(Integer) := empty()$Matrix(Integer)
+     notFirst:Boolean := false
      for m1 in a repeat
-       m2:Homology :=homologyGroup(m1,prev)
-       res := concat(res,m2)
+       if notFirst then
+         --print("chainComplex: "::Symbol << nrows(m1) << "*"::Symbol << ncols(m1) <<_
+         --  " "::Symbol << nrows(prev) << "*"::Symbol << ncols(prev))
+         m2:Homology :=homologyGroup(m1,prev)
+         res := concat(res,m2)
+       notFirst := true
        prev := m1
      res
 
