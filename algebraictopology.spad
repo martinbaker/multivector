@@ -1448,7 +1448,10 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
      ++ This version has options to:
      ++ simplify - if true attempts to simplify the group presentation
      ++ trace - if true outputs trace of simplification rules used.
-    homology:(a:%) -> List(Homology)
+    chain:(s:%) -> ChainComplex
+     ++ returns a matrix sequence representing the face maps
+     ++ in linear algebra form
+    homology:(s:%) -> List(Homology)
      ++ calculate homology using SmithNormalForm
     coerce:(s:%) -> DeltaComplex(VS)
      ++ coerce SimplicialComplex to DeltaComplex
@@ -1778,6 +1781,13 @@ FiniteSimplicialComplex(VS:VertexSet) : Exports == Impl where
    fundamentalGroup(s:%,simplify:Boolean,trace:Boolean):GroupPresentation ==
      dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteSimplicialComplex(VS))
      fundamentalGroup(dc,simplify,trace)
+
+   -- returns a matrix sequence representing the face maps
+   -- in linear algebra form
+   chain(s:%):ChainComplex ==
+     dc:DeltaComplex(VS) := deltaComplex(s pretend FiniteSimplicialComplex(VS))
+     cc:ChainComplex := chain(dc)$DeltaComplex(VS)
+     cc
 
    -- calculate homology using SmithNormalForm
    homology(s:%):List(Homology) ==

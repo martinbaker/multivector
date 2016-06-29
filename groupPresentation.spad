@@ -639,8 +639,9 @@ Homology() : Exports == Impl where
        --         nrows(A) << " A cols:"::Symbol << ncols(A))
        --print("homologyGroup B rows:"::Symbol <<_
        --         nrows(B) << " B cols:"::Symbol << ncols(B))
-     augmented:Matrix(Fraction(Integer)) := horizConcat(A, transpose(B))
-       --print("homologyGroup free: augmented="::Symbol << augmented)
+     --augmented:Matrix(Fraction(Integer)) := horizConcat(A, transpose(B))
+     augmented:Matrix(Fraction(Integer)) := vertConcat(transpose(A),B)
+     --print("homologyGroup free: augmented="::Symbol << augmented)
      smitFree:SRES := completeSmith(augmented)$SMNF
      leftFree:Matrix(Fraction(Integer)) := smitFree.leftEqMat
      mFree:Matrix(Fraction(Integer)) := smitFree.Smith
