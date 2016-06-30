@@ -2398,7 +2398,7 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
        faceMaps := concat(faceMaps,empty()$List(List(Integer)))
        if grn=1 then
          -- vertices
-         fm:List(List(Integer)) := [[1::Integer] for v in 1..(#gradeList)]
+         fm:List(List(Integer)) := [[0::Integer] for v in 1..(#gradeList)]
          -- delta0 maps verticies to 0
          faceMaps.grn := fm
          --print("deltaComplex vertices="::Symbol << gradeList << "faceMaps="::Symbol << faceMaps)
