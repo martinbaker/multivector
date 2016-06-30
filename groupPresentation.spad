@@ -544,7 +544,15 @@ GroupPresentation() : Exports == Impl where
 
 Homology() : Exports == Impl where
   NNI ==> NonNegativeInteger
+  GENI ==> Record(vec:Vector(Integer),ord:Integer)
   GEN ==> Record(vec:Vector(Fraction(Integer)),ord:Fraction(Integer))
+  SMNI ==> SmithNormalForm(Integer,_
+             Vector(Integer),_
+             Vector(Integer),_
+             Matrix(Integer))
+  SRESI ==> Record(Smith: Matrix(Integer),_
+             leftEqMat: Matrix(Integer),_
+             rightEqMat: Matrix(Integer))
   SMNF ==> SmithNormalForm(Fraction(Integer),_
              Vector(Fraction(Integer)),_
              Vector(Fraction(Integer)),_
@@ -566,7 +574,8 @@ Homology() : Exports == Impl where
 
   Impl ==> add
    -- Representation holds torsion as vector+order
-   Rep := Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+   --Rep := Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+   Rep := Record(torsionPart:List(GENI),freePart:List(Vector(Integer)))
 
    -- local function to convert from matrix over int to matrix over rational
    matrixOverRational(AInt:Matrix(Integer)):Matrix(Fraction(Integer)) ==
@@ -588,9 +597,59 @@ Homology() : Exports == Impl where
    -- BInt is output delta as matrix
    -- where BInt*AInt = 0
    homologyGroup(AInt:Matrix(Integer),BInt:Matrix(Integer)):% ==
-     --print("homologyGroup("::Symbol << AInt << ")"::Symbol)
-     homologyGroup(matrixOverRational(AInt),matrixOverRational(BInt))
+     --print("homologyGroup("::Symbol << AInt << ","::Symbol << BInt << ")"::Symbol)
+     --print("homologyGroup("::Symbol << nrows(AInt) << "*"::Symbol << ncols(AInt) <<_
+     --      " by "::Symbol << nrows(BInt) << "*"::Symbol << ncols(BInt)<< ")"::Symbol)
+     --
+     -- validate input
+     --
+     --if not empty?(BInt) then
+     if nrows(AInt) ~= ncols(BInt)
+      then
+       print("homologyGroup validation error - A rows:"::Symbol <<_
+              nrows(AInt) << "~= B cols:"::Symbol << ncols(BInt))
+      else
+       zero:Matrix(Integer) := zero(nrows(BInt),ncols(AInt))
+       if BInt*AInt ~= zero then
+         print("homologyGroup validation error - B*A ~= 0:"::Symbol << BInt*AInt << "  ~= 0:"::Symbol << zero)
+     --
+     -- calculate torsion part
+     --
+     res: List(GENI) := empty()$List(GENI)
+     smit:SRESI := completeSmith(AInt)$SMNI
+     left:Matrix(Integer) := smit.leftEqMat
+     m:Matrix(Integer) := smit.Smith
+     leftNRows:NNI := nrows(left)
+     mNRows:NNI := nrows(m)
+     mNCols:NNI := ncols(m)
+     for nr in 1..leftNRows repeat
+       r:Vector(Integer) := row(left,nr)
+       order:Integer := 1::Integer
+       if nr <= mNRows and nr <= mNCols then
+         order := elt(m,nr,nr)
+       g:GENI := [r,order]
+       res := concat(res,g)
+     --
+     -- calculate free part
+     --
+     --augmented:Matrix(Integer) := AInt
+     --if not empty?(BInt) then
+       --print("homologyGroup A rows:"::Symbol <<_
+       --         nrows(AInt) << " A cols:"::Symbol << ncols(AInt))
+       --print("homologyGroup B rows:"::Symbol <<_
+       --         nrows(BInt) << " B cols:"::Symbol << ncols(BInt))
+     --augmented:Matrix(Integer) := horizConcat(AInt, transpose(BInt))
+     augmented:Matrix(Integer) := vertConcat(transpose(AInt),BInt)
+     --print("homologyGroup free: augmented="::Symbol << augmented)
+     smitFree:SRESI := completeSmith(augmented)$SMNI
+     leftFree:Matrix(Integer) := smitFree.leftEqMat
+     mFree:Matrix(Integer) := smitFree.Smith
+     kernelFree:List(Vector(Integer)) := nullSpace(mFree)
+     --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
+     --print("homology kernel="::Symbol << kernelFree)
+     [res,kernelFree]
 
+)if false
    -- construct from differential over rationals
    -- A is input delta as matrix
    -- B is output delta as matrix
@@ -649,11 +708,13 @@ Homology() : Exports == Impl where
      --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
      --print("homology kernel="::Symbol << kernelFree)
      [res,kernelFree]
+)endif
 
    -- more detailed output with generators
    dispGenerators(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
-     s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     --s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     s1:= s pretend Record(torsionPart:List(GENI),freePart:List(Vector(Integer)))
      for g in s1.torsionPart repeat
        ln := hconcat(["gen="::Symbol::OutputForm,(g.vec)::OutputForm,_
          " ord="::Symbol::OutputForm,(g.ord)::OutputForm])$OutputForm
@@ -666,7 +727,8 @@ Homology() : Exports == Impl where
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
      firstTermRead:Boolean := false
-     s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     --s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
+     s1:= s pretend Record(torsionPart:List(GENI),freePart:List(Vector(Integer)))
      --res:= hconcat(res,"gen="::Symbol << s1.freePart)
      nFree := #(s1.freePart)
      if nFree > 0 then
