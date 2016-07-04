@@ -1331,6 +1331,152 @@ CubicalFacet() : Exports == Impl where
      hconcat(prefix,body)
 
 )if false
+\section{Chain Complex}
+
+We have already discussed simplicial complexes and delta complexes.
+
+I now want to add chain complexes and co-chain complexes which are an
+algebriation of the complexes implemented above.
+
+The ChainComplex domain would be contain a sequence free abelian groups:
+C0,C1,C2 ... 0
+Which are defined like this:
+
+C0 = Zero dimensional chain
+= free abelian group on vertices.
+Elements of C0 are intergral linear combinations of vertices such as: 2x+7y+5z
+
+C1 = One dimensional chain
+= free abelian group on directed edges (1-cells).
+Elements of C1 are intergral linear combinations of edges such as: 2xy+7xz+5yz
+These don't necessarily need to be a cycle or even connected.
+
+C2 = two dimensional chain
+= free abelian group on directed triangles (2-cells).
+
+It seems to me that, at this stage we are mostly interested in the linear
+algebra structure so it would seem to be an unnecessary overhead to carry
+around the vertex representation, perhaps we can just think of vertexes as
+indexes and implement each chain like this:
+Rep := List(Integer)
+
+However, what gives it its structure is the mappings between these free abelian
+groups. So we also need (non-free) abelian groups as quotients of free abelian
+group. So the chain complex holds a set of free abelian groups (chains) and a
+set of group homomorphisms.
+
+Rep of ChainComplex needs to be represented by:
+C0,C1,C2 ... 0
+delta1:(C1) -> C0 , delta2:(C2) -> C1 ...
+
+where delta is a group homomorphism which respects the group structure:
+
+delta(u+v) = delta u + delta v
+delta(u^-1) =(delta u)^-1
+
+I think these group homomorphisms need to be represented by: Matrix(Integer)
+so that we can solve using IntegerSmithNormalForm?
+
+So the types of function that I would like to implement on ChainComplex are:
+image: (ChainComplex,delta) -> chain
+kernel: (ChainComplex,delta) -> chain
+
+and we need to find cycles by finding null space of augmented matrix, presumably
+using IntegerSmithNormalForm?
+
+Beyond this I would like to implement the (co)homology so it needs a way
+to test if a given abelian group is isomorphic to the integers (Z) or some
+sum of Z or similar structure.
+
+Also for a potential CoChainComplex domain, how would this relate to DeRhamComplex? 
+)endif
+
+)abbrev domain CHAINC ChainComplex
+++ Author: Martin Baker
+++ Description: 
+++   Delta Complexes are defined by a sequence of 'face maps', These can
+++   be represented by a list of matricies.
+++   for more documentation see:
+++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/
+++ Date Created: March 2016
+++ Date Last Updated: March 2016
+++ Basic Operations:
+++ Related packages:
+++ Related categories:
+++ Related Domains:
+++ Also See:
+++ AMS Classifications:
+++ Keywords: 
+++ Examples: 
+++ References:
+
+ChainComplex() : Exports == Impl where
+  NNI==> NonNegativeInteger
+  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
+
+  Exports ==> VertexSet() with
+    chainComplex: (v:List(Matrix(Integer))) -> %
+     ++ constructor
+    validate:(a:%) -> Boolean
+     ++ true if this is a valid chain complex, that is:
+     ++ 1) maps compose
+     ++ 2) product of adjacent maps is zero
+    homology:(a:%) -> List(Homology)
+     ++ calculate homology using SmithNormalForm
+
+  Impl ==> add
+
+   -- Representation contains sequence of face maps in matrix
+   -- form
+   Rep := List(Matrix(Integer))
+
+   -- constructor
+   chainComplex(v:List(Matrix(Integer))):% ==
+     v
+
+   -- true if this is a valid chain complex, that is:
+   -- 1) maps compose
+   -- 2) product of adjacent maps is zero
+   validate(a:%):Boolean ==
+     len:NNI := #a
+     if len < 2 then return true
+     last:Matrix(Integer):=a.1
+     for x in 2..len repeat
+       m:Matrix(Integer):=a.x
+       if maxRowIndex(m) ~= maxColIndex(last) then
+         print("validate failed nRows="::Symbol << maxRowIndex(m) <<_
+           " not equal to nCols "::Symbol << maxColIndex(last))
+         return false
+       prod:Matrix(Integer):= last*m
+       if not zero?(prod) then
+         print("validate failed: product of adjacent maps should be zero"::Symbol _
+           << last << " * "::Symbol << m << " = "::Symbol << prod)
+         return false
+       last:=m     
+     true
+
+   -- calculate homology using SmithNormalForm
+   homology(a:%):List(Homology) ==
+     --print("ChainComplex homology("::Symbol  << a << ")"::Symbol)
+     res:List(Homology) := empty()$List(Homology)
+     prev:Matrix(Integer) := empty()$Matrix(Integer)
+     notFirst:Boolean := false
+     for m1 in a repeat
+       if notFirst then
+         --print("chainComplex: "::Symbol << nrows(m1) << "*"::Symbol << ncols(m1) <<_
+         --  " "::Symbol << nrows(prev) << "*"::Symbol << ncols(prev))
+         m2:Homology :=homologyGroup(m1,prev)
+         res := concat(res,m2)
+       notFirst := true
+       prev := m1
+     res
+
+   -- output
+   coerce(s : %) : OutputForm ==
+     lst: List(OutputForm) := [x::OutputForm for x in s]
+     commaSeparate(lst)
+
+)if false
 \section{FiniteSimplicialComplex}
 
 Defines a set of n-dimensional facets. 
@@ -2541,10 +2687,21 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      res
 
    -- local function used by fundamentalGroup
-   unsignedEdge(e:List(Integer)):List(Integer) ==
-     res:List(Integer) := empty()$List(Integer)
-     for a in e repeat res:=concat(res,abs(a))
-     res
+   -- returns true if edge is contained in es where:
+   -- edge is specified by the indicies of its start and end values
+   -- edges is a list of edges
+   -- match is regardless of direction of link
+   containsEdge?(edge:List(Integer),edges:List(List(Integer))): Boolean ==
+     if #edge < 2 then return false
+     s:Integer := edge.1
+     t:Integer := edge.2
+     for e in edges repeat
+       if #e > 1 then
+         s2:Integer := e.1
+         t2:Integer := e.2
+         if (abs(s) = abs(s2)) and (abs(t) = abs(t2)) then return true
+         if (abs(s) = abs(t2)) and (abs(t) = abs(s2)) then return true
+     false
 
    -- Generates fundamental group from this delta complex.
    fundamentalGroup(s:%):GroupPresentation ==
@@ -2567,7 +2724,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      edgesInTree:List(Boolean) := [false for y in edges]
      if trace then print("fundamentalGroup edges="::Symbol << edges << " res="::Symbol << res)
      for edge in edges for edgen in 1..(#edges) repeat
-       if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
+       --if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
+       if containsEdge?(edge,res) then edgesInTree.edgen := true
      if trace then print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
      polygons:List(List(Integer)) := faceMap(s,3::NNI)
      -- generate rules, these come from 2 dimensional triangles in the
@@ -2575,13 +2733,9 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      rules:List(List(Integer)) := empty()$List(List(Integer))
      if trace then print("fundamentalGroup polygons="::Symbol << polygons )
      for t in polygons repeat
-       polyIsSquare:Boolean := (#t > 3)
        rule:List(Integer) := empty()$List(Integer)
-       if not edgesInTree.(abs(t.1)) then rule:= concat(rule,t.1)
-       if not edgesInTree.(abs(t.2)) then rule:= concat(rule,t.2)
-       if not edgesInTree.(abs(t.3)) then rule:= concat(rule,t.3)
-       if polyIsSquare then
-         if not edgesInTree.(abs(t.4)) then rule:= concat(rule,t.4)
+       for vertn in 1..(#t) repeat
+         if not edgesInTree.(abs(t.vertn)) then rule:= concat(rule,t.vertn)
        if not empty?(rule) then rules := concat(rules,rule)
      if trace then print("fundamentalGroup rules="::Symbol << rules )
      -- groups generators: edges in 1-skeleton
@@ -2661,152 +2815,6 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    -- coerce CubicalDeltaComplex to FiniteCubicalComplex
 --   coerce(s:%) : FiniteCubicalComplex(VS) ==
 --     cubicalComplex(s pretend CubicalDeltaComplex(VS))
-
-)if false
-\section{Chain Complex}
-
-We have already discussed simplicial complexes and delta complexes.
-
-I now want to add chain complexes and co-chain complexes which are an
-algebriation of the complexes implemented above.
-
-The ChainComplex domain would be contain a sequence free abelian groups:
-C0,C1,C2 ... 0
-Which are defined like this:
-
-C0 = Zero dimensional chain
-= free abelian group on vertices.
-Elements of C0 are intergral linear combinations of vertices such as: 2x+7y+5z
-
-C1 = One dimensional chain
-= free abelian group on directed edges (1-cells).
-Elements of C1 are intergral linear combinations of edges such as: 2xy+7xz+5yz
-These don't necessarily need to be a cycle or even connected.
-
-C2 = two dimensional chain
-= free abelian group on directed triangles (2-cells).
-
-It seems to me that, at this stage we are mostly interested in the linear
-algebra structure so it would seem to be an unnecessary overhead to carry
-around the vertex representation, perhaps we can just think of vertexes as
-indexes and implement each chain like this:
-Rep := List(Integer)
-
-However, what gives it its structure is the mappings between these free abelian
-groups. So we also need (non-free) abelian groups as quotients of free abelian
-group. So the chain complex holds a set of free abelian groups (chains) and a
-set of group homomorphisms.
-
-Rep of ChainComplex needs to be represented by:
-C0,C1,C2 ... 0
-delta1:(C1) -> C0 , delta2:(C2) -> C1 ...
-
-where delta is a group homomorphism which respects the group structure:
-
-delta(u+v) = delta u + delta v
-delta(u^-1) =(delta u)^-1
-
-I think these group homomorphisms need to be represented by: Matrix(Integer)
-so that we can solve using IntegerSmithNormalForm?
-
-So the types of function that I would like to implement on ChainComplex are:
-image: (ChainComplex,delta) -> chain
-kernel: (ChainComplex,delta) -> chain
-
-and we need to find cycles by finding null space of augmented matrix, presumably
-using IntegerSmithNormalForm?
-
-Beyond this I would like to implement the (co)homology so it needs a way
-to test if a given abelian group is isomorphic to the integers (Z) or some
-sum of Z or similar structure.
-
-Also for a potential CoChainComplex domain, how would this relate to DeRhamComplex? 
-)endif
-
-)abbrev domain CHAINC ChainComplex
-++ Author: Martin Baker
-++ Description: 
-++   Delta Complexes are defined by a sequence of 'face maps', These can
-++   be represented by a list of matricies.
-++   for more documentation see:
-++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/
-++ Date Created: March 2016
-++ Date Last Updated: March 2016
-++ Basic Operations:
-++ Related packages:
-++ Related categories:
-++ Related Domains:
-++ Also See:
-++ AMS Classifications:
-++ Keywords: 
-++ Examples: 
-++ References:
-
-ChainComplex() : Exports == Impl where
-  NNI==> NonNegativeInteger
-  x<<y ==> hconcat(x::OutputForm,y::OutputForm)
-
-  Exports ==> VertexSet() with
-    chainComplex: (v:List(Matrix(Integer))) -> %
-     ++ constructor
-    validate:(a:%) -> Boolean
-     ++ true if this is a valid chain complex, that is:
-     ++ 1) maps compose
-     ++ 2) product of adjacent maps is zero
-    homology:(a:%) -> List(Homology)
-     ++ calculate homology using SmithNormalForm
-
-  Impl ==> add
-
-   -- Representation contains sequence of face maps in matrix
-   -- form
-   Rep := List(Matrix(Integer))
-
-   -- constructor
-   chainComplex(v:List(Matrix(Integer))):% ==
-     v
-
-   -- true if this is a valid chain complex, that is:
-   -- 1) maps compose
-   -- 2) product of adjacent maps is zero
-   validate(a:%):Boolean ==
-     len:NNI := #a
-     if len < 2 then return true
-     last:Matrix(Integer):=a.1
-     for x in 2..len repeat
-       m:Matrix(Integer):=a.x
-       if maxRowIndex(m) ~= maxColIndex(last) then
-         print("validate failed nRows="::Symbol << maxRowIndex(m) <<_
-           " not equal to nCols "::Symbol << maxColIndex(last))
-         return false
-       prod:Matrix(Integer):= last*m
-       if not zero?(prod) then
-         print("validate failed: product of adjacent maps should be zero"::Symbol _
-           << last << " * "::Symbol << m << " = "::Symbol << prod)
-         return false
-       last:=m     
-     true
-
-   -- calculate homology using SmithNormalForm
-   homology(a:%):List(Homology) ==
-     --print("ChainComplex homology("::Symbol  << a << ")"::Symbol)
-     res:List(Homology) := empty()$List(Homology)
-     prev:Matrix(Integer) := empty()$Matrix(Integer)
-     notFirst:Boolean := false
-     for m1 in a repeat
-       if notFirst then
-         --print("chainComplex: "::Symbol << nrows(m1) << "*"::Symbol << ncols(m1) <<_
-         --  " "::Symbol << nrows(prev) << "*"::Symbol << ncols(prev))
-         m2:Homology :=homologyGroup(m1,prev)
-         res := concat(res,m2)
-       notFirst := true
-       prev := m1
-     res
-
-   -- output
-   coerce(s : %) : OutputForm ==
-     lst: List(OutputForm) := [x::OutputForm for x in s]
-     commaSeparate(lst)
 
 )if false
 \section{SimplicialComplex Factory}

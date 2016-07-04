@@ -520,7 +520,7 @@ GroupPresentation() : Exports == Impl where
      g:OutputForm := outputForm(" "::Symbol)
      if #gens1 > 0 then g:= blankSeparate(gens1)
      r:OutputForm := outputForm(" "::Symbol)
-     if #rels1 > 0 then r:= blankSeparate(rels1)     
+     if #rels1 > 0 then r:= commaSeparate(rels1)     
      hconcat(_
        [outputForm("<"::Symbol),g,_
        outputForm(" | "::Symbol),r,_
