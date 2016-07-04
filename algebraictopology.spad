@@ -2553,8 +2553,8 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
    fundamentalGroup(s:%,simplify:Boolean,trace:Boolean):GroupPresentation ==
      -- Generates fundamental group from this delta complex.
      if trace then print("fundamentalGroup("::Symbol << s  <<")"::Symbol)
-     -- fundamental group is about triangles so get face map
-     -- for triangles (2 dimensional)
+     -- fundamental group is about triangles (or squares for cubical
+     -- complex) so get face map for triangles (2 dimensional)
      -- compute edge-path group
      graph:UndirectedGraph(NNI) := oneSkeleton(s)
      --print("fundamentalGroup graph="::Symbol << graph )
@@ -2569,14 +2569,19 @@ DeltaComplex(VS:VertexSet) : Exports == Impl where
      for edge in edges for edgen in 1..(#edges) repeat
        if member?(unsignedEdge(edge),res) then edgesInTree.edgen := true
      if trace then print("fundamentalGroup linksInTree="::Symbol << res << " edgesInTree="::Symbol << edgesInTree)
-     triangles:List(List(Integer)) := faceMap(s,3::NNI)
+     polygons:List(List(Integer)) := faceMap(s,3::NNI)
+     -- generate rules, these come from 2 dimensional triangles in the
+     -- case of simplectical or squares in the case of cubical
      rules:List(List(Integer)) := empty()$List(List(Integer))
-     if trace then print("fundamentalGroup triangles="::Symbol << triangles )
-     for t in triangles repeat
+     if trace then print("fundamentalGroup polygons="::Symbol << polygons )
+     for t in polygons repeat
+       polyIsSquare:Boolean := (#t > 3)
        rule:List(Integer) := empty()$List(Integer)
        if not edgesInTree.(abs(t.1)) then rule:= concat(rule,t.1)
        if not edgesInTree.(abs(t.2)) then rule:= concat(rule,t.2)
        if not edgesInTree.(abs(t.3)) then rule:= concat(rule,t.3)
+       if polyIsSquare then
+         if not edgesInTree.(abs(t.4)) then rule:= concat(rule,t.4)
        if not empty?(rule) then rules := concat(rules,rule)
      if trace then print("fundamentalGroup rules="::Symbol << rules )
      -- groups generators: edges in 1-skeleton
@@ -2926,6 +2931,32 @@ SimplicialComplexFactory() : with
 Provides functions to construct various Cubical complexes.
 For more information see:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/factory/}
+
+\begin{itemize}
+\item sphereSolid - in any dimension 'dim'
+A cubical complex equivalent to a solid hyper-sphere. That is, a solid
+volume with no holes in it, so we use a single n-dimensional cube.
+\item sphereSurface - in any dimension 'dim'
+A cubical complex equivalent to the surface of a hyper-sphere.
+That is, the surface of a volume with no holes in it, so we use the faces
+of a single cube.
+\item torusSurface - A cubical complex of the surface of an 3-dimensional torus.
+\item band - A cubical complex of the surface of a cylinder without ends
+\item projectivePlane - A cubical complex of the surface of a projective plane.
+A one sided surface which cannot be embedded in 3D space without
+intersecting itself. There are no external boundaries, every edge
+connects two faces.
+(A punctured projective plane is equivalent to a Moebius band)
+\end{itemize}
+
+I would also like to add:
+\begin{itemize}
+\item moebiusBand - a cubical complex of the surface of a Moebius band.
+A one sided surface with a single external boundary line.
+\item kleinBottle -  a cubical complex of the surface of a Klein bottle.
+\end{itemize}
+but I have not yet worked out if, or how, this can be done for a cubical
+complex.
 )endif
 
 )abbrev package CUBECF CubicalComplexFactory
@@ -2947,8 +2978,8 @@ CubicalComplexFactory() : with
     ++ cube.
   sphereSurface:(dim:NNI) -> FiniteCubicalComplex(VertexSetAbstract)
     ++ Generate a cubical complex equivalent to the surface of a hyper-sphere.
-    ++ That is, the surface of a volume with no holes in it, so we use a minimal
-    ++ triangulation of the faces of a single simplex.
+    ++ That is, the surface of a volume with no holes in it, so we use the
+    ++ faces of a single cube.
   torusSurface:() -> FiniteCubicalComplex(VertexSetAbstract)
     ++ generate a cubical complex of the surface of an 3-dimensional torus.
   band:() -> FiniteCubicalComplex(VertexSetAbstract)
@@ -3002,15 +3033,6 @@ CubicalComplexFactory() : with
     b := cubicalComplex(vs1,[v1])$ASIMP
     product(a,b)
 
-  -- generate a cubical complex of the surface of a Moebius band.
---  moebiusBand() : FiniteCubicalComplex(VertexSetAbstract) ==
---    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
---    v1:List(List(NNI)) := [[1,2,3],[2,3,4],[3,4,5],[1,4,5],[1,2,5]]
---    vs1:VertexSetAbstract := vertexSeta(5::NNI)
---    r := cubicalComplex(vs1,v1)$ASIMP
-    --print("moebiusBand="::Symbol << r)
---    r
-
   -- generate a cubical complex of the surface of a projective plane.
   -- (A punctured projective plane is equivalent to a Moebius band)
   -- see [13] for details
@@ -3040,17 +3062,6 @@ CubicalComplexFactory() : with
     r := cubicalComplex(vs1,v1)$ASIMP
     --print("projectivePlane="::Symbol << r)
     r
-
-  -- generate a cubical complex of the surface of a Klein bottle.
---  kleinBottle():FiniteCubicalComplex(VertexSetAbstract) ==
---    ASIMP := FiniteCubicalComplex(VertexSetAbstract)
---    v1:List(List(NNI)) := [[3,4,8],[2,3,4],[2,4,6],[2,6,8],[2,5,8],[3,5,7],_
---                           [2,3,7],[2,7,1],[2,5,1],[3,5,1],[4,5,8],[4,5,7],_
---                           [4,6,7],[6,7,1],[3,6,1],[3,6,8]]
---    vs1:VertexSetAbstract := vertexSeta(8::NNI)
---    r := simplicialComplex(vs1,v1)$ASIMP
---    --print("kleinBottle="::Symbol << r)
---    r
 
 )if false
 \section{Testing and Validating this Code}

@@ -22,7 +22,8 @@ Representation holds the group as a set of generators and a set of
 relations
 Each generator is a NNI
 Each relation is a list of indexes to generators. Negative values indicate
-the inverse of the generator.
+the inverse of the generator. So if '1' represents the generator 'A' then
+'-1' represents its inverse 'A^-1'.
 
 Note that the use of negative indices to represent the inverse does
 not imply an abelian group. This is just a convenient way to code
