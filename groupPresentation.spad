@@ -7,7 +7,16 @@
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
+This file implements group structures related to algebraic topology, specifically
+its homotopy and homology.
 
+There are two such structures in this file:
+\begin{itemize}
+\item GroupPresentation - Defines a group by its generators and relations.
+Used to hold fundamental group (homotopy)
+\item Homology - Intended to hold homology which is calculated using IntegerSmithNormalForm.
+This is an abelian group.
+\end{itemize}
 I have put a fuller explanation of this code here:
 \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/}
 \end{abstract}
@@ -107,7 +116,7 @@ and its inverse are next to each other they can be
 cancelled out and removed.
 \subsection{T4}
 
-T4 allows us to remove a generator and corresponding rules. 
+T4 allows us to remove a generator and corresponding rules.
 \subsection{Nielsen Transformations}
 
 The following transformations on a finitely generated free group
@@ -151,21 +160,21 @@ which is in the algebraictopology.spad file here:
 
 )abbrev domain GROUPP GroupPresentation
 ++ Author: Martin Baker
-++ Description: 
+++ Description:
 ++   Group represented by its generators and relations.
 ++   Here we use it to hold homotopy group such as fundamental group.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/
 ++ Date Created: Jan 2016
-++ Date Last Updated: March 2016
+++ Date Last Updated: July 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
 ++ Related Domains:
 ++ Also See:
 ++ AMS Classifications:
-++ Keywords: 
-++ Examples: 
+++ Keywords:
+++ Examples:
 ++ References:
 
 GroupPresentation() : Exports == Impl where
@@ -234,7 +243,7 @@ GroupPresentation() : Exports == Impl where
    -- whole groups but unfortunately this is not computable in
    -- the general case for presentations.
    -- Exact equality is not very useful, so instead,
-   -- I have implimented a 'might-be-isomorphic' function
+   -- I have implemented a 'might-be-isomorphic' function
    -- which returns true if 'a' and 'b' have the same number
    -- of generators and relations. I am using this to compare
    -- very simple presentations in the validation code which
@@ -277,8 +286,8 @@ GroupPresentation() : Exports == Impl where
          eleout := hconcat([eleout,seperator,newterm])$OutputForm
          seperator:= outputForm("*"::Symbol)
        rels1 := concat(rels1,eleout)
-     blankSeparate(rels1)     
-     
+     blankSeparate(rels1)
+
    -- local function to remove generator 'val' from generators
    removeGen(gens1:PrimitiveArray(NNI),val:NNI):PrimitiveArray(NNI) ==
      remove(val,gens1)
@@ -520,15 +529,25 @@ GroupPresentation() : Exports == Impl where
      g:OutputForm := outputForm(" "::Symbol)
      if #gens1 > 0 then g:= blankSeparate(gens1)
      r:OutputForm := outputForm(" "::Symbol)
-     if #rels1 > 0 then r:= commaSeparate(rels1)     
+     if #rels1 > 0 then r:= commaSeparate(rels1)
      hconcat(_
        [outputForm("<"::Symbol),g,_
        outputForm(" | "::Symbol),r,_
        outputForm(">"::Symbol)])
 
+)if false
+\section{Homology}
+
+Intended to hold homology which is calculated using IntegerSmithNormalForm.
+This is an abelian group.
+
+It would be good if this could be modified to be based on FreeAbelianMonoid
+by Manuel Bronstein.
+)endif
+
 )abbrev domain HOMOL Homology
-++ Author: Martin Baker based on FreeAbelianMonoid by Manuel Bronstein
-++ Description: 
+++ Author: Martin Baker
+++ Description:
 ++   Intended to hold homology which is calculated using IntegerSmithNormalForm:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/homology/
 ++ Date Created: June 2016
@@ -580,7 +599,7 @@ Homology() : Exports == Impl where
 
    -- local function to convert from matrix over int to matrix over rational
    matrixOverRational(AInt:Matrix(Integer)):Matrix(Fraction(Integer)) ==
-     -- It is important that zero dimensions 0*0 and n*0 retain these dimenstions
+     -- It is important that zero dimensions 0*0 and n*0 retain these dimensions
      -- so first handle this as a special case:
      ARows:NNI := nrows(AInt)
      ACols:NNI := ncols(AInt)
@@ -649,67 +668,6 @@ Homology() : Exports == Impl where
      --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
      --print("homology kernel="::Symbol << kernelFree)
      [res,kernelFree]
-
-)if false
-   -- construct from differential over rationals
-   -- A is input delta as matrix
-   -- B is output delta as matrix
-   -- where B*A = 0
-   -- uses method described by Waldek Hebisch here:
-   -- https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
-   homologyGroup(A:Matrix(Fraction(Integer)),B:Matrix(Fraction(Integer))):% ==
-     --print("homologyGroup("::Symbol << A << ","::Symbol << B << ")"::Symbol)
-     --print("homologyGroup("::Symbol << nrows(A) << "*"::Symbol << ncols(A) <<_
-     --      " by "::Symbol << nrows(B) << "*"::Symbol << ncols(B)<< ")"::Symbol)
-     --
-     -- validate input
-     --
-     --if not empty?(B) then
-     if nrows(A) ~= ncols(B)
-      then
-       print("homologyGroup validation error - A rows:"::Symbol <<_
-              nrows(A) << "~= B cols:"::Symbol << ncols(B))
-      else
-       zero:Matrix(Fraction(Integer)) := zero(nrows(B),ncols(A))
-       if B*A ~= zero then
-         print("homologyGroup validation error - B*A ~= 0:"::Symbol << B*A << "  ~= 0:"::Symbol << zero)
-     --
-     -- calculate torsion part
-     --
-     res: List(GEN) := empty()$List(GEN)
-     smit:SRES := completeSmith(A)$SMNF
-     left:Matrix(Fraction(Integer)) := smit.leftEqMat
-     m:Matrix(Fraction(Integer)) := smit.Smith
-     leftNRows:NNI := nrows(left)
-     mNRows:NNI := nrows(m)
-     mNCols:NNI := ncols(m)
-     for nr in 1..leftNRows repeat
-       r:Vector(Fraction(Integer)) := row(left,nr)
-       order:Fraction(Integer) := 1::Fraction(Integer)
-       if nr <= mNRows and nr <= mNCols then
-         order := elt(m,nr,nr)
-       g:GEN := [r,order]
-       res := concat(res,g)
-     --
-     -- calculate free part
-     --
-     --augmented:Matrix(Fraction(Integer)) := A
-     --if not empty?(B) then
-       --print("homologyGroup A rows:"::Symbol <<_
-       --         nrows(A) << " A cols:"::Symbol << ncols(A))
-       --print("homologyGroup B rows:"::Symbol <<_
-       --         nrows(B) << " B cols:"::Symbol << ncols(B))
-     --augmented:Matrix(Fraction(Integer)) := horizConcat(A, transpose(B))
-     augmented:Matrix(Fraction(Integer)) := vertConcat(transpose(A),B)
-     --print("homologyGroup free: augmented="::Symbol << augmented)
-     smitFree:SRES := completeSmith(augmented)$SMNF
-     leftFree:Matrix(Fraction(Integer)) := smitFree.leftEqMat
-     mFree:Matrix(Fraction(Integer)) := smitFree.Smith
-     kernelFree:List(Vector(Fraction(Integer))) := nullSpace(mFree)
-     --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
-     --print("homology kernel="::Symbol << kernelFree)
-     [res,kernelFree]
-)endif
 
    -- more detailed output with generators
    dispGenerators(s : %) : OutputForm ==
@@ -803,7 +761,6 @@ For more details see:
 
 [7] Homology group method described by Waldek Hebisch here:
 \url{https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0}
-
 
 \end{thebibliography}
 \end{document}
