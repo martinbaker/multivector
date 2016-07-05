@@ -548,7 +548,7 @@ by Manuel Bronstein.
 )abbrev domain HOMOL Homology
 ++ Author: Martin Baker
 ++ Description:
-++   Intended to hold homology which is calculated using IntegerSmithNormalForm:
+++   Intended to hold homology which is calculated using SmithNormalForm:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/homology/
 ++ Date Created: June 2016
 ++ Date Last Updated: June 2016
@@ -585,8 +585,6 @@ Homology() : Exports == Impl where
   Exports ==> SetCategory() with
     homologyGroup: (AInt:Matrix(Integer),BInt:Matrix(Integer)) -> %
      ++ construct from differential over integers
-    homologyGroup: (A:Matrix(Fraction(Integer)),B:Matrix(Fraction(Integer))) -> %
-     ++ construct from differential over rationals
      ++ uses method described by Waldek Hebisch here:
      ++ https://groups.google.com/forum/?hl=en#!topic/fricas-devel/mLOdQ-fwbO0
     dispGenerators: (s : %) -> OutputForm
@@ -594,32 +592,13 @@ Homology() : Exports == Impl where
 
   Impl ==> add
    -- Representation holds torsion as vector+order
-   --Rep := Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
    Rep := Record(torsionPart:List(GENI),freePart:List(Vector(Integer)))
-
-   -- local function to convert from matrix over int to matrix over rational
-   matrixOverRational(AInt:Matrix(Integer)):Matrix(Fraction(Integer)) ==
-     -- It is important that zero dimensions 0*0 and n*0 retain these dimensions
-     -- so first handle this as a special case:
-     ARows:NNI := nrows(AInt)
-     ACols:NNI := ncols(AInt)
-     if (ARows = 0) or (ACols = 0) then
-       a:Matrix(Fraction(Integer)) := new(ARows,ACols,0::Fraction(Integer))
-       return a
-     -- convert from matrix over Integer to matrix over Fraction(Integer)
-     ADLL:List(List(Integer)) := listOfLists(AInt)
-     ADLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in ADLL]
-     a:Matrix(Fraction(Integer)) := matrix(ADLLF)
-     a
 
    -- construct from differential over integers
    -- AInt is input delta as matrix
    -- BInt is output delta as matrix
    -- where BInt*AInt = 0
    homologyGroup(AInt:Matrix(Integer),BInt:Matrix(Integer)):% ==
-     --print("homologyGroup("::Symbol << AInt << ","::Symbol << BInt << ")"::Symbol)
-     --print("homologyGroup("::Symbol << nrows(AInt) << "*"::Symbol << ncols(AInt) <<_
-     --      " by "::Symbol << nrows(BInt) << "*"::Symbol << ncols(BInt)<< ")"::Symbol)
      --
      -- validate input
      --
@@ -652,27 +631,17 @@ Homology() : Exports == Impl where
      --
      -- calculate free part
      --
-     --augmented:Matrix(Integer) := AInt
-     --if not empty?(BInt) then
-       --print("homologyGroup A rows:"::Symbol <<_
-       --         nrows(AInt) << " A cols:"::Symbol << ncols(AInt))
-       --print("homologyGroup B rows:"::Symbol <<_
-       --         nrows(BInt) << " B cols:"::Symbol << ncols(BInt))
-     --augmented:Matrix(Integer) := horizConcat(AInt, transpose(BInt))
      augmented:Matrix(Integer) := vertConcat(transpose(AInt),BInt)
      --print("homologyGroup free: augmented="::Symbol << augmented)
      smitFree:SRESI := completeSmith(augmented)$SMNI
      leftFree:Matrix(Integer) := smitFree.leftEqMat
      mFree:Matrix(Integer) := smitFree.Smith
      kernelFree:List(Vector(Integer)) := nullSpace(mFree)
-     --print("homology free: left="::Symbol << leftFree << " smith="::Symbol << mFree)
-     --print("homology kernel="::Symbol << kernelFree)
      [res,kernelFree]
 
    -- more detailed output with generators
    dispGenerators(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
-     --s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
      s1:= s pretend Record(torsionPart:List(GENI),freePart:List(Vector(Integer)))
      for g in s1.torsionPart repeat
        ln := hconcat(["gen="::Symbol::OutputForm,(g.vec)::OutputForm,_
@@ -686,16 +655,13 @@ Homology() : Exports == Impl where
    coerce(s : %) : OutputForm ==
      res:OutputForm := empty()$OutputForm
      firstTermRead:Boolean := false
-     --s1:= s pretend Record(torsionPart:List(GEN),freePart:List(Vector(Fraction(Integer))))
      s1:= s pretend Record(torsionPart:List(GENI),freePart:List(Vector(Integer)))
-     --res:= hconcat(res,"gen="::Symbol << s1.freePart)
      nFree := #(s1.freePart)
      if nFree > 0 then
        res:= hconcat(res,"Z"::Symbol::OutputForm)
        if nFree > 1 then
          res:= hconcat([res,"*"::Symbol::OutputForm,nFree::OutputForm])$OutputForm
        firstTermRead := true
-     --res:= hconcat(res,"tor="::Symbol << s1.torsionPart)
      for t in s1.torsionPart repeat
        if not (t.ord = 0 or t.ord = 1) then
          if firstTermRead then res:= hconcat(res,"+"::Symbol::OutputForm)
