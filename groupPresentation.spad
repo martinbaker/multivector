@@ -180,7 +180,7 @@ which is in the algebraictopology.spad file here:
 GroupPresentation() : Exports == Impl where
   NNI==> NonNegativeInteger
   x<<y ==> hconcat(x::OutputForm,y::OutputForm)
-
+  GENMAP ==> List(Record(OldGen: NNI,NewGen: NNI))
   Exports ==> SetCategory() with
     groupPresentation: (v:List(NNI),rels1: List(List(Integer))) -> %
      ++ construct from generators and relations
@@ -199,6 +199,11 @@ GroupPresentation() : Exports == Impl where
      ++ 5) remove duplicate rules
     simplify:(s : %,trace:Boolean) -> %
      ++ simplify with option to trace
+    refactor:(a : %) -> %
+     ++ actual value of generators is not important, it is only important that
+     ++ they correspond to the appropriate entries in the relations.
+     ++ Therefore we can refactor the generators without changing the
+     ++ group represented.
     --genName:(i2:Integer)->OutputForm
     -- ++ display generators as alphabetic digits
     -- ++ used by output form
@@ -239,19 +244,55 @@ GroupPresentation() : Exports == Impl where
      rels1: List(List(Integer)) :=empty()$List(List(Integer))
      groupPresentation(gens1,rels1)
 
+   -- local function used by refactor to map a given generator in a rule
+   mapGen(a:Integer,ms:GENMAP):Integer ==
+     for m  in ms repeat
+       if abs(a) = m.OldGen then return m.NewGen
+       if abs(a) = -m.OldGen then return -m.NewGen
+     error concat(["cant map ",string(a)," in refactor"])
+     a
+
+   -- Actual value of generators is not important, it is only important that
+   -- they correspond to the appropriate entries in the relations.
+   -- Therefore we can refactor the generators (to be ascending integers
+   -- starting as 1) without changing the group represented.
+   refactor(a : %):% ==
+     -- first generate a map from existing generators to new generators
+     gms:GENMAP := empty()$GENMAP
+     for g in entries(a.gens) for gn in 1..(#(a.gens)) repeat
+       gm:Record(OldGen: NNI,NewGen: NNI) := [g,gn]
+       gms := concat(gms,gm)
+     -- now use this map to change elements of rules
+     rels1: List(List(Integer)) :=empty()$List(List(Integer))
+     for rule in a.rels repeat
+       newRule: List(Integer) := empty()$List(Integer)
+       for ele in rule repeat
+         newEle:Integer := mapGen(ele,gms)
+         newRule := concat(newRule,newEle)
+       rels1 := concat(rels1,newRule)
+     gens1:List(NNI) := [gn for gn in 1..(#(a.gens))]
+     groupPresentation(gens1,rels1)
+
    -- Isomorphism is the most useful level of 'equality' for
-   -- whole groups but unfortunately this is not computable in
+   -- groups but unfortunately this is not computable in
    -- the general case for presentations.
-   -- Exact equality is not very useful, so instead,
-   -- I have implemented a 'might-be-isomorphic' function
-   -- which returns true if 'a' and 'b' have the same number
-   -- of generators and relations. I am using this to compare
-   -- very simple presentations in the validation code which
+   -- Although exact equality is less useful it is still useful to
+   -- compare very simple presentations in the validation code which
    -- is useful to give some level of confidence that the
    -- correct presentation was generated.
+   -- TODO result can be dependant on initial generator order, for
+   -- example <a,b | a*a, b*b*b> = <b,a | a*a, b*b*b> would be false
+   -- should really check all permutations of generators and return
+   -- true if any of them gives equality.
    _=(a : %, b : %) : Boolean ==
-     if #(a.gens) ~= #(b.gens) then return false
-     #(a.rels) = #(b.rels)
+     ar:% := refactor(a)
+     br:% := refactor(b)
+     ags:List(NNI) := entries(ar.gens)
+     bgs:List(NNI) := entries(br.gens)
+     if set(ags)$Set(NNI) ~= set(bgs)$Set(NNI) then return false
+     ars:List(List(Integer)) := entries(ar.rels)
+     brs:List(List(Integer)) := entries(br.rels)
+     set(ars)$Set(List(Integer)) = set(brs)$Set(List(Integer))
 
    -- display generators as alphabetic digits
    -- used by output form

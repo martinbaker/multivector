@@ -1444,6 +1444,8 @@ ChainComplex() : Exports == Impl where
   Exports ==> VertexSet() with
     chainComplex: (v:List(Matrix(Integer))) -> %
      ++ constructor
+    cochainComplex: (a:%) -> List(Union(Matrix(Fraction(Integer)),"failed"))
+     ++ construct co chain by inverting matrices
     validate:(a:%) -> Boolean
      ++ true if this is a valid chain complex, that is:
      ++ 1) maps compose
@@ -1460,6 +1462,32 @@ ChainComplex() : Exports == Impl where
    -- constructor
    chainComplex(v:List(Matrix(Integer))):% ==
      v
+
+
+   -- local function to convert from matrix over int to matrix over rational
+   matrixOverRational(AInt:Matrix(Integer)):Matrix(Fraction(Integer)) ==
+     -- It is important that zero dimensions 0*0 and n*0 retain these dimenstions
+     -- so first handle this as a special case:
+     ARows:NNI := nrows(AInt)
+     ACols:NNI := ncols(AInt)
+     if (ARows = 0) or (ACols = 0) then
+       a:Matrix(Fraction(Integer)) := new(ARows,ACols,0::Fraction(Integer))
+       return a
+     -- convert from matrix over Integer to matrix over Fraction(Integer)
+     ADLL:List(List(Integer)) := listOfLists(AInt)
+     ADLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in ADLL]
+     a:Matrix(Fraction(Integer)) := matrix(ADLLF)
+     a
+
+   -- construct co chain by inverting matrices
+   cochainComplex(a:%):List(Union(Matrix(Fraction(Integer)),"failed")) ==
+     res:List(Union(Matrix(Fraction(Integer)),"failed"))_
+        := empty()$List(Union(Matrix(Fraction(Integer)),"failed"))
+     for m in a repeat
+       mi:Union(Matrix(Fraction(Integer)),"failed") := if square?(m) then _
+         invertIfCan(matrixOverRational(m)) else "failed"
+       res := concat(res,mi)
+     reverse(res)
 
    -- true if this is a valid chain complex, that is:
    -- 1) maps compose
@@ -3227,6 +3255,7 @@ SimplicialComplexTests() : with
     triv := groupPresentation()$GroupPresentation -- trivial group
     free1 := groupPresentation([1])$GroupPresentation -- free in 1d
     rule1 := groupPresentation([1],[[1]])$GroupPresentation
+    rule2 := groupPresentation([1],[[1,1]])$GroupPresentation
     g1 := fundamentalGroup(sphereSolid(2)$SimplicialComplexFactory)
     if g1 ~= triv then
       print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g1 << _
@@ -3258,9 +3287,9 @@ SimplicialComplexTests() : with
             " should be free in 1 dim:"::Symbol << free1)
       error "fundamentalGroup of moebiusBand() should be free in 1 gen"
     g7 := fundamentalGroup(projectivePlane()$SimplicialComplexFactory)
-    if g7 ~= rule1 then
+    if g7 ~= rule2 then
       print("testSimplicialComplex2 fundamentalGroup:"::Symbol << g7 << _
-            " should have 1 rule:"::Symbol << rule1)
+            " should have 1 rule:"::Symbol << rule2)
       error "fundamentalGroup of projectivePlane() should have 1 rule"
     true
 
