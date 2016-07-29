@@ -295,25 +295,13 @@ GroupPresentation() : Exports == Impl where
      set(ars)$Set(List(Integer)) = set(brs)$Set(List(Integer))
 
    -- display generators as alphabetic digits
-   -- used by output form
+   -- used by coerce to OutputForm
    genName(i2:Integer):OutputForm ==
-     i:Integer := abs(i2)
-     suffix:NNI := 0
-     while i>26 repeat
-       i:=i-26
-       suffix := suffix+1
-     -- interpret zero as unit which is output as 'e'
-     if i=0 then return (char(101)$Character)::OutputForm
-     -- 'e' reserved for unit, so skip over it
-     if i>5 then i:=i+1
-     if i<5 then i:=i-1
-     -- lowercase alphabet starts at a=98 in 'ASCII' code (62 in hexadecimal)
-     c:Character := char(abs(i)+97)
-     n:OutputForm := c::OutputForm
-     if suffix>0 then n:=hconcat(n,outputForm(suffix))
-     -- negative values shown as inverse (-1 exponent)
-     if i2<0 then
-       return super(n,(-1)::OutputForm)
+     (suffix, i) := divide(abs(i2), 25)
+     letters : String := "abcdfghijklmnopqrstuvwxyz"
+     n:OutputForm := (letters(i + 1))::OutputForm
+     --print("  groupPresentation genName("::Symbol << i2 << ") gives "::Symbol << n)
+     if suffix > 0 then return hconcat(n,outputForm(suffix+1))
      n
 
    -- display a rule as alphabetic digits
@@ -335,12 +323,7 @@ GroupPresentation() : Exports == Impl where
 
    -- local function to remove generator 'val' from relations
    removeGen2(rels1:List(List(Integer)),val:NNI):List(List(Integer)) ==
-     rels2:List(List(Integer)) := empty$List(List(Integer))
-     for rule in rels1 repeat
-       rule2 := remove(val::Integer,rule)
-       rule2 := remove(-val,rule2)
-       rels2 := concat(rels2,rule2)
-     rels2
+     [remove(-val, remove(val::Integer,rule)) for rule in rels1]
 
    -- local function to replace generator 'val1' with 'val2'
    -- in relations
@@ -691,6 +674,11 @@ Homology() : Exports == Impl where
      ln2 := hconcat([" free part="::Symbol::OutputForm,(s1.freePart)::OutputForm])$OutputForm
      res:= vconcat(res,ln2)
      res
+
+   -- true if equal
+   _=(a : %, b : %) : Boolean ==
+     if a.torsionPart ~= b.torsionPart then return false
+     a.freePart = b.freePart
 
    -- output in terms of Z (free) and C (cycles)
    coerce(s : %) : OutputForm ==

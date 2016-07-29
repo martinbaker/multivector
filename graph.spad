@@ -19,7 +19,7 @@ in a way that is visually easy to understand and so is very
 helpful in understanding such structures.
 
 For more information and diagrams see:
-\url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/}
+\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/}
 \end{abstract}
 \eject
 \tableofcontents
@@ -852,75 +852,75 @@ diagrams may overlap the circles.
 \section{Tutorial}
 This graph framework has many methods to create graph instances, click on the following links for details:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#individual}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#individual}
 Constructing graphs by building up individual objects and arrows.
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#adjacency}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#adjacency}
 Constructing from adjacency matrix.
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#standard}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm#standard}
 Constructing standard types.
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 Combining existing graphs using sum and product.
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm}
 Mapping from an existing graph.
 \end{itemize}
 We now have a graph and we can check out various things about it by calling functions such as those listed below. Click on these function names for more information:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#matrix}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#matrix}
 Matrix representations:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#incidence}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#incidence}
 incidenceMatrix
-\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#adjacency}
+\item  \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#adjacency}
 adjacencyMatrix
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#laplacian}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#laplacian}
 laplacianMatrix
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#distance}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#distance}
 distanceMatrix
 \end{itemize}
 
 \item about whole graph:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#acyclic}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#acyclic}
 isAcyclic?
-\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#acyclic}
+\item  \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#acyclic}
 isFunctional?
 \end{itemize}
 \item about specific nodes
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
 isDirectSuccessor?
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}isGreaterThan?
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}isGreaterThan?
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#isDirectSuccessor}
 isFixPoint?
 \end{itemize}
-\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowName}
+\item  \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowName}
 arrowName -- the name of arrow a->b
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#inDegree}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#inDegree}
 inDegree -- the number of arrows leading in to node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#outDegree}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#outDegree}
 outDegree -- the number of arrows leading out of node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeFromNode}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeFromNode}
 nodeFromNode -- index of all nodes with a direct arrow leading in to node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeToNode}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeToNode}
 nodeToNode -- index of all nodes with a direct arrow leading out of node 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsFromNode}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsFromNode}
 arrowsFromNode -- index of all arrows leading to a given node
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsToNode}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsToNode}
 arrowsToNode -- index of all arrows leading from a given node
-\item  \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeFromArrow}
+\item  \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeFromArrow}
 nodeFromArrow -- index of all nodes with a direct arrow leading in to arrow 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeToArrow}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#nodeToArrow}
 nodeToArrow -- index of all nodes with a direct arrow leading out of arrow 'a' in graph 's'
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsFromArrow}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsFromArrow}
 arrowsFromArrow -- index of all arrows leading to a given arrow
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsToArrow}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#arrowsToArrow}
 arrowsToArrow -- index of all arrows leading from a given arrow
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
 min and max can be over whole graph or over a subset of nodes
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
 min -- there is an arrow or a sequence of arrows from this node to every other node
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/viewing/index.htm#max}
 max -- there is an arrow or a sequence of arrows to this node from every other node
 \end{itemize}
 \end{itemize}
@@ -928,45 +928,45 @@ Now lets explore the methods for combining the graphs, these include:
 \begin{itemize}
 \item  "\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 +" (Sum) : disjoint union of nodes with arrows from appropriate input
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 merge : (Sum) : union (not necessarily disjoint) of nodes with arrows merged in from appropriate input, if arrow exists from both inputs then it will be duplicated.
 \item "\url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 *" : Tensor product : the tensor product G*H of graphs G and H is a graph such that the vertex set of G*H is the Cartesian product V(G) x V(H); and any two vertices (u,u') and (v,v') are adjacent in G*H if and only if u' is adjacent with v' and u is adjacent with v.
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 cartesian : Cartesian product : the vertex set of G o H is the Cartesian product V(G) x V(H) and any two vertices (u, u') and (v, v')  are adjacent in G o H if and only if either u = v and u' is adjacent with v' in H, or u' = v' and u is adjacent with v in G.
 \end{itemize}
-There is a much more detailed tutorial for these operations \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
+There is a much more detailed tutorial for these operations \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/product/index.htm}
 here.
 Maps:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#function}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#function}
 Maps in FunctionGraph
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#mapContra}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#mapContra}
 mapContra
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#adjoint}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/map/index.htm#adjoint}
 coAdjoint and contraAdjoint
 \end{itemize}
 Loops and Routes:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#tree}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#tree}
 Spanning Tree
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#loops}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#loops}
 Loops
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#routes}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/loops/index.htm#routes}
 Routes
 \end{itemize}
  Specialised variants of graph:
 \begin{itemize}
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#function}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#function}
 Function Graphs
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#undirected}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#undirected}
 Undirected Graphs
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#multifunction}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#multifunction}
 Multifunction Graphs
-\item \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#weighted}
+\item \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/special/index.htm#weighted}
 Weighted Graphs
 \end{itemize}
-To follow the whole tutorial start on \url{http : //www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm}
+To follow the whole tutorial start on \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/construct/index.htm}
 this page with constructing graphs.
 \section{Loop Tutorial}
 The aim of this domain is to hold a loop as a sequence of node or arrow
