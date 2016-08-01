@@ -166,7 +166,6 @@ which is in the algebraictopology.spad file here:
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/
 ++ Date Created: Jan 2016
-++ Date Last Updated: July 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
@@ -575,7 +574,6 @@ by Manuel Bronstein.
 ++   Intended to hold homology which is calculated using SmithNormalForm:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/homology/
 ++ Date Created: June 2016
-++ Date Last Updated: June 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:

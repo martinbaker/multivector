@@ -153,7 +153,6 @@ and then a domain for each type.
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Related Domains: VertexSetAbstract, VertexSetCoord
 ++ Date Created: Dec 2015
-++ Date Last Updated: Feb 2016
 VertexSet() : Category == Definition where
  NNI==> NonNegativeInteger
  Definition ==> SetCategory() with
@@ -182,7 +181,6 @@ this is to use a list of points.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/geometric/
 ++ Date Created: Dec 2015
-++ Date Last Updated: Feb 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories: VertexSet
@@ -270,7 +268,6 @@ each vertex is represented by an index without any underlying coordinates.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Date Created: Dec 2015
-++ Date Last Updated: Feb 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories: VertexSet
@@ -353,7 +350,6 @@ Rep := Record(mul:Integer,ind:List(Record(left:NNI,right:NNI)))
 )abbrev category FACTCAT FacetCategory
 ++ Author: Martin Baker
 ++ Date Created: April 2016
-++ Date Last Updated: April 2016
 ++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: facet simplex
@@ -413,7 +409,6 @@ To allow facets to be checked for equality indexes are stored in order
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Date Created: March 2016
-++ Date Last Updated: March 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories: FacetCategory
@@ -904,7 +899,6 @@ Rep := Record(mul:Integer,left:List(NNI),right:List(NNI))
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/product/
 ++ Date Created: April 2016
-++ Date Last Updated: April 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories: FacetCategory
@@ -1044,7 +1038,6 @@ these as an interval.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
 ++ Date Created: April 2016
-++ Date Last Updated: April 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories: FacetCategory
@@ -1426,7 +1419,6 @@ Also for a potential CoChainComplex domain, how would this relate to DeRhamCompl
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/
 ++ Date Created: March 2016
-++ Date Last Updated: July 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
@@ -1560,7 +1552,6 @@ DeltaComplex and is discussed later.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/
 ++ Date Created: Dec 2015
-++ Date Last Updated: July 2016
 ++ Basic Operations: star, link, cone, product
 ++ Related packages:
 ++ Related categories:
@@ -2120,7 +2111,6 @@ The representation is in two parts:
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/
 ++ Date Created: April 2016
-++ Date Last Updated: July 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
@@ -2463,7 +2453,6 @@ Therefore the following alternative representation can be used instead.
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/topology/delta/
 ++ Date Created: Feb 2016
-++ Date Last Updated: July 2016
 ++ Basic Operations:
 ++ Related packages:
 ++ Related categories:
@@ -2880,7 +2869,6 @@ easily.
 )abbrev package SIMPCF SimplicialComplexFactory
 ++ Author: Martin Baker
 ++ Date Created: Jan 2016
-++ Date Last Updated: March 2016
 ++ Description:
 ++  Provides functions to construct various simplicial complexes.
 PI ==> PositiveInteger
@@ -3017,7 +3005,6 @@ complex.
 )abbrev package CUBECF CubicalComplexFactory
 ++ Author: Martin Baker
 ++ Date Created: Apr 2016
-++ Date Last Updated: APR 2016
 ++ Description:
 ++  Provides functions to construct various Cubical complexes.
 ++  For more information see:
@@ -3144,7 +3131,6 @@ presentation.
 )abbrev package SIMPTEST SimplicialComplexTests
 ++ Author: Martin Baker
 ++ Date Created: March 2016
-++ Date Last Updated: March 2016
 ++ Description:
 ++  Provides functions to test SimplicialComplex related code.
 ++  This is intended for regression testing.
