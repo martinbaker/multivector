@@ -126,7 +126,6 @@ linear extension of a partial order.
 )abbrev package LISTPKG ListPackage
 ++ Author: Franz Lehner
 ++ Date Created: 24.04.2008
-++ Date Last Updated:
 ++ Basic Functions:
 ++ Related Constructors:
 ++ Also See:
@@ -280,7 +279,6 @@ requires \axiom{SetCategory}.
 )abbrev domain INCMAT IncidenceAlgebra
 ++ Author: Franz Lehner lehner@math.tugraz.at
 ++ Date Created: 30 April 2013
-++ Date Last Updated: 16 Jan 2016
 ++ Fix History: Martin Baker - changed name from IncidenceMatrix to IncidenceAlgebra
 ++ Basic Functions:
 ++ Related Constructors:
@@ -432,7 +430,6 @@ It computes the zeta matrix and stores its inverse.
 )abbrev domain FMOEBF FiniteMoebiusFunction
 ++ Author: Franz Lehner
 ++ Date Created: 06.03.2011
-++ Date Last Updated:
 ++ Basic Functions:
 ++ Related Constructors:
 ++ Also See:
@@ -513,7 +510,6 @@ It works similar to the domain \axiom{FiniteMoebiusFunction}.
 )abbrev domain GENMOEBF GeneralizedFiniteMoebiusFunction
 ++ Author: Franz Lehner
 ++ Date Created: 06.03.2011
-++ Date Last Updated:
 ++ Basic Functions:
 ++ Related Constructors:
 ++ Also See:
@@ -587,7 +583,6 @@ the whole order and not just one element (unlike PartialOrder in catdef.spad).
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Aug 2015
-++ Date Last Updated: Oct 2015
 Preorder(S) : Category == Definition where
  S : SetCategory
  NNI==> NonNegativeInteger
@@ -606,7 +601,6 @@ Preorder(S) : Category == Definition where
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
@@ -1441,7 +1435,6 @@ Poset(S) : Category == Definition where
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
@@ -1538,7 +1531,6 @@ to define the elements, and their order, recursively.
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Oct 2015
-++ Date Last Updated: Oct 2015
 Dcpo(S) : Category == Definition where
  S : SetCategory
  NNI==> NonNegativeInteger
@@ -1555,7 +1547,6 @@ Dcpo(S) : Category == Definition where
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
@@ -1642,7 +1633,6 @@ it is sometimes called a filtered complete partial order.
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Oct 2015
-++ Date Last Updated: Oct 2015
 CoDcpo(S) : Category == Definition where
  S : SetCategory
  NNI==> NonNegativeInteger
@@ -1659,7 +1649,6 @@ CoDcpo(S) : Category == Definition where
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
@@ -1746,7 +1735,6 @@ to exist.
 ++ Axiom: reflexivity forall(x): x<=x
 ++ Axiom: transitivity forall(x,y,z): x<=y and y<=z implies x<=z
 ++ Date Created: Oct 2015
-++ Date Last Updated: Oct 2015
 BiCPO(S: SetCategory): Category == Join(Dcpo(S),CoDcpo(S))
 
 )abbrev domain FBICPO FiniteBiCPO
@@ -1756,7 +1744,6 @@ BiCPO(S: SetCategory): Category == Join(Dcpo(S),CoDcpo(S))
 ++   for more documentation see:
 ++   http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations:
 ++ Related packages: UserDefinedPartialOrdering in setorder.spad
 ++ Related categories: PartialOrder in catdef.spad
@@ -1844,7 +1831,6 @@ End of POSET structures and start of lattice structures
 )abbrev category MEETLAT MeetSemilattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Meet
 ++ Related Constructors: BoundedMeetSemilattice
 ++  use BoundedMeetSemilattice if the semilattice has a 'top' which will be
@@ -1864,7 +1850,6 @@ MeetSemilattice: Category == SetCategory with
 )abbrev category BMEET BoundedMeetSemilattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Meet
 ++ Related Constructors: MeetSemilattice
 ++  use BoundedMeetSemilattice if the semilattice has a 'top' which will be
@@ -1882,7 +1867,6 @@ BoundedMeetSemilattice: Category == MeetSemilattice with
 )abbrev category JOINLAT JoinSemilattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Join
 ++ Related Constructors: BoundedJoinSemilattice
 ++  use BoundedJoinSemilattice if the semilattice has a 'bottom' which will be
@@ -1904,7 +1888,6 @@ JoinSemilattice: Category == SetCategory with
 )abbrev category BJOIN BoundedJoinSemilattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Join
 ++ Related Constructors: JoinSemilattice
 ++  use BoundedJoinSemilattice if the semilattice has a 'bottom' which will be
@@ -1924,7 +1907,6 @@ BoundedJoinSemilattice: Category == JoinSemilattice with
 )abbrev category LAT Lattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Meet Join
 ++ Related Constructors: BoundedLattice
 ++  use BoundedLattice if the lattice has a top and 'bottom' which will be
@@ -1940,7 +1922,6 @@ Lattice: Category == Join(MeetSemilattice,JoinSemilattice)
 )abbrev category BLAT BoundedLattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Meet Join
 ++ Related Constructors: Lattice
 ++  use BoundedLattice if the lattice has a top and 'bottom' which will be
@@ -1956,7 +1937,6 @@ BoundedLattice: Category == Join(BoundedMeetSemilattice,BoundedJoinSemilattice)
 )abbrev category DISTLAT DistributiveLattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Meet Join
 ++ Related Constructors: BoundedDistributiveLattice
 ++  use BoundedDistributiveLattice if the lattice has a top and 'bottom' which will be
@@ -1973,7 +1953,6 @@ DistributiveLattice: Category == Lattice
 )abbrev category BDISTL BoundedDistributiveLattice
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Basic Operations: Meet Join
 ++ Related Constructors: DistributiveLattice
 ++  use BoundedDistributiveLattice if the lattice has a top and 'bottom' which will be
@@ -2036,7 +2015,6 @@ The REP is NNI since this is used as an index into the poset nodes
 ++    this lattice domain and the poset domain is that, in this domain, the
 ++    REP holds a single node whereas in poset REP holds the whole poset.
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 FiniteLattice(S:SetCategory,p:FiniteBiCPO(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
@@ -2148,7 +2126,6 @@ complement(a)\/complement(b)
 ++    related to 'containment order'
 ++    REP holds a single node and complete set (representing 'top')
 ++ Date Created: Oct 2015
-++ Date Last Updated: Oct 2015
 SubsetLattice(S:SetCategory,top:List(S)) : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
@@ -2239,7 +2216,6 @@ essentially the same.
 )abbrev package POSETF PosetFactory
 ++ Author: Martin Baker
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 ++ Description:
 ++  Provides functions to construct various small posets
 ++  including powerset.
@@ -2576,7 +2552,6 @@ so we get the required deduction 'b'
 )abbrev domain ILOGIC ILogic
 ++ Author: Martin Baker
 ++ Date Created: March 2011
-++ Date Last Updated: October 2015
 ++ Basic Operations:
 ++ Related Constructors:
 ++ Keywords: intuitionisticLogic
@@ -3346,7 +3321,6 @@ landorandOpOp := landorandOp::LatticeMeetOfJoins
 )abbrev domain LATMOFJ LatticeMeetOfJoins
 ++ Author: Martin Baker
 ++ Date Created: Sept 2015
-++ Date Last Updated: Oct 2015
 ++ Basic Operations:
 ++ Related Constructors: LatticeJoinOfMeets is complementry domain
 ++ Keywords: Logic Lattice Meet Join
@@ -3702,14 +3676,13 @@ LatticeMeetOfJoins() : Exports == Implementation where
 )abbrev domain LATJOFM LatticeJoinOfMeets
 ++ Author: Martin Baker
 ++ Date Created: Sept 2015
-++ Date Last Updated: Oct 2015
 ++ Basic Operations:
 ++ Related Constructors: LatticeMeetOfJoins is complementary domain
 ++ Keywords: Logic Lattice Meet Join
 ++ Description: Infinite Lattice which is distributive.
 ++   Representation held as join of meets.
 ++ References:
-++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/index.htm
+++ http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/
 
 LatticeJoinOfMeets() : Exports == Implementation where
 
@@ -4206,7 +4179,6 @@ the complete bitstream because we cannot hold an infinite structure in a finite 
 ++ Author: Martin Baker
 ++ Description: An example of a frame taken from Vickers section 3.7
 ++ Date Created: Aug 2015
-++ Date Last Updated: Aug 2015
 BitStreamFrame() : Exports == Impl where
     NNI==> NonNegativeInteger
     Exports ==> Join(Lattice,CoercibleTo(OutputForm), SetCategory) with
