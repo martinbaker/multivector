@@ -3154,6 +3154,8 @@ SimplicialComplexTests() : with
     ++ so there is no point in repeating tests.
     ++ Tests are:
     ++ 1) fundamentalGroup of sphere is empty presentation
+  testHomology:() -> Boolean
+    ++ test homology for various simplectical and cubical complexes
   testAll:(n:NNI) -> Boolean
     ++ call all the other tests n times
 
@@ -3279,12 +3281,96 @@ SimplicialComplexTests() : with
       error "fundamentalGroup of projectivePlane() should have 1 rule"
     true
 
+  -- test homology for various simplectical and cubical complexes
+  testHomology():Boolean ==
+    b1 := sphereSolid(2)$SimplicialComplexFactory
+    h1 := homology(b1)
+    if h1 ~= [homologyz(),homology0(),homology0()] then
+      print("testHomology sphereSolid 2D is:"::Symbol << h1 << _
+            " should be:"::Symbol << [homologyz(),homology0(),homology0()])
+      error "error in testHomology for sphereSolid 2D"
+    b2 := sphereSolid(3)$SimplicialComplexFactory
+    h2 := homology(b2)
+    if h2 ~= [homologyz(),homology0(),homology0(),homology0()] then
+      print("testHomology sphereSolid 3D is:"::Symbol << h2 << _
+            " should be:"::Symbol << [homologyz(),homology0(),homology0()])
+      error "error in testHomology for sphereSolid 3D"
+    b3 := sphereSurface(2)$SimplicialComplexFactory
+    h3 := homology(b3)
+    if h3 ~= [homologyz(),homologyz()] then
+      print("testHomology sphereSurface 2D is:"::Symbol << h3 << _
+            " should be:"::Symbol << [homologyz(),homologyz()])
+      error "error in testHomology for sphereSurface 2D"
+    b4 := sphereSurface(3)$SimplicialComplexFactory
+    h4 := homology(b4)
+    if h4 ~= [homologyz(),homology0(),homologyz()] then
+      print("testHomology sphereSurface 3D is:"::Symbol << h4 << _
+            " should be:"::Symbol << [homologyz(),homology0(),homologyz()])
+      error "error in testHomology for sphereSurface 3D"
+    b5 := torusSurface()$SimplicialComplexFactory
+    h5 := homology(b5)
+    if h5 ~= [homologyz(),homologyzz(),homologyz()] then
+      print("testHomology torusSurface is:"::Symbol << h5 << _
+            " should be:"::Symbol << [homologyz(),homologyzz(),homologyz()])
+      error "error in testHomology for torusSurface"
+    b6 := projectivePlane()$SimplicialComplexFactory
+    h6 := homology(b6)
+    if h6 ~= [homologyz(),homologyc2(),homology0()] then
+      print("testHomology projectivePlane is:"::Symbol << h6 << _
+            " should be:"::Symbol << [homologyz(),homologyc2(),homology0()])
+      error "error in testHomology for projectivePlane"
+    b7 := kleinBottle()$SimplicialComplexFactory
+    h7 := homology(b7)
+    if h7 ~= [homologyz(),homologyzc2(),homology0()] then
+      print("testHomology kleinBottle is:"::Symbol << h7 << _
+            " should be:"::Symbol << [homologyz(),homologyzc2(),homology0()])
+      error "error in testHomology for kleinBottle"
+    -- now test cubical complexes
+    bc1 := sphereSolid(2)$CubicalComplexFactory
+    hc1 := homology(b1)
+    if hc1 ~= [homologyz(),homology0(),homology0()] then
+      print("testHomology sphereSolid 2D is:"::Symbol << hc1 << _
+            " should be:"::Symbol << [homologyz(),homology0(),homology0()])
+      error "error in testHomology for sphereSolid 2D"
+    bc2 := sphereSolid(3)$CubicalComplexFactory
+    hc2 := homology(bc2)
+    if hc2 ~= [homologyz(),homology0(),homology0(),homology0()] then
+      print("testHomology sphereSolid 3D is:"::Symbol << hc2 << _
+            " should be:"::Symbol << [homologyz(),homology0(),homology0()])
+      error "error in testHomology for sphereSolid 3D"
+    bc3 := sphereSurface(2)$CubicalComplexFactory
+    hc3 := homology(bc3)
+    if hc3 ~= [homologyz(),homologyz()] then
+      print("testHomology sphereSurface 2D is:"::Symbol << hc3 << _
+            " should be:"::Symbol << [homologyz(),homologyz()])
+      error "error in testHomology for sphereSurface 2D"
+    bc4 := sphereSurface(3)$CubicalComplexFactory
+    hc4 := homology(bc4)
+    if hc4 ~= [homologyz(),homology0(),homologyz()] then
+      print("testHomology sphereSurface 3D is:"::Symbol << hc4 << _
+            " should be:"::Symbol << [homologyz(),homology0(),homologyz()])
+      error "error in testHomology for sphereSurface 3D"
+    bc5 := torusSurface()$CubicalComplexFactory
+    hc5 := homology(bc5)
+    if hc5 ~= [homologyz(),homologyzz(),homologyz()] then
+      print("testHomology torusSurface is:"::Symbol << hc5 << _
+            " should be:"::Symbol << [homologyz(),homologyzz(),homologyz()])
+      error "error in testHomology for torusSurface"
+    bc6 := projectivePlane()$CubicalComplexFactory
+    hc6 := homology(bc6)
+    if hc6 ~= [homologyz(),homologyc2(),homology0()] then
+      print("testHomology projectivePlane is:"::Symbol << hc6 << _
+            " should be:"::Symbol << [homologyz(),homologyc2(),homology0()])
+      error "error in testHomology for projectivePlane"
+    true
+
   -- call all the other tests n times
   testAll(n:NNI):Boolean ==
     for x in 1..n repeat
       testOrientedFacet()
       testSimplicialComplex1()
     testSimplicialComplex2()
+    testHomology()
     true
 
 --Copyright (c) 2016, Martin J Baker.
