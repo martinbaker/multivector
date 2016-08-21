@@ -9,12 +9,58 @@
 \author{Martin J Baker}
 \maketitle
 \begin{abstract}
+I am trying to explore the most general way to model simplectical complexes and the structures involved
+with homology and cohomology.
 
+In order to try and keep things simple I start with graphs and cographs since they are a subset of
+the structures we eventually want to model.
 \end{abstract}
 \eject
 \tableofcontents
 \eject
 \section{Notation}
+First define the representation of graph in as general way as possible. This representation contains
+4 parts: a set of nodes, a set of edges (line segments) and two maps from edge to node, one for
+source and one for target:
+
+  Rep := Record(_
+        nodes : Set Node, _
+        edges : Set Edge,_
+        source : Edge->Node, _
+        target : Edge->Node_
+        )
+
+where Node and Edge are type parameters for domain.
+
+This is not as general as I would have liked since it can only handle finite graphs. I would also
+like to model infinite graphs, for example, a graph where the nodes are the natural numbers and
+the edges map from 'n' to 'n+1'. We could represent it like this:
+
+  Rep := Record(_
+        source : Integer->Integer, _
+        target : Integer->Integer_
+        )
+
+However I don't know how to combine these into one representation that could handle both finite
+and infinite graphs in a completely general way without messy joins. For now we will just have
+to accept limit of finite graphs only.
+
+Another issue is, for (co)homology, we need to represent nodes and edges as subsets of both:
+\begin{itemize}
+\item A module over integers
+\item A free Abelian group
+\end{itemize}
+
+See this thread:
+\url{https://groups.google.com/forum/#!topic/fricas-devel/XHfVbJqz_AM}
+
+  Rep := Record(_
+        nodes : FreeAbelianGroup(Node),_
+        edges : FreeAbelianGroup(Edge),_
+        source : Edge->Node, _
+        target : Edge->Node_
+        )
+
 
 (1) -> G := Graph(NNI,NNI)                             
 
