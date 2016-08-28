@@ -1436,8 +1436,6 @@ ChainComplex() : Exports == Impl where
   Exports ==> VertexSet() with
     chainComplex: (v:List(Matrix(Integer))) -> %
      ++ constructor
-    cochainComplex: (a:%) -> List(Union(Matrix(Fraction(Integer)),"failed"))
-     ++ construct co chain by inverting matrices
     validate:(a:%) -> Boolean
      ++ true if this is a valid chain complex, that is:
      ++ 1) maps compose
@@ -1470,16 +1468,6 @@ ChainComplex() : Exports == Impl where
      ADLLF:List(List(Fraction(Integer))) := [[x::Fraction(Integer) for x in y] for y in ADLL]
      a:Matrix(Fraction(Integer)) := matrix(ADLLF)
      a
-
-   -- construct co chain by inverting matrices
-   cochainComplex(a:%):List(Union(Matrix(Fraction(Integer)),"failed")) ==
-     res:List(Union(Matrix(Fraction(Integer)),"failed"))_
-        := empty()$List(Union(Matrix(Fraction(Integer)),"failed"))
-     for m in a repeat
-       mi:Union(Matrix(Fraction(Integer)),"failed") := if square?(m) then _
-         invertIfCan(matrixOverRational(m)) else "failed"
-       res := concat(res,mi)
-     reverse(res)
 
    -- true if this is a valid chain complex, that is:
    -- 1) maps compose
