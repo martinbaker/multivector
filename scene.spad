@@ -4021,6 +4021,7 @@ object.
 Scene(PT) : Exports == Implementation where
  PT : SPointCategory
 
+ x<<y ==> hconcat(x::OutputForm,y::OutputForm)
  TR ==> STransform PT
  I ==> Integer
  C ==> Complex DoubleFloat
@@ -5713,12 +5714,13 @@ Scene(PT) : Exports == Implementation where
         -- use named points
         for nam in n.parameters.text.np repeat
           param2 := xform(tran, findPoint(np2, nam)+n.parameters.text.pos)$TR
-          nodeAttsTxt := [xmlAttribute("font-size",_
-            string(n.parameters.text.siz)), _
+          nodeAttsTxt := [xmlAttribute("font-size",string(n.parameters.text.siz)), _
+            xmlAttribute("transform",_
+            concat(["scale(",math_to_string(scale2/(2::DF))@String,",",math_to_string(scale2/(2::DF))@String,")"])@String), _
             xmlAttribute("x",_
-            (math_to_string (screenCoordX(param2)*scale2))@String), _
+            (math_to_string (screenCoordX(param2)*(2::DF)))@String), _
             xmlAttribute("y",_
-            (math_to_string (-screenCoordY(param2)*scale2))@String), _
+            (math_to_string (-screenCoordY(param2)*(2::DF)))@String), _
             xmlAttribute("style",concat("fill:",mat2.fillCol))_
               ]
           xch : XmlElement := xmlElement(nodeName, nam, nodeAttsTxt)
@@ -5726,11 +5728,15 @@ Scene(PT) : Exports == Implementation where
             nodeEles := concat(nodeEles, xch)
         return xmlElement("g",nodeEles,nodeAtts)
       param2 : PT := xform(tran, n.parameters.text.pos)$TR
+--      print("scene toSvg font-size="::Symbol << n.parameters.text.siz << " scale2="::Symbol << _
+--        math_to_string(scale2)@String)
       nodeAtts := [xmlAttribute("font-size",string(n.parameters.text.siz)),_
+        xmlAttribute("transform",_
+        concat(["scale(",math_to_string(scale2/(2::DF))@String,",",math_to_string(scale2/(2::DF))@String,")"])@String), _
         xmlAttribute("x",_
-        (math_to_string (screenCoordX(param2)*scale2))@String), _
+        (math_to_string (screenCoordX(param2)*(2::DF))@String)), _
         xmlAttribute("y",_
-        (math_to_string (-screenCoordY(param2)*scale2))@String), _
+        (math_to_string (-screenCoordY(param2)*(2::DF))@String)), _
         xmlAttribute("style",concat("fill:",mat2.fillCol))_
           ]
       return xmlElement(nodeName, n.parameters.text.txt, nodeAtts)
