@@ -1,47 +1,11 @@
 Multivector
 -----------
-Code to use with FriCAS program - I should really change the name from 'Multivector' becaulse its no longer just about Clifford algebra but is a place to publish my new FriCAS code on any subject.
+Code to use with FriCAS program - I should really change the name from 'Multivector' because its no longer just about Clifford algebra but is a place to publish my new FriCAS code on any subject.
 
-Changes Upto June 2016
-----------------------
-I have made some changes and additions to some of my code. Would you be interested in including this in the FriCAS library?
+Since release 1.3.0 the algebraic topology code is now included in the FriCAS library. However there are some outstanding issues to be sorted out and ongoing maintenance so I have moved algebraic topology and logic code to a new repository here: https://github.com/martinbaker/fricasAlgTop .
 
-The changed/new files are:
+The plan is to also move other topics out to their own repositories.
 
-<ul>
-  <li>logic.spad</li>
-  <li>graph.spad</li>
-  <li>groupPresentation.spad</li>
-  <li>algebraictopology.spad</li>
-  <li>computation.spad</li>
-</ul>
-These files are available here:
-https://github.com/martinbaker/multivector
-
-These 4 files are interdependent so it would be really good, from my point of view, if you could include all of them.
-
-Further details of the changes are:
-
-logic.spad
-----------
-This is new code. Includes various logic related structures including partial order, lattice structures
-
-I have also moved intuitionistic logic here from computation.spad
-
-Since I last mentioned this on the forum I was kindly sent some unpublished code (related to Moebius function) by Franz Lehner with permission to merge this with my own poset related code. This is now all included in the code on Github.
-
-These are my notes related to the code written by Franz:
-http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/
-
-I have included Logic category, this is the same as existing Logic
-category in Boolean.spad as it is intended to replace it. Since this
-category is more general than just Boolean I thought it more appropriate
-to put it in logic.spad. 
-
-For further information see the documentation here:<ul>
-  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/</li>
-  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/logic/moebius/</li>
-</ul>
 graph.spad
 ----------
 There are some updates to existing code, this includes:
@@ -58,26 +22,7 @@ For further information see the documentation here:
 
 http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/graph/
 
-groupPresentation.spad
-----------------------
-This is new code.
 
-Group represented by its generators and relations.
-Here we use it to hold homotopy group such as fundamental group.
-
-For further information see the documentation here:
-http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/presentation/
-
-algebraictopology.spad
-----------------------
-This is new code.
-
-This includes simplicial complexes and cubical complexes.
-
-For further information see the documentation here:<ul>
-  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/topology/simplex/</li>
-  <li>http://www.euclideanspace.com/prog/scratchpad/mycode/topology/cubical/</li>
-</ul>
 computation.spad
 ----------------
 There are some updates to existing code, this includes:
