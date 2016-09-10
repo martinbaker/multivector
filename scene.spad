@@ -4163,6 +4163,23 @@ Scene(PT) : Exports == Implementation where
   addSceneLine : (n : %, st : %, en : %, fontScale : DF) -> %
     ++ addSceneLine(n, st, en, fontScale) is a convenience function which
     ++ combines createSceneLine with addChild!
+  createSceneLine : (st : %, en : %, fontScale : DF, shortenLine:Boolean) -> %
+    ++ createSceneLine(st, en, fontScale) constructs a line node, this contains
+    ++ a line, in n-dimensions, from st to en.
+    ++ 'st' and 'en' are nodes in the scene and the line will be drawn
+    ++ upto their boundary.
+    ++ st is the node at the start of the line
+    ++ en is the node at the end of the line
+    ++ fontScale should be set to the full width of the diagram (not
+    ++ just the width of this node). If this is not known then choose
+    ++ an approximate value. This only affects text nodes, if st or en,
+    ++ or its subnodes, do not contain a text node then its
+    ++ value is not significant.
+    ++ shortenLine if true line drawn upto boundary rather than
+    ++             centre of destination.
+  addSceneLine : (n : %, st : %, en : %, fontScale : DF, shortenLine:Boolean) -> %
+    ++ addSceneLine(n, st, en, fontScale) is a convenience function which
+    ++ combines createSceneLine with addChild!
   createSceneLines : (line : LINES) -> %
     ++ createSceneLines(line) constructs a line node, this contains lines
     ++ (represented by a list of points) in n-dimensional space.
@@ -4682,16 +4699,38 @@ Scene(PT) : Exports == Implementation where
   -- st is the node at the start of the arrow
   -- en is the node at the end of the arrow
   createSceneLine(st : %, en : %, fontScale : DF) : % ==
-    stBoundary : SBoundary(PT) := boundary(st, fontScale)
-    enBoundary : SBoundary(PT) := boundary(en, fontScale)
-    stPoint := lineIntersect(enBoundary, getCentre(stBoundary))
-    enPoint := lineIntersect(stBoundary, getCentre(enBoundary))
-    ["LINE"::Symbol,[],[[[stPoint,enPoint]]]]
+    createSceneLine(st, en, fontScale, true)
 
   -- addSceneLine(n, st, en) is a convenience function which
   -- combines createSceneLine with addChild!
   addSceneLine(n : %, st : %, en : %, fontScale : DF) : % ==
-    c := createSceneLine(st, en, fontScale)
+    addSceneLine(n , st, en, fontScale, true)
+
+  -- createSceneLine(st, en) constructs a line node, this contains
+  -- a line, in n-dimensions, from st to en.
+  -- 'st' and 'en' are start and end nodes of the line in the scene.
+  -- st is the node at the start of the arrow.
+  -- en is the node at the end of the arrow.
+  -- fontScale allows the boundary of text to be calculated, it should be
+  -- set to the full width of the diagram.
+  -- shortenLine if true line drawn upto boundary rather than
+  --             centre of destination.
+  createSceneLine(st : %, en : %, fontScale : DF, shortenLine:Boolean) : % ==
+    stBoundary : SBoundary(PT) := boundary(st, fontScale)
+    enBoundary : SBoundary(PT) := boundary(en, fontScale)
+    stPoint := getCentre(stBoundary)
+    enPoint := getCentre(enBoundary)
+    if shortenLine then
+      stPoint := lineIntersect(enBoundary, stPoint)
+      enPoint := lineIntersect(stBoundary, enPoint)
+    --print("createSceneLine2 start="::OutputForm << stPoint << _
+    --      " end="::OutputForm << enPoint)
+    ["LINE"::Symbol,[],[[[stPoint,enPoint]]]]
+
+  -- addSceneLine(n, st, en) is a convenience function which
+  -- combines createSceneLine with addChild!
+  addSceneLine(n : %, st : %, en : %, fontScale : DF, shortenLine:Boolean) : % ==
+    c := createSceneLine(st, en, fontScale, shortenLine)
     addChild!(n, c)
     c
 
@@ -5649,6 +5688,8 @@ Scene(PT) : Exports == Implementation where
         xmlAttribute("stroke-linecap","butt"),_
         xmlAttribute("stroke-linejoin","miter")_
           ]
+      -- print(hconcat(["scene toSVC LINE nodeName="::OutputForm,nodeName::OutputForm,_
+      --     " points="::OutputForm,(n.parameters.points)::OutputForm]))$OutputForm
       if mat2.matOpacity < 0.95::DF then
         nodeAtts := concat(nodeAtts,xmlAttribute("stroke-opacity",_
           (math_to_string mat2.matOpacity)@String))
@@ -5728,8 +5769,8 @@ Scene(PT) : Exports == Implementation where
             nodeEles := concat(nodeEles, xch)
         return xmlElement("g",nodeEles,nodeAtts)
       param2 : PT := xform(tran, n.parameters.text.pos)$TR
---      print("scene toSvg font-size="::Symbol << n.parameters.text.siz << " scale2="::Symbol << _
---        math_to_string(scale2)@String)
+      --print("scene toSvg font-size="::Symbol << n.parameters.text.siz << " scale2="::Symbol << _
+      --  math_to_string(scale2)@String)
       nodeAtts := [xmlAttribute("font-size",string(n.parameters.text.siz)),_
         xmlAttribute("transform",_
         concat(["scale(",math_to_string(scale2/(2::DF))@String,",",math_to_string(scale2/(2::DF))@String,")"])@String), _
@@ -5939,8 +5980,8 @@ Scene(PT) : Exports == Implementation where
       w : DF := 0.5::DF * h *(#(n.parameters.text.txt))::DF
       pt1 : PT := n.parameters.text.pos
       res := extendToPoint(res, xform(tran, pt1))
-      pt2 : PT := pt1 + spnt(w, h)$PT
-      res := extendToPoint(res, xform(tran, pt2))
+      --pt2 : PT := pt1 + spnt(w, h)$PT
+      --res := extendToPoint(res, xform(tran, pt2))
     if n.type = "TRANSFORM"::Symbol then -- set transform
       tran2 := compound(n.parameters.trans, tran)
     if n.type = "CLIP"::Symbol then -- set default clip bounding box
