@@ -4163,16 +4163,10 @@ Scene(PT) : Exports == Implementation where
   addSceneLine : (n : %, st : %, en : %, fontScale : DF) -> %
     ++ addSceneLine(n, st, en, fontScale) is a convenience function which
     ++ combines createSceneLine with addChild!
-<<<<<<< HEAD
-  createSceneLine : (st : %, en : %, fontScale : DF, shortenLine:Boolean) -> %
-    ++ createSceneLine(st, en, fontScale) constructs a line node, this contains
-    ++ a line, in n-dimensions, from st to en.
-=======
   createSceneLine : (st : %, en : %, fontScale : DF,
                      shortenLine : Boolean) -> %
     ++ createSceneLine(st, en, fontScale) constructs a line node, that
     ++ contains a line, in n-dimensions, from st to en.
->>>>>>> trunk
     ++ 'st' and 'en' are nodes in the scene and the line will be drawn
     ++ upto their boundary.
     ++ st is the node at the start of the line
@@ -4184,12 +4178,8 @@ Scene(PT) : Exports == Implementation where
     ++ value is not significant.
     ++ shortenLine if true line drawn upto boundary rather than
     ++             centre of destination.
-<<<<<<< HEAD
-  addSceneLine : (n : %, st : %, en : %, fontScale : DF, shortenLine:Boolean) -> %
-=======
   addSceneLine : (n : %, st : %, en : %, fontScale : DF,
                   shortenLine : Boolean) -> %
->>>>>>> trunk
     ++ addSceneLine(n, st, en, fontScale) is a convenience function which
     ++ combines createSceneLine with addChild!
   createSceneLines : (line : LINES) -> %
@@ -4741,18 +4731,11 @@ Scene(PT) : Exports == Implementation where
 
   -- addSceneLine(n, st, en) is a convenience function which
   -- combines createSceneLine with addChild!
-<<<<<<< HEAD
-  addSceneLine(n : %, st : %, en : %, fontScale : DF, shortenLine:Boolean) : % ==
-    c := createSceneLine(st, en, fontScale, shortenLine)
-    addChild!(n, c)
-    c
-=======
   addSceneLine(n : %, st : %, en : %, fontScale : DF,
                shortenLine : Boolean) : % ==
       c := createSceneLine(st, en, fontScale, shortenLine)
       addChild!(n, c)
       c
->>>>>>> trunk
 
   -- Constructs a line node, this contains lines (represented by a
   -- list of points) in n-dimensional space. The space is implicit
@@ -5643,13 +5626,8 @@ Scene(PT) : Exports == Implementation where
     nodeAtts : List XmlAttribute := []
     -- SVG nodename
     nodeName:String := ""
-<<<<<<< HEAD
-    --print("scene toSvg type="::Symbol << n.type << " parameters="::Symbol << _
-    --    n.parameters << " bb="::Symbol << bb << " scale="::Symbol << scale)
-=======
     --print("scene toSvg type=" << n.type << " parameters=" << _
     --    n.parameters << " bb=" << bb << " scale=" << scale)
->>>>>>> trunk
     if n.type = "ROOT"::Symbol then -- root node
       nodeName := "svg" -- root node
       -- define arrow shape
@@ -5788,17 +5766,11 @@ Scene(PT) : Exports == Implementation where
         -- use named points
         for nam in n.parameters.text.np repeat
           param2 := xform(tran, findPoint(np2, nam)+n.parameters.text.pos)$TR
-<<<<<<< HEAD
-          nodeAttsTxt := [xmlAttribute("font-size",string(n.parameters.text.siz)), _
-            xmlAttribute("transform",_
-            concat(["scale(",math_to_string(scale2/(2::DF))@String,",",math_to_string(scale2/(2::DF))@String,")"])@String), _
-=======
           nodeAttsTxt := [xmlAttribute("font-size", _
             string(n.parameters.text.siz)), _
             xmlAttribute("transform",_
             concat(["scale(", math_to_string(scale2/(2::DF))@String, ",", _
                       math_to_string(scale2/(2::DF))@String, ")"])@String), _
->>>>>>> trunk
             xmlAttribute("x",_
             (math_to_string (screenCoordX(param2)*(2::DF)))@String), _
             xmlAttribute("y",_
@@ -5810,25 +5782,6 @@ Scene(PT) : Exports == Implementation where
             nodeEles := concat(nodeEles, xch)
         return xmlElement("g",nodeEles,nodeAtts)
       param2 : PT := xform(tran, n.parameters.text.pos)$TR
-<<<<<<< HEAD
-      --print("scene toSvg font-size="::Symbol << n.parameters.text.siz << " scale2="::Symbol << _
-      --  math_to_string(scale2)@String)
-      -- scale text but if screen is very small then limit text epansion so text does not fill
-      -- too large a proportion of the screen
-      textScale:DF := scale2/(2::DF)
-      x:DF := screenCoordX(param2)*(2::DF)
-      y:DF := -screenCoordY(param2)*(2::DF)
-      if textScale > 2::DF then
-        x := x * textScale / (2::DF)
-        y := y * textScale / (2::DF)
-        textScale := 2::DF
-      nodeAtts := [xmlAttribute("font-size",string(n.parameters.text.siz)),_
-        xmlAttribute("transform",_
-        concat(["scale(",math_to_string(textScale)@String,",",math_to_string(textScale)@String,")"])@String), _
-        xmlAttribute("x",math_to_string(x)@String), _
-        xmlAttribute("y",math_to_string(y)@String), _
-        xmlAttribute("style",concat("fill:",mat2.fillCol))_
-=======
       --print("scene toSvg font-size=" << n.parameters.text.siz << 
       --      " scale2=" << math_to_string(scale2)@String)
       -- scale text but if screen is very small then limit text epansion
@@ -5847,7 +5800,6 @@ Scene(PT) : Exports == Implementation where
         xmlAttribute("x", math_to_string(x)@String), _
         xmlAttribute("y", math_to_string(y)@String), _
         xmlAttribute("style", concat("fill:", mat2.fillCol))_
->>>>>>> trunk
           ]
       return xmlElement(nodeName, n.parameters.text.txt, nodeAtts)
     if n.type = "TRANSFORM"::Symbol then -- set transform
