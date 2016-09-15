@@ -1393,7 +1393,8 @@ FiniteGraph(S) : Category == Definition where
     ++ fileName: String is the name of the SVG file that will be created
     ++ n: % is the graph that will be written
     ++ dispArrowName: Boolean is true to include the name of each arrow
-   diagramsSvg : (fileName : String, ln : List %, dispArrowName : Boolean) -> Void
+   diagramsSvg : (fileName : String, ln : List %,
+                  dispArrowName : Boolean) -> Void
     ++ creates SVG diagram containing multiple graphs
     ++ fileName: String is the name of the SVG file that will be created
     ++ ln: List % is list of graphs that will be written
@@ -2080,14 +2081,15 @@ FiniteGraph(S) : Category == Definition where
    -- fileName: String is the name of the SVG file that will be created
    -- ln: List % is list of graphs that will be written
    -- dispArrowName: Boolean is true to include the name of each arrow
-   diagramsSvg(fileName : String, ln : List %, dispArrowName : Boolean) : Void ==
-    dW : NNI := 0
-    for n in ln repeat dW := (dW + diagramWidth(n) + 10)::NNI
-    view := boxBoundary(sipnt(0, 0)$PT, sipnt(dW, _
-                           diagramHeight(first ln)+10::NNI)$PT )$SBoundary(PT)
-    sc := createSceneRoot(view)$Scene(PT)
-    for n in ln repeat subdiagramSvg(sc, n, dispArrowName, false)
-    writeSvg(sc, fileName)
+   diagramsSvg(fileName : String, ln : List %, dispArrowName : Boolean
+              ) : Void ==
+       dW : NNI := 0
+       for n in ln repeat dW := (dW + diagramWidth(n) + 10)::NNI
+       view := boxBoundary(sipnt(0, 0)$PT, sipnt(dW,
+                           diagramHeight(first ln) + 10::NNI)$PT)$SBoundary(PT)
+       sc := createSceneRoot(view)$Scene(PT)
+       for n in ln repeat subdiagramSvg(sc, n, dispArrowName, false)
+       writeSvg(sc, fileName)
 
    deepDiagramSvg(fileName : String, n : %, dispArrowName : Boolean) : Void ==
     view := boxBoundary(sipnt(0, 0)$PT, sipnt(diagramWidth(n)+10::NNI, _
@@ -2517,8 +2519,8 @@ DirectedGraph(S) : Exports == Implementation where
 
   -- adds an arrow to this graph, its endpoints are specified by ar.
   addArrow!(s : %, ar: ARROW) : % ==
-    s.arrows := concat(s.arrows, ar)
-    s
+      s.arrows := concat(s.arrows, ar)
+      s
 
   -- adds an arrow to this graph, where:
   -- s is the graph where the arrow is to be added
@@ -2526,8 +2528,8 @@ DirectedGraph(S) : Exports == Implementation where
   -- n1 is the index of the start object
   -- n2 is the index of the end object
   addArrow!(s : %, nm : String, n1 : NNI, n2 : NNI) : % ==
-    a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, []]
-    addArrow!(s, a)
+      a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, []]
+      addArrow!(s, a)
 
   -- adds an arrow to this graph, where:
   -- s is the graph where the arrow is to be added
@@ -2536,8 +2538,8 @@ DirectedGraph(S) : Exports == Implementation where
   -- n2 is the index of the end object
   -- mp is a map represented by this arrow
   addArrow!(s : %, nm : String, n1 : NNI, n2 : NNI, mp : List NNI) : % ==
-    a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, mp]
-    addArrow!(s, a)
+      a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, mp]
+      addArrow!(s, a)
 
   -- returns a list of all the vertices (or objects)
   getVertices(s : %) : List OBJT ==
@@ -3158,11 +3160,6 @@ FunctionGraph(S) : Exports == Implementation where
     error "this form of addObject! not supported in functionGraph"
     [[]]
 
-  -- Don't use. Put here only to implement FiniteGraph
-  addArrow!(s : %, ar: ARROW) : % ==
-    error "addArrow! not implemented in functionGraph"
-    s
-
   -- This should really be replaceArrow! in functionGraph but
   -- we use the name addArrow! for compatibility with directedGraph
   -- and any other implementations of FiniteGraph
@@ -3646,8 +3643,8 @@ UndirectedGraph(S) : Exports == Implementation where
 
   -- adds an arrow to this graph, its endpoints are specified by ar.
   addArrow!(s : %, ar: ARROW) : % ==
-    s.arrows := concat(s.arrows, ar)
-    s
+      s.arrows := concat(s.arrows, ar)
+      s
 
   -- adds an arrow to this graph, where:
   -- s is the graph where the arrow is to be added
@@ -3655,8 +3652,8 @@ UndirectedGraph(S) : Exports == Implementation where
   -- n1 is the index of the start object
   -- n2 is the index of the end object
   addArrow!(s : %, nm : String, n1 : NNI, n2 : NNI) : % ==
-    a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, []]
-    addArrow!(s, a)
+      a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, []]
+      addArrow!(s, a)
 
   -- adds an arrow to this graph, where:
   -- s is the graph where the arrow is to be added
@@ -3665,8 +3662,8 @@ UndirectedGraph(S) : Exports == Implementation where
   -- n2 is the index of the end object
   -- mp is a map represented by this arrow
   addArrow!(s : %, nm : String, n1 : NNI, n2 : NNI, mp : List NNI) : % ==
-    a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, mp]
-    addArrow!(s, a)
+      a : ARROW := [nm, 0::NNI, n1, n2, 0::Integer, 0::Integer, mp]
+      addArrow!(s, a)
 
   -- returns a list of all the vertices (or objects)
   getVertices(s : %) : List OBJT ==
@@ -3994,22 +3991,21 @@ UndirectedGraph(S) : Exports == Implementation where
   coerce(poset : FinitePoset(S)) : % ==
       undirectedGraph(poset)
 
-  --- JG: start new code: 
   -- output graph to OutputForm
   -- Overrides coerce in FiniteGraph
   coerce(n : %) : OutputForm ==
-    vertices : OutputForm := "Vertices: " :: OutputForm
-    lv : List OBJT := getVertices(n)
-    lvof : List OutputForm := [(v.value)::OutputForm for v in lv]
-    vertices := hconcat(vertices, commaSeparate lvof)
-    -- now represent arrows
-    arrows : OutputForm := "Edges: " :: OutputForm
-    la : List ARROW := getArrows(n)
-    if la = nil() then return vertices
-    laof : List OutputForm := [hconcat [(ar.fromOb):: OutputForm,_
-           "-" :: OutputForm, (ar.toOb):: OutputForm]  for ar in la]
-    arrows := hconcat(arrows, commaSeparate laof)
-    pile [vertices, arrows]
+      vertices : OutputForm := "Vertices: "::OutputForm
+      lv : List OBJT := getVertices(n)
+      lvof : List OutputForm := [(v.value)::OutputForm for v in lv]
+      vertices := hconcat(vertices, commaSeparate lvof)
+      -- now represent arrows
+      arrows : OutputForm := "Edges: "::OutputForm
+      la : List ARROW := getArrows(n)
+      if empty?(la) then return vertices
+      laof : List OutputForm := [hconcat [(ar.fromOb)::OutputForm,
+               "-"::OutputForm, (ar.toOb)::OutputForm]  for ar in la]
+      arrows := hconcat(arrows, commaSeparate laof)
+      pile [vertices, arrows]
 
   -- subdiagramSvg(sc, n, dispArrowName, deep) creates a branch of an
   -- SVG diagram diagram under an already existing scene node sc
@@ -4017,90 +4013,94 @@ UndirectedGraph(S) : Exports == Implementation where
   -- dispArrowName: Boolean is true to include the name of each arrow
   -- replaces subdiagramSvg in FiniteGraph to give a line without
   -- arrows for undirected graphs.
-  subdiagramSvg(sc : Scene(PT), n : %, dispArrowName : Boolean, deep : Boolean) : Void ==
-    --print "subdiagramSvgLine called from UndirectedGraph"::OutputForm
-    -- all arrows in undirected graphs will be black
-    mt := addSceneMaterial(sc,3::DF,"black","black")$Scene(PT)
-    ls : List OBJT := getVertices(n)
-    -- indexPointx and indexPointy holds an array of the x and y coordinates
-    -- so they can be looked up using an index value.
-    indexPointx : List NNI := []
-    indexPointy : List NNI := []
-    -- indexBounds holds an array of scene nodes so they can
-    -- be looked up using an index value (to draw arrows upto
-    -- their boundary).
-    indexBounds : List Scene(PT) := []
-    -- indexNodes holds an array of vertices so they can
-    -- be looked up using an index value (in case we need to look
-    -- inside them for second order graphs).
-    indexNodes : List S := []
-    for i in ls repeat
-      indexNodes := concat(indexNodes, i.value)
-      s : String := math_to_string i.value
-      x : NNI := i.posX
-      y : NNI := i.posY
-      indexPointx := concat(indexPointx, x)
-      indexPointy := concat(indexPointy, y)
-      -- if this is a second order graph then draw sub graphs
-      -- otherwise draw vertex name
-      tn := addSceneText(sc, s, 32::NNI, sipnt(x, y)$PT)$Scene(PT)
-      indexBounds := concat(indexBounds, tn)
-    arrs : List ARROW := getArrows(n)
-    -- if no arrows then just write vertex names
-    if arrs = nil() then return void
-    -- if this is a second order graph then we need to get the inner objects
-    IOBJT ==> Record(value : DirectedGraph(String), posX : NNI, posY : NNI)
-    innerOb : List List IOBJT := []
-    -- now draw lines without arrows in diagram
-    for arrow in arrs for arrn in 1..#arrs repeat
-      fromX : NNI := indexPointx.(arrow.fromOb)
-      toX : NNI := indexPointx.(arrow.toOb)
-      fromY : NNI := indexPointy.(arrow.fromOb)
-      toY : NNI := indexPointy.(arrow.toOb)
+  subdiagramSvg(sc : Scene(PT), n : %, dispArrowName : Boolean,
+                deep : Boolean) : Void ==
+      --print "subdiagramSvgLine called from UndirectedGraph"::OutputForm
+      -- all arrows in undirected graphs will be black
+      mt := addSceneMaterial(sc, 3::DF, "black", "black")$Scene(PT)
+      ls : List OBJT := getVertices(n)
+      -- indexPointx and indexPointy holds an array of the x and y coordinates
+      -- so they can be looked up using an index value.
+      indexPointx : List NNI := []
+      indexPointy : List NNI := []
+      -- indexBounds holds an array of scene nodes so they can
+      -- be looked up using an index value (to draw arrows upto
+      -- their boundary).
+      indexBounds : List Scene(PT) := []
+      -- indexNodes holds an array of vertices so they can
+      -- be looked up using an index value (in case we need to look
+      -- inside them for second order graphs).
+      indexNodes : List S := []
+      for i in ls repeat
+          indexNodes := concat(indexNodes, i.value)
+          s : String := math_to_string i.value
+          x : NNI := i.posX
+          y : NNI := i.posY
+          indexPointx := concat(indexPointx, x)
+          indexPointy := concat(indexPointy, y)
+          -- if this is a second order graph then draw sub graphs
+          -- otherwise draw vertex name
+          tn := addSceneText(sc, s, 32::NNI, sipnt(x, y)$PT)$Scene(PT)
+          indexBounds := concat(indexBounds, tn)
+      arrs : List ARROW := getArrows(n)
+      -- if no arrows then just write vertex names
+      if empty?(arrs) then return void
+      -- if this is a second order graph then we need to get the inner objects
+      IOBJT ==> Record(value : DirectedGraph(String), posX : NNI, posY : NNI)
+      innerOb : List List IOBJT := []
+      -- now draw lines without arrows in diagram
+      for arrow in arrs for arrn in 1..#arrs repeat
+          fromX : NNI := indexPointx.(arrow.fromOb)
+          toX : NNI := indexPointx.(arrow.toOb)
+          fromY : NNI := indexPointy.(arrow.fromOb)
+          toY : NNI := indexPointy.(arrow.toOb)
 
-      -- diagram can look better if edges are drawn slightly offset but
-      -- this needs to be fine tuned to look correct.
-      fromX := (fromX+arrow.xOffset)::NNI
-      toX := (toX+arrow.xOffset)::NNI
-      fromY := (fromY+arrow.yOffset)::NNI
-      toY := (toY+arrow.yOffset)::NNI
+          -- diagram can look better if edges are drawn slightly offset but
+          -- this needs to be fine tuned to look correct.
+          fromX := (fromX + arrow.xOffset)::NNI
+          toX := (toX + arrow.xOffset)::NNI
+          fromY := (fromY + arrow.yOffset)::NNI
+          toY := (toY + arrow.yOffset)::NNI
 
-      -- for arrow name we want to position text at the mid point of the
-      -- arrow, this is given by (start + end)/2. We divide integer by 2
-      -- by shifting binary number one place to the left.
-      midX : NNI := shift(toX + fromX, -1)
-      midY : NNI := shift(toY + fromY, -1)
-      -- get information to set line colour
-      arrIndex : List NNI := arrowsToNode(n, arrow.fromOb)
-      arrNumber : Integer := position(arrn, arrIndex)
-      rema : Integer := divide(arrNumber, 8).remainder
-      -- if this is a second order graph then we draw inner arrows
-      fnode : Scene(PT) := indexBounds.(arrow.fromOb)
-      tnode : Scene(PT) := indexBounds.(arrow.toOb)
-      offset : PT := sipnt(arrow.xOffset, arrow.yOffset)$PT
-      -- next we add the lines.
-      arrNode := addSceneLine(mt, fnode, tnode, (diagramWidth(n)+10)::DF,deep)
-      --print(vconcat([_
-      -- hconcat("fgraph subdiagramSvg sc="::OutputForm,sc::OutputForm)$OutputForm,_
-      -- hconcat(" n="::OutputForm,n::OutputForm)$OutputForm,_
-      -- hconcat(" arrNode="::OutputForm,arrNode::OutputForm)$OutputForm])$OutputForm)
-      -- add the name of the arrow
-      if dispArrowName then
-        s : String := arrow.name
-        addSceneText(mt, s, 32::NNI, sipnt(midX, midY)$PT)$Scene(PT)
-    return void
+          -- for arrow name we want to position text at the mid point of the
+          -- arrow, this is given by (start + end)/2. We divide integer by 2
+          -- by shifting binary number one place to the left.
+          midX : NNI := shift(toX + fromX, -1)
+          midY : NNI := shift(toY + fromY, -1)
+          -- get information to set line colour
+          arrIndex : List NNI := arrowsToNode(n, arrow.fromOb)
+          arrNumber : Integer := position(arrn, arrIndex)
+          rema : Integer := divide(arrNumber, 8).remainder
+          -- if this is a second order graph then we draw inner arrows
+          fnode : Scene(PT) := indexBounds.(arrow.fromOb)
+          tnode : Scene(PT) := indexBounds.(arrow.toOb)
+          offset : PT := sipnt(arrow.xOffset, arrow.yOffset)$PT
+          -- next we add the lines.
+          arrNode := addSceneLine(mt, fnode, tnode,
+                                  (diagramWidth(n) + 10)::DF,deep)
+          --print(vconcat([
+          -- hconcat("fgraph subdiagramSvg sc="::OutputForm,
+          --         sc::OutputForm)$OutputForm,
+          -- hconcat(" n="::OutputForm,n::OutputForm)$OutputForm,
+          -- hconcat(" arrNode="::OutputForm,
+          --         arrNode::OutputForm)$OutputForm])$OutputForm)
+          -- add the name of the arrow
+          if dispArrowName then
+              s : String := arrow.name
+              addSceneText(mt, s, 32::NNI, sipnt(midX, midY)$PT)$Scene(PT)
+      return void
 
    -- creates an SVG diagram
    -- fileName: String is the name of the SVG file that will be created
    -- n: % is the graph that will be written
    -- dispArrowName: Boolean is true to include the name of each arrow
   diagramSvg(fileName : String, n : %, dispArrowName : Boolean) : Void ==
-    --print "diagramSvgLine called from UndirectedGraph"::OutputForm
-    view := boxBoundary(sipnt(0, 0)$PT, sipnt(diagramWidth(n)+10::NNI, _
-                           diagramHeight(n)+10::NNI)$PT)$SBoundary(PT)
-    sc := createSceneRoot(view)$Scene(PT)
-    subdiagramSvg(sc, n, dispArrowName, true)
-    writeSvgQuantised(sc, fileName)
+      --print "diagramSvgLine called from UndirectedGraph"::OutputForm
+      view := boxBoundary(sipnt(0, 0)$PT, sipnt(diagramWidth(n) + 10::NNI,
+                           diagramHeight(n) + 10::NNI)$PT)$SBoundary(PT)
+      sc := createSceneRoot(view)$Scene(PT)
+      subdiagramSvg(sc, n, dispArrowName, true)
+      writeSvgQuantised(sc, fileName)
 
    -- creates an SVG diagram. This is an altenative version which does
    -- not shorten lines.
@@ -4108,14 +4108,12 @@ UndirectedGraph(S) : Exports == Implementation where
    -- n: % is the graph that will be written
    -- dispArrowName: Boolean is true to include the name of each arrow
   diagramSvg2(fileName : String, n : %, dispArrowName : Boolean) : Void ==
-    --print "diagramSvgLine called from UndirectedGraph"::OutputForm
-    view := boxBoundary(sipnt(0, 0)$PT, sipnt(diagramWidth(n)+10::NNI, _
-                           diagramHeight(n)+10::NNI)$PT)$SBoundary(PT)
-    sc := createSceneRoot(view)$Scene(PT)
-    subdiagramSvg(sc, n, dispArrowName, false)
-    writeSvgQuantised(sc, fileName)
-
---- JG: end new code
+      --print "diagramSvgLine called from UndirectedGraph"::OutputForm
+      view := boxBoundary(sipnt(0, 0)$PT, sipnt(diagramWidth(n) + 10::NNI,
+                          diagramHeight(n) + 10::NNI)$PT)$SBoundary(PT)
+      sc := createSceneRoot(view)$Scene(PT)
+      subdiagramSvg(sc, n, dispArrowName, false)
+      writeSvgQuantised(sc, fileName)
 
 )if false
 
@@ -4371,11 +4369,6 @@ MultifunctionGraph(S) : Exports == Implementation where
   addObject!(s : %, n : OBJT) : % ==
     error "this form of addObject! not supported in multifunctionGraph"
     [[]]
-
-  -- Don't use. Put here only to implement FiniteGraph
-  addArrow!(s : %, ar: ARROW) : % ==
-    error "addArrow! not implemented in multifunctionGraph"
-    s
 
   -- Don't use.
   -- This should really be replaceFirst Arrow! in multifunctionGraph
@@ -5114,9 +5107,9 @@ WeightedGraph(S, W) : Exports == Implementation where
     error "this form of addObject! not supported in multifunctionGraph"
     [[], []]
 
-  -- Here only to implement FiniteGraph, not wery useful as it has zero weight
+  -- Here only to implement FiniteGraph, not very useful as it has zero weight
   addArrow!(s : %, ar: ARROW) : % ==
-    addWArrow!(s,ar.name, ar.fromOb, ar.toOb, 0$W)
+      addWArrow!(s,ar.name, ar.fromOb, ar.toOb, 0$W)
 
   -- included only for compatibility with FiniteGraph
   -- adds an arrow with zero weight
