@@ -1608,37 +1608,37 @@ Lambda(UT) : Exports == Implementation where
   -- brackets, the term to the left binds more tightly than the
   -- one on the right.
   toOutputFormConven(n : %, boundL:List(String)) : OutputForm ==
-    s:OutputForm := empty()$OutputForm
-    --print(message "toOutputFormConven(" << toString(n) << ")")
-    if n case boundTerm then
-      i : NNI := n.boundTerm.varBound + 1
-      --print(message "toOutputFormConven(" << toString(n) << _
-      --   ") i=" << string(i) << " #boundL=" << string(#boundL))
-      -- if index is within range use it to lookup String value
-      -- convert it to Symbol first to avoid displaying quotes.
-      if i > 0 and i <= #boundL then return message(boundL.i)
-      -- otherwise display bound term as NNI (deBruijn index)
-      s := (n.boundTerm.varBound)::OutputForm
-    if n case freeTerm then
-      s := (n.freeTerm)::OutputForm
-    if n case compoundTerm then
-      s := hconcat([message("("),_
-        toOutputFormConven(n.compoundTerm.c1,boundL),_
-        message(" "),_
-        toOutputFormConven(n.compoundTerm.c2,boundL),_
-        message(")")])$OutputForm
-    if n case lambdaTerm then
-      -- variable node so print name
-      varName : String := getName(n.lambdaTerm.nm)$UT
-      while member?(varName, boundL) repeat
-        varName := concat(varName,"'")
-      boundL2 : List String := concat(boundL, varName)
-      s := hconcat([message("(\"),_
-        message(varName),_
-        message("."),_
-        toOutputFormConven(n.lambdaTerm.c3,boundL2),_
-        message(")")])$OutputForm
-    s
+      s:OutputForm := empty()$OutputForm
+      --print(message "toOutputFormConven(" << toString(n) << ")")
+      if n case boundTerm then
+          i : NNI := n.boundTerm.varBound + 1
+          --print(message "toOutputFormConven(" << toString(n) << _
+          --   ") i=" << string(i) << " #boundL=" << string(#boundL))
+          -- if index is within range use it to lookup String value
+          -- convert it to Symbol first to avoid displaying quotes.
+          if i > 0 and i <= #boundL then return message(boundL.i)
+          -- otherwise display bound term as NNI (deBruijn index)
+          s := (n.boundTerm.varBound)::OutputForm
+      if n case freeTerm then
+          s := (n.freeTerm)::OutputForm
+      if n case compoundTerm then
+          s := hconcat([message("("),
+                        toOutputFormConven(n.compoundTerm.c1, boundL),
+                        message(" "),
+                        toOutputFormConven(n.compoundTerm.c2, boundL),
+                        message(")")])$OutputForm
+      if n case lambdaTerm then
+          -- variable node so print name
+          varName : String := getName(n.lambdaTerm.nm)$UT
+          while member?(varName, boundL) repeat
+              varName := concat(varName,"'")
+          boundL2 : List String := concat(boundL, varName)
+          s := hconcat([message("(\"),
+                        message(varName),
+                        message("."),
+                        toOutputFormConven(n.lambdaTerm.c3, boundL2),
+                        message(")")])$OutputForm
+      s
 
   -- output
   coerce(n : %) : OutputForm == toOutputFormConven(n,[])
@@ -1891,7 +1891,7 @@ SKICombinators(UT) : Exports == Implementation where
  PR ==> Record(rft : %, pout : NNI)
    ++ parse result includes term returned and new index
 
- Exports == Join(SetCategory,CoercibleTo(OutputForm)) with
+ Exports == SetCategory with
   ski : (x : %, y : %) -> %
     ++ Constructs a node combinator over combinators
   ski : (t1 : UT) -> %
@@ -2227,30 +2227,28 @@ SKICombinators(UT) : Exports == Implementation where
 
   -- output
   coerce(n : %) : OutputForm ==
-    s:OutputForm := empty()$OutputForm
-    if n case lf then
-      -- leaf node so print I, K or S
-      if n.lf = "I"::Symbol then s := "I"::OutputForm
-      if n.lf = "K"::Symbol then s := "K"::OutputForm
-      if n.lf = "S"::Symbol then s := "S"::OutputForm
-    if n case nd then
-      -- binary node which has two subnodes c1 and c2
-      if atom?(n.nd.c2) then
-        if variable?(n.nd.c2)
-          then
-            s := hconcat([s,_
-              (n.nd.c1)::OutputForm,_
-              message(" "),_
-              (n.nd.c2)::OutputForm])$OutputForm
+      s : OutputForm := empty()$OutputForm
+      if n case lf then
+          -- leaf node so print I, K or S
+          string(n.lf)::OutputForm
+      if n case nd then
+          -- binary node which has two subnodes c1 and c2
+          if atom?(n.nd.c2) then
+              if variable?(n.nd.c2) then
+                  s := hconcat([s,_
+                                (n.nd.c1)::OutputForm,_
+                                message(" "),_
+                                (n.nd.c2)::OutputForm])$OutputForm
+              else
+                  s := hconcat([s, (n.nd.c1)::OutputForm,
+                                (n.nd.c2)::OutputForm])$OutputForm
           else
-            s := hconcat([s,(n.nd.c1)::OutputForm,(n.nd.c2)::OutputForm])$OutputForm
-      else
-        s := hconcat([s,(n.nd.c1)::OutputForm,message("("),_
+              s := hconcat([s,(n.nd.c1)::OutputForm,message("("),_
              (n.nd.c2)::OutputForm,message(")")])$OutputForm
-    if n case vr then
-      -- variable node so print name
-      s := (n.vr)::OutputForm
-    s
+      if n case vr then
+          -- variable node so print name
+          s := (n.vr)::OutputForm
+      s
 
 
 )if false
@@ -2581,6 +2579,8 @@ compUtil(UT) : Exports == Implementation where
 
  Implementation ==> add
 
+  import OutputForm
+
   -- Keeps count of index number of variables created in Ski2Lambda.
   -- I am wary of defining a variable outside of a function but
   -- can't find another non-messy way to update it from several
@@ -2598,24 +2598,24 @@ compUtil(UT) : Exports == Implementation where
       --print(message "util coerce atom:" << s)
       if isI?(s)$SU then
         strVar:String := concat("v",string(varNum))
-        print(message "util coerce rule SL1: Ski[I] = \" << message strVar << _
-          message ".0")
+        print(message "util coerce rule SL1: Ski[I] = \" << message strVar
+              << message ".0")
         varNum := varNum +1
         return parseLambda(concat["\",strVar,".0"])$LU
       if isK?(s)$SU then
         strVar1:String := concat("v",string(varNum))
         strVar2:String := concat("v",string(varNum+1))
-        print(message "util coerce rule SL2: Ski[K] = \" << message strVar1 << _
-              message ".\" << message strVar2 << message ".1")
+        print(message "util coerce rule SL2: Ski[K] = \" << message strVar1
+              << message ".\" << message strVar2 << message ".1")
         varNum := varNum +2
         return parseLambda(concat["\",strVar1,".\",strVar2,".1"])$LU
       if isS?(s)$SU then
         strVar1:String := concat("v",string(varNum))
         strVar2:String := concat("v",string(varNum+1))
         strVar3:String := concat("v",string(varNum+2))
-        print(message "util coerce rule SL3: Ski[S] = \" << message strVar1 << _
-          message ".\" << message strVar2 << message ".\" << message strVar3 << _
-          message ".(2 0 (1 0))")
+        print(message "util coerce rule SL3: Ski[S] = \" << message strVar1
+              << message ".\" << message strVar2 << message ".\" <<
+              message strVar3 << message ".(2 0 (1 0))")
         varNum := varNum +3
         return parseLambda(concat["\",strVar1,".\",strVar2,".\",strVar3,".(2 0 (1 0))"])$LU
       print(message "util coerce pass unbound variable " << _
@@ -2626,15 +2626,16 @@ compUtil(UT) : Exports == Implementation where
     c2 : SU := second subnodes
     s1 : String := toString(c1)$SU
     s2 : String := toString(c2)$SU
-    --print(message "util coerce c1=" << (toString(c1)$SU) << " c2=" << toString(c2))
+    -- print(message "util coerce c1=" << (toString(c1)$SU) << " c2=" <<
+    --       toString(c2))
     -- look for I x, if found translate x
     if isI?(c1)$SU then
       print(message "util coerce apply rule SL1 in:" << s)
       return Ski2Lambda(c2)
     if atom?(c1)$SU then
-      print(message "util coerce rule SL4: Ski[(" << message s1 << message" " << _
-        message s2 << message ")] = (Ski[" << message s1 << message "] Ski[" << _
-        message s2 << message "])")
+      print(message "util coerce rule SL4: Ski[(" << message s1 << message" "
+            << message s2 << message ")] = (Ski[" << message s1 <<
+            message "] Ski[" << message s2 << message "])")
       return lambda(Ski2Lambda(c1), Ski2Lambda(c2))$LU
     -- look for K x y, if found translate x
     subsubnodes : List SU := getChildren(c1)$SU
@@ -2666,9 +2667,9 @@ compUtil(UT) : Exports == Implementation where
       s112 : String := getName(getVariable(c112)$SU)$UT
       print(message "util coerce apply rule SL3 in:" << s)
       return lambda(lambda(Ski2Lambda(c112), Ski2Lambda(c2))$LU, lambda(Ski2Lambda(c12), Ski2Lambda(c2))$LU)$LU
-    print(message "util coerce rule SL4: Ski[(" << message s1 << message " " << _
-      message s2 << message ")] = (Ski[" << message s1 << message "] Ski[" << _
-      message s2 << message "])")
+    print(message "util coerce rule SL4: Ski[(" << message s1 << message " "
+          << message s2 << message ")] = (Ski[" << message s1 <<
+          message "] Ski[" << message s2 << message "])")
     lambda(Ski2Lambda(c1), Ski2Lambda(c2))$LU
 
   -- coerce SKI combinators to Lambda term.
@@ -2791,7 +2792,7 @@ compUtil(UT) : Exports == Implementation where
     if atom?(s) then
       --print(message "util coerce atom:" << toString(s)$SU)
       if isI?(s) then
-        print(message "warning I does not have a parameter to act on")$OutputForm
+        print(message "warning I does not have a parameter to act on")
         print(message "creating x")
         a :ILogic  := proposition("x")
         return implies(a, a)
