@@ -1,0 +1,164 @@
+From 648ba66e3d46d65da2de0f9404f5051c9bf830d2 Mon Sep 17 00:00:00 2001
+From: martinbaker <ax87438@martinb.com>
+Date: Mon, 10 Oct 2016 18:16:26 +0100
+Subject: [PATCH 5/5] fix urls
+
+---
+ src/algebra/alg_top.spad   | 2 +-
+ src/algebra/clifford.spad  | 4 ++--
+ src/algebra/dirichlet.spad | 4 ++--
+ src/algebra/graph.spad     | 6 +++---
+ src/algebra/hashstate.spad | 2 +-
+ src/algebra/html.spad      | 6 +++---
+ src/algebra/mantepse.spad  | 2 +-
+ src/algebra/matcat.spad    | 2 +-
+ src/algebra/rinterp.spad   | 2 +-
+ 9 files changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/src/algebra/alg_top.spad b/src/algebra/alg_top.spad
+index 8f3abc3..ca4d4aa 100644
+--- a/src/algebra/alg_top.spad
++++ b/src/algebra/alg_top.spad
+@@ -3528,7 +3528,7 @@ For more details see:
+         Builds up to homology groups via graphs and simplicial complexes.
+ 
+ [3] Wikipedia
+-\url{http://https://en.wikipedia.org/wiki/Simplicial_complex/}
++\url{https://en.wikipedia.org/wiki/Simplicial_complex}
+ 
+ [4] I have put a fuller explanation of this code here:
+ \url{http://www.euclideanspace.com/prog/scratchpad/mycode/topology/}
+diff --git a/src/algebra/clifford.spad b/src/algebra/clifford.spad
+index 28cfbc3..62a705a 100644
+--- a/src/algebra/clifford.spad
++++ b/src/algebra/clifford.spad
+@@ -1092,7 +1092,7 @@ J. Math. Phys. 26(4), April 1985
+ "On the Clifford-Littlewood-Eckmann groups: a new look at periodicity mod 8",
+ Rocky Mountains Journal of Mathematics, vol 19, no. 3, (Summer 1989)
+ \bibitem{7} Leopardi, Paul "Quick Introduction to Clifford Algebras"\\
+-{\bf http : //web.maths.unsw.edu.au/~leopardi/clifford-2003-06-05.pdf}
++\url {http://maths-people.anu.edu.au/~leopardi/clifford-2003-06-05.pdf}
+ \bibitem{8} Cartan, Elie and Study, Eduard
+ "Nombres Complexes",
+ Encyclopaedia Sciences Math\'ematique, \'edition fran\c caise, 15, (1908),
+@@ -1106,7 +1106,7 @@ mathematics and physics", D. Reidel, (1984)
+ pp161-164 of \cite{13} (1995)
+ \bibitem{11} Ashdown, M.
+ "GA Package for Maple V",\\
+-http : //www.mrao.cam.ac.uk/~clifford/software/GA/GAhelp5.html
++\url {http://geometry.mrao.cam.ac.uk/}
+ \bibitem{12} Doran, Chris and Lasenby, Anthony,
+ "Geometric Algebra for Physicists"
+ Cambridge University Press (2003) ISBN 0-521-48022-1
+diff --git a/src/algebra/dirichlet.spad b/src/algebra/dirichlet.spad
+index f884634..284dae4 100644
+--- a/src/algebra/dirichlet.spad
++++ b/src/algebra/dirichlet.spad
+@@ -16,9 +16,9 @@
+ \section{The Dirichlet Ring}
+ The Dirichlet Ring is the ring of arithmetical functions
+ $$ f : \mathbb N_+ \rightarrow R$$
+-(see \url{http : //en.wikipedia.org/wiki/Arithmetic_function}) together
++(see \url{http://en.wikipedia.org/wiki/Arithmetic_function}) together
+ with the Dirichlet convolution (see
+-\url{http : //en.wikipedia.org/wiki/Dirichlet_convolution}) as
++\url{http://en.wikipedia.org/wiki/Dirichlet_convolution}) as
+ multiplication and component-wise addition.  Since we can consider
+ the values an arithmetic functions assumes as the coefficients of a
+ Dirichlet generating series, we call $R$ the coefficient ring of a
+diff --git a/src/algebra/graph.spad b/src/algebra/graph.spad
+index 9078bd1..cb25a06 100644
+--- a/src/algebra/graph.spad
++++ b/src/algebra/graph.spad
+@@ -375,7 +375,7 @@ category.
+ 
+ On this wiki page there is a box on the right "Graph families defined
+ by their automorphisms"
+-\url{http : //en.wikipedia.org/wiki/Regular_graph}
++\url{https://en.wikipedia.org/wiki/Regular_graph}
+ Could this make a suitable basis for subtypes of graph?
+ 
+ \section{Mutable and Non-mutable}
+@@ -5629,9 +5629,9 @@ WeightedGraph(S, W) : Exports == Implementation where
+ \begin{thebibliography}{99}
+ For more details see:
+ [1] Floyd's algorithm
+-\url{http : //en.wikipedia.org/wiki/Floyd-Warshall_algorithm}
++\url{https://en.wikipedia.org/wiki/Floyd-Warshall_algorithm}
+ [2] Wiki page about 2-categories
+-\url{http : //en.wikipedia.org/wiki/2-category}
++\url{https://en.wikipedia.org/wiki/2-category}
+ 
+ \end{thebibliography}
+ \end{document}
+diff --git a/src/algebra/hashstate.spad b/src/algebra/hashstate.spad
+index 3f2a4b8..b129a8b 100644
+--- a/src/algebra/hashstate.spad
++++ b/src/algebra/hashstate.spad
+@@ -16,7 +16,7 @@ This domain is intended to support the computation of hash values.
+ 
+ The main idea for the the domain HashState was given by Waldek Hebisch
+ in a mail to \url{fricas-devel}, see
+-\url{https : //groups.google.com/d/msg/fricas-devel/ofHadCkfdC8/SZGZbAai7ygJ}.
++\url{https://groups.google.com/d/msg/fricas-devel/ofHadCkfdC8/SZGZbAai7ygJ}.
+ 
+ It follows the text part of the message.
+ \begin{verbatim}
+diff --git a/src/algebra/html.spad b/src/algebra/html.spad
+index 135aa14..9f6627b 100644
+--- a/src/algebra/html.spad
++++ b/src/algebra/html.spad
+@@ -1023,9 +1023,9 @@ HTMLFormat() : public == private where
+ )if false
+ \eject
+ \begin{thebibliography}{99}
+-\bibitem{1} http : //www.w3schools.com/html/
+-\bibitem{2} http : //www.w3.org/
+-\bibitem{3} http : //www.euclideanspace.com/maths/standards/program/output/
++\bibitem{1} \url{http://www.w3schools.com/html/}
++\bibitem{2} \url{http://www.w3.org/}
++\bibitem{3} \url{http://www.euclideanspace.com/prog/scratchpad/mycode/system/output/index.htm}
+ \end{thebibliography}
+ \end{document}
+ )endif
+diff --git a/src/algebra/mantepse.spad b/src/algebra/mantepse.spad
+index 37b0295..659e833 100644
+--- a/src/algebra/mantepse.spad
++++ b/src/algebra/mantepse.spad
+@@ -16,7 +16,7 @@
+   first few terms.  It extends and complements Christian Krattenthaler's
+   program \Rate\ and the relevant parts of Bruno Salvy and Paul Zimmermann's
+   \GFUN.  An article describing this package can be found at
+-  \url{http : //arxiv.org/abs/math.CO/0702086}.
++  \url{http://arxiv.org/abs/math.CO/0702086}.
+ \end{abstract}
+ \tableofcontents
+ \section{domain UFPS UnivariateFormalPowerSeries}
+diff --git a/src/algebra/matcat.spad b/src/algebra/matcat.spad
+index e3446d9..8517888 100644
+--- a/src/algebra/matcat.spad
++++ b/src/algebra/matcat.spad
+@@ -1100,6 +1100,6 @@ SquareMatrixCategory(ndim, R, Row, Col) : Category == Definition where
+ \bibitem{1} G. Rote, Division-free algorithms for the determinant and the
+   Pfaffian, in : H. Alt (Ed.), Computational Discrete Mathematics, in : Lecture
+   Notes in Comput. Sci., vol. 2122, Springer, Berlin, 2001, pp. 119--135.
+-  MR1911585 (2003g : 65062), \url{http : //page.mi.fu-berlin.de/rote/Papers/abstract/Division-free+algorithms+for+the+determinant+and+the+Pfaffian : +algebraic+and+combinatorial+approaches.html}
++  MR1911585 (2003g : 65062), \url{http://page.mi.fu-berlin.de/rote/Papers/abstract/Division-free+algorithms+for+the+determinant+and+the+Pfaffian : +algebraic+and+combinatorial+approaches.html}
+ \end{thebibliography}
+ )endif
+diff --git a/src/algebra/rinterp.spad b/src/algebra/rinterp.spad
+index 56a47e6..e759bd9 100644
+--- a/src/algebra/rinterp.spad
++++ b/src/algebra/rinterp.spad
+@@ -19,7 +19,7 @@ where the coefficients of the rational function are in any given field.
+   Lagrange interpolation is implemented. I have a second version that parallels
+   the structure of pinterp.spad closely.
+ \item There are probably better ways to implement rational interpolation. Maybe
+-  {http : //www.cs.ucsb.edu/~omer/personal/abstracts/rational.html} contains
++  {http://www.cs.ucsb.edu/~omer/personal/abstracts/rational.html} contains
+   something useful, but I don't know.
+ \item Comments welcome!
+ \end{itemize}
+-- 
+2.1.4
+
